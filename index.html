@@ -2873,6 +2873,18 @@ document.getElementById('cal-ev-fecha').addEventListener('change', function() {
   renderCalPanel();
 });
 
+// ── STUB: hasActiveReminder (definición completa en script de recordatorios) ──
+// Se sobreescribe cuando carga ese script; aquí evita ReferenceError durante el primer render.
+if (typeof hasActiveReminder === 'undefined') {
+  window.hasActiveReminder = function(evId) {
+    try {
+      const RKEY = 'cal_reminders_v1';
+      const saved = JSON.parse(localStorage.getItem(RKEY) || '{}');
+      return !!(saved[evId] && saved[evId].fireAt > Date.now());
+    } catch(e) { return false; }
+  };
+}
+
 // ── EDICIÓN DE EVENTOS ──
 let editingEventId = null;
 
@@ -3910,6 +3922,15 @@ function _fbSaveReminder(evId, data) {
   if (window._fbReady) doSave();
   else window.addEventListener('firebase-ready', doSave, { once: true });
 }
+
+window.openRemindModal = openRemindModal;
+window.closeRemindModal = closeRemindModal;
+window.setReminder = setReminder;
+window.setReminderBeforeEvent = setReminderBeforeEvent;
+window.setReminderCustom = setReminderCustom;
+window.clearCurrentReminder = clearCurrentReminder;
+window.hasActiveReminder = hasActiveReminder;
+window.scheduleEventReminder = scheduleEventReminder;
 
 // Load reminders on startup
 window.addEventListener('load', () => loadReminders());
