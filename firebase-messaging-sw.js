@@ -1,7 +1,6 @@
-// ══════════════════════════════════════════════════════════════
-//  firebase-messaging-sw.js
-//  Coloca este archivo en la RAÍZ de tu servidor (mismo nivel que index.html)
-// ══════════════════════════════════════════════════════════════
+// firebase-messaging-sw.js
+// Service Worker para notificaciones push en background (FCM)
+// Debe estar en la RAÍZ del proyecto (mismo nivel que index.html)
 
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
@@ -17,33 +16,33 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ── Notificaciones en background (app cerrada o en segundo plano) ──
+// Muestra la notificación cuando la app está en BACKGROUND o cerrada
 messaging.onBackgroundMessage(payload => {
   console.log('[SW] Mensaje en background recibido:', payload);
 
-  const title = (payload.notification && payload.notification.title) || '⏰ Recordatorio';
-  const body  = (payload.notification && payload.notification.body)  || '';
+  const title = payload.notification?.title || '⏰ Recordatorio';
+  const body  = payload.notification?.body  || '';
 
   self.registration.showNotification(title, {
     body,
     icon:  '/icons/icon-192.png',
     badge: '/icons/icon-96.png',
-    tag:   payload.data && payload.data.evId ? 'remind-' + payload.data.evId : 'remind',
-    data:  payload.data || {},
-    vibrate: [200, 100, 200],
-    requireInteraction: false
+    tag:   payload.data?.eventId ? 'remind-' + payload.data.eventId : 'remind',
+    data:  payload.data || {}
   });
 });
 
-// ── Al pulsar la notificación, abre / enfoca la app ──
+// Al pulsar la notificación, abre / enfoca la app
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const client of list) {
-        if ('focus' in client) return client.focus();
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
       }
-      if (clients.openWindow) return clients.openWindow('/');
+      return clients.openWindow('/');
     })
   );
 });
