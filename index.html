@@ -3516,6 +3516,16 @@ function rescheduleAllTaskNotifications() {
   });
 }
 
+// Exponer funciones necesarias para onclick en innerHTML dinámico
+window.clearDone = clearDone;
+window.openEditModal = openEditModal;
+window.deleteCalEvent = deleteCalEvent;
+window.addMiDia = addMiDia;
+window.deleteMiDiaItem = deleteMiDiaItem;
+window.toggleMiDiaItem = toggleMiDiaItem;
+window.resetMiDia = resetMiDia;
+window.abrirEditTarea = abrirEditTarea;
+
 // Hook: cancela notificación al completar o borrar
 const _origToggleTarea = toggleTarea;
 window.toggleTarea = function(tipo, id) {
