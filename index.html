@@ -1486,9 +1486,9 @@
               <input class="cal-ev-extra-input" id="cal-ev-dur-custom" type="number" min="1" max="1440" placeholder="ej. 75" />
             </div>
           </div>
-          <!-- Repetición -->
+          <!-- Repetición + Recordatorio -->
           <div class="cal-ev-extra">
-            <div class="cal-ev-extra-field" style="grid-column:1/-1">
+            <div class="cal-ev-extra-field">
               <span class="cal-ev-extra-label">Repetición</span>
               <select class="cal-ev-extra-select" id="cal-ev-repeat">
                 <option value="none">Sin repetición</option>
@@ -1497,6 +1497,20 @@
                 <option value="biweekly">Cada 2 semanas</option>
                 <option value="monthly">Cada mes</option>
                 <option value="yearly">Cada año</option>
+              </select>
+            </div>
+            <div class="cal-ev-extra-field">
+              <span class="cal-ev-extra-label">🔔 Recordatorio</span>
+              <select class="cal-ev-extra-select" id="cal-ev-reminder">
+                <option value="none">Sin recordatorio</option>
+                <option value="0">En el momento</option>
+                <option value="5">5 min antes</option>
+                <option value="10">10 min antes</option>
+                <option value="15">15 min antes</option>
+                <option value="30">30 min antes</option>
+                <option value="60">1 hora antes</option>
+                <option value="120">2 horas antes</option>
+                <option value="1440">1 día antes</option>
               </select>
             </div>
           </div>
@@ -1849,6 +1863,20 @@
         <option value="biweekly">Cada 2 semanas</option>
         <option value="monthly">Cada mes</option>
         <option value="yearly">Cada año</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">🔔 Recordatorio</label>
+      <select class="modal-select" id="modal-ev-reminder">
+        <option value="none">Sin recordatorio</option>
+        <option value="0">En el momento</option>
+        <option value="5">5 min antes</option>
+        <option value="10">10 min antes</option>
+        <option value="15">15 min antes</option>
+        <option value="30">30 min antes</option>
+        <option value="60">1 hora antes</option>
+        <option value="120">2 horas antes</option>
+        <option value="1440">1 día antes</option>
       </select>
     </div>
     <div class="modal-actions">
@@ -2685,7 +2713,7 @@ function renderCalPanel() {
     const durationBadge = e.duracion ? `<span class="ev-duration">⏱ ${e.duracion >= 60 ? Math.floor(e.duracion/60)+'h'+(e.duracion%60?` ${e.duracion%60}m`:'') : e.duracion+'min'}</span>` : '';
     const alldayBadge = e.allday ? `<span class="ev-allday">Todo el día</span>` : '';
     const remindActive = hasActiveReminder(String(e.id));
-    const remindBtn = e._readOnly ? '' : `<button class="cal-event-remind${remindActive?' active':''}" title="${remindActive?'Recordatorio activo':'Añadir recordatorio'}" onclick="openRemindModal('${e.id}',${JSON.stringify(e.text)},${JSON.stringify(e.hora||'')})">🔔</button>`;
+    const remindBadge = (e.reminder && e.reminder !== 'none') ? `<span style="font-size:0.65rem;opacity:0.7" title="Recordatorio configurado">🔔</span>` : '';
     const actions = e._readOnly
       ? `<span style="font-size:0.65rem;color:var(--muted)">Repetido</span>`
       : `<button class="cal-event-edit" title="Editar" onclick="openEditModal(${i})">Editar</button>
@@ -2693,8 +2721,7 @@ function renderCalPanel() {
     return `<div class="cal-event-item ${e.pri !== 'normal' ? e.pri : ''}">
       <span class="ev-time">${e.allday ? '🌅' : (e.hora || '—')}</span>
       <span class="ev-type-badge ${tipo.cls}">${tipo.label}</span>
-      <span style="flex:1">${e.text} ${alldayBadge}${durationBadge}${repeatBadge}</span>
-      ${remindBtn}
+      <span style="flex:1">${e.text} ${alldayBadge}${durationBadge}${repeatBadge}${remindBadge}</span>
       ${actions}
     </div>`;
   }).join('');
@@ -2715,21 +2742,26 @@ function addCalEvent() {
     ? (parseInt(document.getElementById('cal-ev-dur-custom').value) || '')
     : (durSelect ? parseInt(durSelect) : '');
   const repeat = document.getElementById('cal-ev-repeat').value;
+  const reminder = document.getElementById('cal-ev-reminder').value;
+  const evId = Date.now();
   if (!calEventsDB[targetKey]) calEventsDB[targetKey] = [];
-  calEventsDB[targetKey].push({ id: Date.now(), text, hora, pri, allday, duracion, repeat });
+  calEventsDB[targetKey].push({ id: evId, text, hora, pri, allday, duracion, repeat, reminder });
   // Update selected key to match the date used
   calSelectedKey = targetKey;
   // Navigate calendar to the month of the added event
   const [y,m] = targetKey.split('-').map(Number);
   calYear = y; calMonth = m - 1;
   saveCal(); renderCal(); renderCalPanel();
+  // Schedule reminder if set
+  if (reminder !== 'none') scheduleEventReminder(evId, text, targetKey, hora, parseInt(reminder));
   document.getElementById('cal-ev-text').value = '';
   document.getElementById('cal-ev-hora').value = '';
   document.getElementById('cal-ev-duracion').value = '';
   document.getElementById('cal-ev-repeat').value = 'none';
+  document.getElementById('cal-ev-reminder').value = 'none';
   document.getElementById('cal-ev-allday').checked = false;
   document.getElementById('cal-ev-time-block').style.display = '';
-  mostrarToast('✓ Evento añadido');
+  mostrarToast('✓ Evento añadido' + (reminder !== 'none' ? ' con recordatorio 🔔' : ''));
 }
 
 function deleteCalEvent(idx) {
@@ -2869,6 +2901,8 @@ function openEditModal(idx) {
   }
   // Repeat
   document.getElementById('modal-ev-repeat').value = ev.repeat || 'none';
+  // Reminder
+  document.getElementById('modal-ev-reminder').value = ev.reminder !== undefined ? ev.reminder : 'none';
   document.getElementById('modal-edit-event').classList.add('open');
   setTimeout(() => document.getElementById('modal-ev-text').focus(), 50);
 }
@@ -2890,13 +2924,17 @@ function saveEditEvent() {
     ? (parseInt(document.getElementById('modal-ev-dur-custom').value) || '')
     : (durSel ? parseInt(durSel) : '');
   const repeat = document.getElementById('modal-ev-repeat').value;
+  const reminder = document.getElementById('modal-ev-reminder').value;
   const list = calEventsDB[calSelectedKey];
   if (!list) return;
   const idx = list.findIndex(e => e.id === editingEventId);
   if (idx === -1) return;
-  list[idx] = { ...list[idx], text, hora, pri, allday, duracion, repeat };
+  list[idx] = { ...list[idx], text, hora, pri, allday, duracion, repeat, reminder };
+  // Cancel old reminder and reschedule if needed
+  cancelReminder(String(editingEventId));
+  if (reminder !== 'none') scheduleEventReminder(editingEventId, text, calSelectedKey, hora, parseInt(reminder));
   saveCal(); renderCal(); renderCalPanel(); closeEditModal();
-  mostrarToast('✏️ Evento actualizado');
+  mostrarToast('✏️ Evento actualizado' + (reminder !== 'none' ? ' con recordatorio 🔔' : ''));
 }
 
 // Cerrar modal al hacer click fuera
@@ -3811,6 +3849,34 @@ function hasActiveReminder(evId) {
     const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
     return saved[evId] && saved[evId].fireAt > Date.now();
   } catch(e) { return false; }
+}
+
+// Calcula cuándo disparar el recordatorio según la fecha/hora del evento y los minutos de antelación
+function scheduleEventReminder(evId, text, dateKey, hora, minutesBefore) {
+  let fireAt;
+  if (hora) {
+    // Evento con hora: disparar X minutos antes de esa hora en esa fecha
+    const [h, m] = hora.split(':').map(Number);
+    const [y, mo, d] = dateKey.split('-').map(Number);
+    fireAt = new Date(y, mo - 1, d, h, m, 0, 0).getTime() - minutesBefore * 60000;
+  } else {
+    // Todo el día: disparar X minutos antes de medianoche de ese día (o en el momento = 08:00)
+    const [y, mo, d] = dateKey.split('-').map(Number);
+    const midnight = new Date(y, mo - 1, d, 8, 0, 0, 0).getTime();
+    fireAt = midnight - minutesBefore * 60000;
+  }
+  const remaining = fireAt - Date.now();
+  if (remaining <= 0) {
+    mostrarToast('⚠️ El recordatorio ya ha pasado');
+    return;
+  }
+  // Guardar en localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
+    saved[String(evId)] = { fireAt, text, minutesBefore };
+    localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
+  } catch(e) {}
+  scheduleReminderTimer(String(evId), text, remaining);
 }
 
 // Load reminders on startup
