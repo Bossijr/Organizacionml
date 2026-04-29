@@ -1,7 +1,7 @@
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 //  firebase-messaging-sw.js
-//  Coloca este archivo en la RAÍZ de tu proyecto (junto a index.html)
-// ══════════════════════════════════════════════════════════════════
+//  Coloca este archivo en la RAÍZ de tu servidor (mismo nivel que index.html)
+// ══════════════════════════════════════════════════════════════
 
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
@@ -17,29 +17,31 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ✅ Se ejecuta cuando la app está CERRADA o en SEGUNDO PLANO
+// ── Notificaciones en background (app cerrada o en segundo plano) ──
 messaging.onBackgroundMessage(payload => {
-  const title = payload.notification?.title || '⏰ Recordatorio';
-  const body  = payload.notification?.body  || '';
+  console.log('[SW] Mensaje en background recibido:', payload);
+
+  const title = (payload.notification && payload.notification.title) || '⏰ Recordatorio';
+  const body  = (payload.notification && payload.notification.body)  || '';
 
   self.registration.showNotification(title, {
     body,
-    icon:    '/icons/icon-192.png',
-    badge:   '/icons/icon-96.png',
+    icon:  '/icons/icon-192.png',
+    badge: '/icons/icon-96.png',
+    tag:   payload.data && payload.data.evId ? 'remind-' + payload.data.evId : 'remind',
+    data:  payload.data || {},
     vibrate: [200, 100, 200],
-    tag:     payload.data?.taskId ? 'tarea-' + payload.data.taskId : 'recordatorio',
-    data:    payload.data || {}
+    requireInteraction: false
   });
 });
 
-// Al pulsar la notificación, abre/enfoca la app
+// ── Al pulsar la notificación, abre / enfoca la app ──
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const client of list) {
-        if (client.url.includes(self.location.origin) && 'focus' in client)
-          return client.focus();
+        if ('focus' in client) return client.focus();
       }
       if (clients.openWindow) return clients.openWindow('/');
     })

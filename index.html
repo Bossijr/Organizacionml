@@ -3727,6 +3727,8 @@ function fireReminder(evId, text, missed) {
     delete saved[evId];
     localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
   } catch(e) {}
+  // Borrar también de Firestore (la Cloud Function no necesita enviarlo ya)
+  if (window._fbDelete) window._fbDelete('reminders', String(evId));
   // Refresh bell icons
   renderCalPanel && renderCalPanel();
 }
@@ -3787,18 +3789,20 @@ async function ensureNotificationPermission() {
 
 async function setReminder(minutes) {
   if (!currentRemindEventId) return;
-  const ok = await ensureNotificationPermission();
-  // We still schedule even without permission (in-app toast will work)
+  await ensureNotificationPermission();
   const fireAt = Date.now() + minutes * 60 * 1000;
   const text = currentRemindEventData.text;
   const evId = currentRemindEventId;
 
-  // Save to localStorage
+  // 1) Guardar en localStorage (funciona con la app abierta)
   try {
     const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
     saved[evId] = { fireAt, text, minutes };
     localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
   } catch(e) {}
+
+  // 2) Guardar en Firestore → Cloud Function lo enviará aunque la app esté cerrada
+  _fbSaveReminder(String(evId), { fireAt, text, evId: String(evId), sent: false });
 
   scheduleReminderTimer(evId, text, minutes * 60 * 1000);
   closeRemindModal();
@@ -3837,11 +3841,14 @@ function clearCurrentReminder() {
 
 function cancelReminder(evId) {
   if (remindTimers[evId]) { clearTimeout(remindTimers[evId]); delete remindTimers[evId]; }
+  // 1) Borrar de localStorage
   try {
     const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
     delete saved[evId];
     localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
   } catch(e) {}
+  // 2) Borrar de Firestore → la Cloud Function no lo enviará
+  if (window._fbDelete) window._fbDelete('reminders', String(evId));
 }
 
 function hasActiveReminder(evId) {
@@ -3870,13 +3877,28 @@ function scheduleEventReminder(evId, text, dateKey, hora, minutesBefore) {
     mostrarToast('⚠️ El recordatorio ya ha pasado');
     return;
   }
-  // Guardar en localStorage
+  // 1) Guardar en localStorage
   try {
     const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
     saved[String(evId)] = { fireAt, text, minutesBefore };
     localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
   } catch(e) {}
+  // 2) Guardar en Firestore → Cloud Function enviará push aunque la app esté cerrada
+  _fbSaveReminder(String(evId), { fireAt, text, evId: String(evId), sent: false });
   scheduleReminderTimer(String(evId), text, remaining);
+}
+
+// ── Helper: guarda recordatorio en Firestore (con espera a firebase-ready) ──
+function _fbSaveReminder(evId, data) {
+  const doSave = () => {
+    if (window._fbSet) {
+      window._fbSet('reminders', evId, data)
+        .then(() => console.log('[Remind] Guardado en Firestore:', evId))
+        .catch(e => console.warn('[Remind] Error Firestore:', e));
+    }
+  };
+  if (window._fbReady) doSave();
+  else window.addEventListener('firebase-ready', doSave, { once: true });
 }
 
 // Load reminders on startup
