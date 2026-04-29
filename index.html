@@ -1,0 +1,3647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mi Web Personal</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a2540">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Web">
+<meta name="description" content="Entrenamiento, calendario y lista de la compra">
+
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
+<link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128.png">
+<link rel="apple-touch-icon" sizes="96x96"   href="icons/icon-96.png">
+<link rel="apple-touch-icon" sizes="72x72"   href="icons/icon-72.png">
+<link rel="apple-touch-icon"                 href="icons/icon-192.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72.png">
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ══════════ CONFIGURACIÓN FIREBASE ══════════
+  // INSTRUCCIONES: Reemplaza estos valores con los de tu proyecto Firebase.
+  // Ve a https://console.firebase.google.com → Nuevo proyecto → Web app → copia firebaseConfig
+  const firebaseConfig = {
+    apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
+    authDomain: "organizacionml.firebaseapp.com",
+    projectId: "organizacionml",
+    storageBucket: "organizacionml.firebasestorage.app",
+    messagingSenderId: "217963164755",
+    appId: "1:217963164755:web:6504fc815010b7110242a6",
+    measurementId: "G-GXFENBBT8B"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ══════════ HELPERS FIRESTORE ══════════
+  // Guarda cualquier dato bajo user/default/<colección>/<docId>
+  window._fbSet = async (coleccion, id, data) => {
+    try {
+      await setDoc(doc(db, "user", "default", coleccion, id), data);
+    } catch(e) { console.warn('[Firebase] Error guardando:', e); }
+  };
+
+  window._fbDelete = async (coleccion, id) => {
+    try {
+      await deleteDoc(doc(db, "user", "default", coleccion, id));
+    } catch(e) { console.warn('[Firebase] Error borrando:', e); }
+  };
+
+  // Escucha cambios en tiempo real de una colección entera
+  window._fbListen = (coleccion, callback) => {
+    return onSnapshot(collection(db, "user", "default", coleccion), snapshot => {
+      const docs = {};
+      snapshot.forEach(d => { docs[d.id] = d.data(); });
+      callback(docs);
+    }, err => console.warn('[Firebase] Error escuchando:', err));
+  };
+
+  window._fbReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<!-- Fuentes -->
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a2540;
+    --ocean: #0e6ba8;
+    --ocean-light: #a8d5f0;
+    --sand: #f5f0e8;
+    --grass: #1a5c2a;
+    --amber: #c96a00;
+    --coral: #c0392b;
+    --ink: #1a1a2e;
+    --muted: #6b7280;
+    --border: rgba(10,37,64,0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--sand); color: var(--ink); line-height: 1.6; }
+
+  /* ── PORTADA ── */
+  #portada {
+    min-height: 100vh;
+    background: var(--navy);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  #portada::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -100px;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    border: 50px solid rgba(14,107,168,0.18);
+    pointer-events: none;
+  }
+  #portada::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 60px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    border: 35px solid rgba(14,107,168,0.1);
+    pointer-events: none;
+  }
+  .portada-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ocean-light);
+    margin-bottom: 1rem;
+  }
+  .portada-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 6rem);
+    letter-spacing: 0.04em;
+    line-height: 0.92;
+    color: white;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+  .portada-title span { color: var(--ocean-light); }
+  .portada-sub {
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.55);
+    font-weight: 300;
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  .portada-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.2rem;
+    width: 100%;
+    max-width: 780px;
+    position: relative;
+    z-index: 1;
+  }
+  @media (max-width: 640px) { .portada-cards { grid-template-columns: 1fr; } }
+  .portada-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 18px;
+    padding: 2rem 1.5rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, border-color 0.2s;
+    text-align: center;
+    user-select: none;
+  }
+  .portada-card:hover {
+    background: rgba(255,255,255,0.13);
+    border-color: var(--ocean-light);
+    transform: translateY(-4px);
+  }
+  .portada-card-icon { font-size: 2.4rem; margin-bottom: 0.7rem; }
+  .portada-card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.06em;
+    color: white;
+    margin-bottom: 0.3rem;
+  }
+  .portada-card-desc { font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: 300; }
+
+  /* ── PORTADA WIDGETS ── */
+  .portada-widgets {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.85rem;
+    width: 100%;
+    max-width: 780px;
+    margin-bottom: 1.8rem;
+    position: relative;
+    z-index: 1;
+  }
+  @media (max-width: 640px) { .portada-widgets { grid-template-columns: 1fr; } }
+  .pw {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 1.1rem 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+    text-align: left;
+  }
+  .pw:hover { background: rgba(255,255,255,0.11); border-color: rgba(168,213,240,0.45); }
+  .pw-label {
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ocean-light); opacity: 0.75; margin-bottom: 0.5rem; display: block;
+  }
+  .pw-main {
+    font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 0.03em;
+    color: white; line-height: 1; margin-bottom: 0.2rem;
+  }
+  .pw-sub { font-size: 0.75rem; color: rgba(255,255,255,0.55); font-weight: 300; line-height: 1.4; }
+  .pw-icon { position: absolute; bottom: 0.6rem; right: 0.9rem; font-size: 1.6rem; opacity: 0.18; }
+  .pw-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ocean); color: white; font-size: 0.7rem; font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+  .pw-task-item {
+    font-size: 0.75rem; color: rgba(255,255,255,0.7); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; padding: 1px 0;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .pw-task-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ocean-light); flex-shrink: 0; }
+  .pw-empty { font-size: 0.78rem; color: rgba(255,255,255,0.3); font-style: italic; }
+
+  /* ── ÁREA WRAPPER ── */
+  .area { display: none; }
+  .area.active { display: block; }
+
+  /* ── BACK BUTTON ── */
+  .back-bar {
+    background: var(--navy);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 0.75rem 1.5rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+  }
+  .back-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: var(--ocean-light);
+    border-radius: 10px;
+    padding: 0.6rem 1.3rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.15s;
+    min-height: 44px;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.22); }
+  .back-area-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  /* Space so content doesn't hide behind fixed back bar */
+  .area { padding-bottom: 70px; }
+
+  /* ── HERO (entrenamiento) ── */
+  .hero {
+    background: var(--navy);
+    color: white;
+    padding: 2.5rem 2rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -80px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    border: 40px solid rgba(14,107,168,0.25);
+    pointer-events: none;
+  }
+  .hero-label { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ocean-light); margin-bottom: 0.4rem; }
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem,7vw,4rem);
+    letter-spacing: 0.04em;
+    line-height: 0.95;
+    margin-bottom: 0.8rem;
+  }
+  .hero h1 span { color: var(--ocean-light); }
+  .hero-desc { font-size: 0.9rem; color: rgba(255,255,255,0.65); max-width: 480px; margin-bottom: 1.4rem; font-weight: 300; }
+  .hero-stats { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+  .stat { text-align: center; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 0.6rem 1rem; min-width: 72px; }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.7rem; color: var(--ocean-light); line-height: 1; }
+  .stat-lbl { font-size: 0.68rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* ── HERO (personal) ── */
+  .hero-personal {
+    background: var(--navy);
+    color: white;
+    padding: 2rem 2rem 1.6rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-personal::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -60px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    border: 30px solid rgba(14,107,168,0.2);
+    pointer-events: none;
+  }
+  .hero-personal-inner { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .hero-personal h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.8rem,5vw,2.8rem); letter-spacing: 0.05em; color: white; }
+  .hero-personal h2 span { color: var(--ocean-light); }
+  .hero-personal-desc { font-size: 0.85rem; color: rgba(255,255,255,0.55); font-weight: 300; margin-top: 0.25rem; }
+
+  /* ── NAV TABS (training) ── */
+  .nav-wrap { background: var(--navy); padding: 0 2rem; border-bottom: 2px solid var(--ocean); position: sticky; top: 0; z-index: 100; }
+  .nav-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    padding: 0.85rem 1.1rem;
+    font-size: 0.76rem; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+    user-select: none;
+  }
+  .nav-tab:hover { color: rgba(255,255,255,0.8); }
+  .nav-tab.active { color: var(--ocean-light); border-bottom-color: var(--ocean-light); }
+
+  /* ── NAV TABS (personal) ── */
+  .nav-personal { background: var(--navy); padding: 0 2rem; border-bottom: 2px solid var(--ocean); position: sticky; top: 0; z-index: 100; }
+  .nav-personal-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+  .nav-personal-tabs::-webkit-scrollbar { display: none; }
+  .pers-tab {
+    padding: 0.85rem 1.1rem;
+    font-size: 0.76rem; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+    user-select: none;
+  }
+  .pers-tab:hover { color: rgba(255,255,255,0.8); }
+  .pers-tab.active { color: var(--ocean-light); border-bottom-color: var(--ocean-light); }
+
+  /* ── SECTIONS ── */
+  .section { display: none; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  .section.active { display: block; }
+  .pers-section { display: none; padding: 2rem; max-width: 960px; margin: 0 auto; }
+  .pers-section.active { display: block; }
+
+  /* ── WEEK GRID ── */
+  .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+  .week-card {
+    background: white; border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 1rem 1.1rem; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .week-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(10,37,64,0.1); }
+  .week-card.active { border-color: var(--ocean); box-shadow: 0 0 0 3px rgba(14,107,168,0.15); }
+  .wc-day { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .wc-title { font-size: 0.88rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
+  .tag { display: inline-block; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; }
+  .tag-fuerza { background: #dbeafe; color: #1e40af; }
+  .tag-surf { background: #d1fae5; color: #065f46; }
+  .tag-potencia { background: #ede9fe; color: #4c1d95; }
+  .tag-cardio { background: #dcfce7; color: #14532d; }
+  .tag-futbol { background: #fef3c7; color: #92400e; }
+  .tag-descanso { background: #f3f4f6; color: #374151; }
+
+  /* ── DAY DETAIL ── */
+  .day-detail { background: white; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+  .day-header { padding: 1.4rem 1.7rem 1.1rem; border-bottom: 1px solid var(--border); }
+  .day-header-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem; }
+  .day-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.7rem; letter-spacing: 0.04em; color: var(--navy); }
+  .day-sub { font-size: 0.87rem; color: var(--muted); font-weight: 300; line-height: 1.5; }
+  .phases-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  @media (max-width: 600px) { .phases-grid { grid-template-columns: 1fr; } }
+  .phase-block { padding: 1.2rem 1.4rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .phase-block:nth-child(even) { border-right: none; }
+  .phase-name { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ocean); margin-bottom: 0.5rem; }
+  .phase-item { font-size: 0.86rem; color: var(--ink); padding: 2px 0 2px 14px; position: relative; line-height: 1.5; }
+  .phase-item::before { content: '·'; position: absolute; left: 4px; color: var(--ocean); font-weight: 700; }
+  .tip-bar { padding: 1rem 1.4rem; background: #f0f7ff; border-left: 3px solid var(--ocean); font-size: 0.86rem; color: var(--navy); font-style: italic; line-height: 1.6; }
+  .tip-bar strong { font-style: normal; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ocean); display: block; margin-bottom: 2px; }
+
+  /* ── INFO / PROG / REC ── */
+  .info-grid { display: grid; gap: 0.75rem; }
+  .info-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.3rem; display: grid; grid-template-columns: 160px 1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 500px) { .info-card { grid-template-columns: 1fr; } }
+  .info-key { font-size: 0.82rem; font-weight: 600; color: var(--navy); }
+  .info-val { font-size: 0.875rem; color: #374151; line-height: 1.6; }
+  .prog-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 0.75rem; }
+  .prog-header { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.3rem; }
+  .prog-num { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--ocean); line-height: 1; min-width: 36px; }
+  .prog-title { font-size: 0.9rem; font-weight: 600; color: var(--navy); }
+  .prog-body { font-size: 0.875rem; color: var(--muted); padding: 0 1.3rem 1rem 1.3rem; }
+  .section-heading { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.05em; color: var(--navy); margin-bottom: 1rem; }
+  .section-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 1.5rem; }
+  .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  @media (max-width: 540px) { .rec-grid { grid-template-columns: 1fr; } }
+  .rec-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.2rem; }
+  .rec-icon { font-size: 1.2rem; margin-bottom: 0.4rem; }
+  .rec-title { font-size: 0.85rem; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+  .rec-text { font-size: 0.825rem; color: #4b5563; line-height: 1.55; }
+
+  /* ── REGISTRO ── */
+  .reg-form-card { background: white; border: 1.5px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .reg-form-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.05em; color: var(--navy); margin-bottom: 1rem; }
+  .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+  @media (max-width: 500px) { .reg-grid { grid-template-columns: 1fr; } }
+  .reg-field { display: flex; flex-direction: column; gap: 4px; }
+  .reg-field.full { grid-column: 1 / -1; }
+  .reg-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .reg-input, .reg-select, .reg-textarea {
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; padding: 0.55rem 0.75rem;
+    border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand);
+    color: var(--ink); outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  .reg-input:focus, .reg-select:focus, .reg-textarea:focus { border-color: var(--ocean); background: white; }
+  .reg-textarea { resize: vertical; min-height: 70px; }
+  .reg-btn {
+    background: var(--navy); color: white; border: none; border-radius: 10px;
+    padding: 0.75rem 1.8rem; font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+    font-weight: 600; cursor: pointer; letter-spacing: 0.04em; transition: background 0.2s, transform 0.1s;
+  }
+  .reg-btn:hover { background: var(--ocean); transform: translateY(-1px); }
+  .reg-btn-danger {
+    background: transparent; color: var(--coral); border: 1.5px solid var(--coral); border-radius: 8px;
+    padding: 0.3rem 0.7rem; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s;
+  }
+  .reg-btn-danger:hover { background: var(--coral); color: white; }
+  .reg-history-wrap { background: white; border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .reg-history-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .reg-history-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.05em; color: var(--navy); }
+  .reg-filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--sand); }
+  .reg-filter-btn {
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: white;
+    cursor: pointer; color: var(--muted); transition: all 0.15s;
+  }
+  .reg-filter-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .reg-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .reg-table thead th { text-align: left; padding: 0.6rem 1rem; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--sand); border-bottom: 1px solid var(--border); }
+  .reg-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .reg-table tbody tr:last-child { border-bottom: none; }
+  .reg-table tbody tr:hover { background: #f9fafb; }
+  .reg-table td { padding: 0.7rem 1rem; vertical-align: middle; }
+  .reg-table td:last-child { text-align: right; }
+  .pr-badge { display: inline-block; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; background: #fef9c3; color: #854d0e; border: 1px solid #fde047; border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; }
+  .reg-empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.9rem; }
+  .reg-empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .reg-stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .reg-stat-card { background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; text-align: center; }
+  .reg-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--ocean); line-height: 1; margin-bottom: 2px; }
+  .reg-stat-lbl { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+  /* ── TAREAS ── */
+  .tareas-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  @media (max-width: 600px) { .tareas-cols { grid-template-columns: 1fr; } }
+  .tarea-panel { background: white; border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .tarea-panel-header { display: flex; align-items: center; gap: 0.5rem; padding: 1rem 1.3rem; border-bottom: 1px solid var(--border); background: var(--sand); }
+  .tarea-panel-header h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.05em; color: var(--navy); flex: 1; }
+  .tarea-count { font-size: 0.7rem; font-weight: 700; background: var(--ocean); color: white; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.05em; }
+  .tarea-input-row { display: flex; gap: 0.5rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); }
+  .tarea-input { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; padding: 0.5rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand); color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .tarea-input:focus { border-color: var(--ocean); background: white; }
+  .tarea-add-btn { background: var(--navy); color: white; border: none; border-radius: 8px; padding: 0.5rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+  .tarea-add-btn:hover { background: var(--ocean); }
+  .tarea-list { padding: 0.5rem 0; min-height: 80px; max-height: 320px; overflow-y: auto; }
+  .tarea-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.55rem 1rem; border-bottom: 1px solid rgba(10,37,64,0.06); transition: background 0.1s; }
+  .tarea-item:last-child { border-bottom: none; }
+  .tarea-item:hover { background: #f9fafb; }
+  .tarea-check { width: 17px; height: 17px; border: 2px solid var(--ocean); border-radius: 4px; cursor: pointer; flex-shrink: 0; margin-top: 2px; appearance: none; -webkit-appearance: none; position: relative; transition: background 0.15s; }
+  .tarea-check:checked { background: var(--ocean); border-color: var(--ocean); }
+  .tarea-check:checked::after { content: '✓'; position: absolute; top: -1px; left: 1px; font-size: 11px; color: white; font-weight: 700; }
+  .tarea-text { flex: 1; font-size: 0.875rem; color: var(--ink); line-height: 1.5; word-break: break-word; }
+  .tarea-text.done { text-decoration: line-through; color: var(--muted); }
+  .tarea-del { background: none; border: none; color: #d1d5db; cursor: pointer; font-size: 0.85rem; padding: 0 2px; flex-shrink: 0; transition: color 0.15s; }
+  .tarea-del:hover { color: var(--coral); }
+  .tarea-empty { text-align: center; padding: 1.5rem 1rem; color: var(--muted); font-size: 0.82rem; }
+  .tarea-footer { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 1rem; border-top: 1px solid var(--border); background: var(--sand); font-size: 0.72rem; color: var(--muted); }
+  .tarea-clear-btn { background: none; border: none; color: var(--coral); font-size: 0.72rem; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+  .tarea-clear-btn:hover { text-decoration: underline; }
+  .tarea-pri-select { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; border: 1.5px solid var(--border); border-radius: 6px; background: var(--sand); padding: 0.35rem 0.4rem; color: var(--ink); outline: none; cursor: pointer; }
+  .pri-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; flex-shrink: 0; margin-top: 6px; }
+  .dot-alta { background: #ef4444; }
+  .dot-media { background: var(--amber); }
+  .dot-baja { background: var(--grass); }
+
+  /* ── CALENDARIO ── */
+  .cal-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .cal-view-btn {
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 0.45rem 1rem; border-radius: 20px; border: 1.5px solid var(--border);
+    background: white; color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .cal-view-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .cal-nav-group { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+  .cal-nav-btn {
+    background: var(--navy); border: none; color: var(--ocean-light);
+    border-radius: 8px; width: 32px; height: 32px; font-size: 1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+  }
+  .cal-nav-btn:hover { background: var(--ocean); }
+  .cal-today-btn {
+    font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.8rem;
+    background: rgba(14,107,168,0.1); border: 1.5px solid var(--ocean);
+    color: var(--ocean); border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .cal-today-btn:hover { background: var(--ocean); color: white; }
+  .cal-period-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem; letter-spacing: 0.06em; color: var(--navy);
+    text-transform: capitalize;
+  }
+  /* Month/year picker */
+  .cal-period-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem; letter-spacing: 0.06em; color: var(--navy);
+    text-transform: capitalize; background: none; border: none; cursor: pointer;
+    padding: 0.15rem 0.5rem; border-radius: 8px; transition: background 0.15s;
+    display: flex; align-items: center; gap: 0.3rem;
+  }
+  .cal-period-btn:hover { background: rgba(10,37,64,0.07); }
+  .cal-period-btn::after { content: '▾'; font-size: 0.7rem; opacity: 0.5; font-family: 'DM Sans', sans-serif; }
+  .cal-picker-overlay {
+    position: fixed; inset: 0; z-index: 400; background: rgba(10,37,64,0.3);
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .cal-picker-box {
+    background: white; border-radius: 18px; padding: 1.4rem;
+    box-shadow: 0 20px 60px rgba(10,37,64,0.22); width: 100%; max-width: 340px;
+  }
+  .cal-picker-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.07em;
+    color: var(--navy); margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;
+  }
+  .cal-picker-close {
+    background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--muted);
+    line-height: 1; padding: 2px 4px; border-radius: 6px; transition: color 0.15s;
+  }
+  .cal-picker-close:hover { color: var(--navy); }
+  .cal-picker-year-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem; gap: 0.5rem;
+  }
+  .cal-picker-year-nav {
+    background: var(--sand); border: 1.5px solid var(--border); border-radius: 8px;
+    width: 36px; height: 36px; cursor: pointer; font-size: 1.1rem; color: var(--navy);
+    display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .cal-picker-year-nav:hover { background: var(--ocean-light); }
+  .cal-picker-year-val {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.05em;
+    color: var(--navy); text-align: center; flex: 1;
+  }
+  .cal-picker-months {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem;
+  }
+  .cal-picker-month-btn {
+    padding: 0.55rem 0.3rem; border-radius: 10px; border: 1.5px solid var(--border);
+    background: white; font-family: 'DM Sans', sans-serif; font-size: 0.8rem;
+    font-weight: 500; cursor: pointer; color: var(--ink); transition: all 0.15s; text-align: center;
+  }
+  .cal-picker-month-btn:hover { border-color: var(--ocean); color: var(--ocean); background: #f0f7ff; }
+  .cal-picker-month-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+  /* MES */
+  .cal-mes-wrap { background: white; border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 1.2rem; }
+  .cal-days-header { display: grid; grid-template-columns: repeat(7,1fr); background: var(--sand); border-bottom: 1px solid var(--border); }
+  .cal-day-name { text-align: center; padding: 0.5rem 0; font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .cal-mes-grid { display: grid; grid-template-columns: repeat(7,1fr); }
+  .cal-cell {
+    min-height: 76px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 0.4rem; cursor: pointer; transition: background 0.1s; position: relative;
+  }
+  .cal-cell:nth-child(7n) { border-right: none; }
+  .cal-cell:hover { background: #f0f7ff; }
+  .cal-cell.empty { background: #fafafa; cursor: default; }
+  .cal-cell.today { background: #eff6ff; }
+  .cal-cell.selected { background: #dbeafe; box-shadow: inset 0 0 0 2px var(--ocean); }
+  .cal-num { font-size: 0.8rem; font-weight: 600; color: var(--ink); line-height: 1; margin-bottom: 3px; }
+  .cal-cell.today .cal-num { background: var(--ocean); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .cal-cell.empty .cal-num { color: #d1d5db; }
+  .cal-ev-mini { font-size: 0.65rem; color: white; background: var(--ocean); border-radius: 4px; padding: 1px 4px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-ev-mini.cumple   { background: #db2777; }
+  .cal-ev-mini.examen   { background: #7c3aed; }
+  .cal-ev-mini.evento   { background: var(--amber); color: #1a1a2e; }
+  .cal-ev-mini.festivoev{ background: #ea580c; }
+  .cal-ev-mini.rutina   { background: var(--grass); }
+
+  /* SEMANA */
+  .cal-semana-wrap { background: white; border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 1.2rem; }
+  .cal-semana-header { display: grid; grid-template-columns: 54px repeat(7,1fr); border-bottom: 2px solid var(--border); background: var(--sand); }
+  .cal-semana-col-head {
+    text-align: center; padding: 0.6rem 0.2rem;
+    font-size: 0.63rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    cursor: pointer; transition: background 0.1s;
+  }
+  .cal-semana-col-head:hover { background: #f0f7ff; }
+  .cal-semana-col-head.today-col { color: var(--ocean); }
+  .cal-semana-col-head .sday-num { font-size: 1.2rem; font-weight: 700; color: var(--ink); display: block; line-height: 1.1; }
+  .cal-semana-col-head.today-col .sday-num { color: white; background: var(--ocean); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2px; font-size: 0.95rem; }
+  .cal-semana-body { display: grid; grid-template-columns: 54px repeat(7,1fr); max-height: 480px; overflow-y: auto; }
+  .cal-hour-label { font-size: 0.65rem; color: var(--muted); text-align: right; padding: 0 6px 0 0; border-right: 1px solid var(--border); position: relative; }
+  .cal-hour-label span { position: absolute; top: -0.5em; right: 6px; }
+  .cal-hour-cell {
+    border-right: 1px solid var(--border); border-bottom: 1px solid rgba(10,37,64,0.06);
+    min-height: 44px; padding: 2px; cursor: pointer; transition: background 0.1s; position: relative;
+  }
+  .cal-hour-cell:hover { background: #f0f7ff; }
+  .cal-hour-cell.today-col { background: #f8fbff; }
+  .cal-hour-cell:last-child { border-right: none; }
+  .cal-ev-block {
+    font-size: 0.7rem; color: white; background: var(--ocean); border-radius: 5px;
+    padding: 2px 5px; margin: 1px 0; line-height: 1.3; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cal-ev-block.cumple   { background: #db2777; }
+  .cal-ev-block.examen   { background: #7c3aed; }
+  .cal-ev-block.evento   { background: var(--amber); color: #1a1a2e; }
+  .cal-ev-block.festivoev{ background: #ea580c; }
+  .cal-ev-block.rutina   { background: var(--grass); }
+
+  /* DÍA */
+  .cal-dia-wrap { background: white; border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 1.2rem; }
+  .cal-dia-header { background: var(--navy); color: white; padding: 1rem 1.5rem; }
+  .cal-dia-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.06em; text-transform: capitalize; }
+  .cal-dia-body { display: grid; grid-template-columns: 54px 1fr; max-height: 540px; overflow-y: auto; }
+  .cal-dia-hour-label { font-size: 0.65rem; color: var(--muted); text-align: right; padding: 0 6px 0 0; border-right: 1px solid var(--border); position: relative; }
+  .cal-dia-hour-label span { position: absolute; top: -0.5em; right: 6px; }
+  .cal-dia-hour-cell { border-bottom: 1px solid rgba(10,37,64,0.06); min-height: 48px; padding: 3px 8px; cursor: pointer; transition: background 0.1s; }
+  .cal-dia-hour-cell:hover { background: #f0f7ff; }
+
+  /* Panel evento */
+  .cal-event-panel {
+    background: white; border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden;
+  }
+  .cal-event-panel-header { padding: 1rem 1.4rem; border-bottom: 1px solid var(--border); background: var(--sand); display: flex; align-items: center; gap: 0.7rem; }
+  .cal-event-panel-header h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.05em; color: var(--navy); flex: 1; text-transform: capitalize; }
+  .cal-event-panel-body { padding: 1rem 1.4rem; }
+  .cal-event-form { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+  .cal-event-row { display: flex; gap: 0.5rem; }
+  .cal-event-input {
+    flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; padding: 0.5rem 0.75rem;
+    border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand); color: var(--ink); outline: none; transition: border-color 0.2s;
+  }
+  .cal-event-input:focus { border-color: var(--ocean); background: white; }
+  .cal-event-meta { display: flex; gap: 0.5rem; }
+  .cal-event-time { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; padding: 0.45rem 0.7rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand); color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .cal-event-time:focus { border-color: var(--ocean); background: white; }
+  .cal-event-pri { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; padding: 0.45rem 0.5rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand); color: var(--ink); outline: none; cursor: pointer; }
+  .cal-event-list { display: flex; flex-direction: column; gap: 0.4rem; }
+  .cal-event-item { display: flex; align-items: center; gap: 0.5rem; border-radius: 8px; padding: 0.45rem 0.75rem; font-size: 0.85rem; color: var(--navy); border-left: 3px solid var(--ocean); background: #f0f7ff; }
+  .cal-event-item.cumple    { border-color: #db2777; background: #fdf2f8; }
+  .cal-event-item.examen    { border-color: #7c3aed; background: #f5f3ff; }
+  .cal-event-item.evento    { border-color: var(--amber); background: #fffbeb; }
+  .cal-event-item.festivoev { border-color: #ea580c; background: #fff7ed; }
+  .cal-event-item.rutina    { border-color: var(--grass); background: #f0fdf4; }
+  .cal-event-item .ev-time { font-size: 0.72rem; font-weight: 700; color: var(--ocean); min-width: 36px; }
+  .cal-event-item.cumple .ev-time    { color: #db2777; }
+  .cal-event-item.examen .ev-time    { color: #7c3aed; }
+  .cal-event-item.evento .ev-time    { color: var(--amber); }
+  .cal-event-item.festivoev .ev-time { color: #ea580c; }
+  .cal-event-item.rutina .ev-time    { color: var(--grass); }
+  .cal-event-item .ev-type-badge {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 1px 6px; border-radius: 10px; flex-shrink: 0; white-space: nowrap;
+  }
+  .badge-normal    { background: #dbeafe; color: #1e40af; }
+  .badge-cumple    { background: #fce7f3; color: #9d174d; }
+  .badge-examen    { background: #ede9fe; color: #4c1d95; }
+  .badge-evento    { background: #fef3c7; color: #92400e; }
+  .badge-festivoev { background: #ffedd5; color: #9a3412; }
+  .badge-rutina    { background: #dcfce7; color: #14532d; }
+  .cal-event-item span { flex: 1; }
+  .cal-event-del { background: none; border: none; color: #d1d5db; cursor: pointer; font-size: 0.8rem; transition: color 0.15s; }
+  .cal-event-del:hover { color: var(--coral); }
+  .cal-no-events { text-align: center; color: var(--muted); font-size: 0.82rem; padding: 0.75rem 0; }
+
+  /* ── EDIT EVENT BUTTON ── */
+  .cal-event-edit {
+    background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 0.7rem;
+    font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: 0.04em;
+    transition: color 0.15s; padding: 0 2px; text-transform: uppercase;
+  }
+  .cal-event-edit:hover { color: var(--ocean); }
+
+  /* ── MODAL EDICIÓN EVENTO ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(10,37,64,0.55);
+    z-index: 500; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: white; border-radius: 18px; padding: 1.8rem 1.8rem 1.4rem;
+    width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(10,37,64,0.25);
+    position: relative;
+  }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.06em;
+    color: var(--navy); margin-bottom: 1.1rem;
+  }
+  .modal-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 0.75rem; }
+  .modal-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .modal-input, .modal-select {
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; padding: 0.55rem 0.75rem;
+    border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand);
+    color: var(--ink); outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  .modal-input:focus, .modal-select:focus { border-color: var(--ocean); background: white; }
+  .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.1rem; }
+  .modal-btn-cancel {
+    background: transparent; color: var(--muted); border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 0.55rem 1.2rem; font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .modal-btn-cancel:hover { border-color: var(--muted); color: var(--ink); }
+  .modal-btn-save {
+    background: var(--navy); color: white; border: none; border-radius: 8px;
+    padding: 0.55rem 1.4rem; font-family: 'DM Sans', sans-serif; font-size: 0.875rem;
+    font-weight: 600; cursor: pointer; transition: background 0.2s;
+  }
+  .modal-btn-save:hover { background: var(--ocean); }
+
+  /* ── LISTA DE LA COMPRA ── */
+  .shop-wrap { display: grid; gap: 1rem; }
+  .shop-panel { background: white; border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .shop-panel-header {
+    display: flex; align-items: center; gap: 0.5rem; padding: 1rem 1.3rem;
+    border-bottom: 1px solid var(--border); background: var(--sand);
+  }
+  .shop-panel-header h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.05em; color: var(--navy); flex: 1; }
+  .shop-stats-row { display: flex; gap: 0.5rem; margin-left: auto; }
+  .shop-stat-pill {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 2px 10px; border-radius: 20px; background: var(--ocean); color: white;
+  }
+  .shop-stat-pill.done-pill { background: var(--grass); }
+  .shop-input-row { display: flex; gap: 0.5rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .shop-input { flex: 1; min-width: 120px; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; padding: 0.5rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand); color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .shop-input:focus { border-color: var(--ocean); background: white; }
+  .shop-qty-input { width: 64px; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; padding: 0.5rem 0.6rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand); color: var(--ink); outline: none; }
+  .shop-cat-select { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; padding: 0.45rem 0.5rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand); color: var(--ink); outline: none; cursor: pointer; }
+  .shop-list { padding: 0.4rem 0; min-height: 60px; max-height: 400px; overflow-y: auto; }
+  .shop-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 1rem; border-bottom: 1px solid rgba(10,37,64,0.06); transition: background 0.1s; }
+  .shop-item:last-child { border-bottom: none; }
+  .shop-item:hover { background: #f9fafb; }
+  .shop-item-check { width: 17px; height: 17px; border: 2px solid var(--ocean); border-radius: 4px; cursor: pointer; flex-shrink: 0; appearance: none; -webkit-appearance: none; position: relative; transition: background 0.15s; }
+  .shop-item-check:checked { background: var(--ocean); border-color: var(--ocean); }
+  .shop-item-check:checked::after { content: '✓'; position: absolute; top: -1px; left: 1px; font-size: 11px; color: white; font-weight: 700; }
+  .shop-item-name { flex: 1; font-size: 0.875rem; color: var(--ink); line-height: 1.5; }
+  .shop-item-name.done { text-decoration: line-through; color: var(--muted); }
+  .shop-item-qty { font-size: 0.72rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .shop-cat-badge { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
+  .cat-fruta { background: #fef3c7; color: #92400e; }
+  .cat-verdura { background: #d1fae5; color: #065f46; }
+  .cat-proteina { background: #dbeafe; color: #1e40af; }
+  .cat-lacteo { background: #ede9fe; color: #4c1d95; }
+  .cat-cereal { background: #fef9c3; color: #854d0e; }
+  .cat-otro { background: #f3f4f6; color: #374151; }
+  .shop-del { background: none; border: none; color: #d1d5db; cursor: pointer; font-size: 0.85rem; padding: 0 2px; transition: color 0.15s; }
+  .shop-del:hover { color: var(--coral); }
+  .shop-footer { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 1rem; border-top: 1px solid var(--border); background: var(--sand); font-size: 0.72rem; color: var(--muted); flex-wrap: wrap; gap: 0.4rem; }
+  .shop-filter-row { display: flex; gap: 0.4rem; flex-wrap: wrap; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: white; }
+  .shop-filter-btn { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; border: 1.5px solid var(--border); background: white; cursor: pointer; color: var(--muted); transition: all 0.15s; }
+  .shop-filter-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .shop-empty { text-align: center; padding: 1.8rem 1rem; color: var(--muted); font-size: 0.85rem; }
+
+  .cal-cell.festivo { background: #fff7ed; }
+  .cal-cell.festivo .cal-num { color: #c2410c; }
+  .cal-cell.today.festivo { background: #fff7ed; }
+  .cal-festivo-label {
+    font-size: 0.58rem; color: #c2410c; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: 0.03em; margin-bottom: 1px;
+  }
+  .cal-hour-cell.festivo-col { background: #fff7ed !important; }
+  .cal-dia-wrap.festivo-day .cal-dia-header { background: #9a3412; }
+  .festivo-banner {
+    background: #fff7ed; border-left: 3px solid #ea580c;
+    color: #9a3412; font-size: 0.78rem; font-weight: 600;
+    padding: 0.4rem 0.9rem; border-radius: 6px; margin-bottom: 0.5rem;
+    display: none;
+  }
+  .festivo-banner.show { display: block; }
+
+  /* ── TIPO CON COLOR ── */
+  .cal-type-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.1rem; }
+  .cal-type-btn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 20px; border: 2px solid transparent;
+    cursor: pointer; transition: all 0.15s; background: white; color: var(--muted);
+    border-color: var(--border);
+  }
+  .cal-type-btn .type-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cal-type-btn.selected { border-color: currentColor; }
+  .cal-type-btn[data-type="normal"]    { --tc:#1e40af; }
+  .cal-type-btn[data-type="cumple"]    { --tc:#9d174d; }
+  .cal-type-btn[data-type="examen"]    { --tc:#4c1d95; }
+  .cal-type-btn[data-type="evento"]    { --tc:#92400e; }
+  .cal-type-btn[data-type="festivoev"] { --tc:#9a3412; }
+  .cal-type-btn[data-type="rutina"]    { --tc:#14532d; }
+  .cal-type-btn.selected { background: color-mix(in srgb, var(--tc) 12%, white); color: var(--tc); border-color: var(--tc); }
+
+  .cal-ev-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.4rem; }
+  .cal-ev-extra-field { display: flex; flex-direction: column; gap: 3px; }
+  .cal-ev-extra-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+  .cal-ev-extra-input, .cal-ev-extra-select {
+    font-family: 'DM Sans', sans-serif; font-size: 0.82rem; padding: 0.42rem 0.6rem;
+    border: 1.5px solid var(--border); border-radius: 8px; background: var(--sand);
+    color: var(--ink); outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  .cal-ev-extra-input:focus, .cal-ev-extra-select:focus { border-color: var(--ocean); background: white; }
+  .cal-ev-allday-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem; }
+  .cal-ev-allday-check {
+    width: 16px; height: 16px; border: 2px solid var(--ocean); border-radius: 4px;
+    cursor: pointer; flex-shrink: 0; appearance: none; -webkit-appearance: none;
+    position: relative; transition: background 0.15s;
+  }
+  .cal-ev-allday-check:checked { background: var(--ocean); }
+  .cal-ev-allday-check:checked::after { content: '✓'; position: absolute; top: -1px; left: 1px; font-size: 10px; color: white; font-weight: 700; }
+  .cal-ev-allday-label { font-size: 0.78rem; color: var(--ink); cursor: pointer; user-select: none; }
+
+  .cal-event-item .ev-repeat { font-size: 0.6rem; color: var(--muted); margin-left: 2px; }
+  .cal-event-item .ev-duration { font-size: 0.6rem; color: var(--muted); }
+  .cal-event-item .ev-allday { font-size: 0.6rem; font-weight: 700; background: #e0f2fe; color: #0369a1; border-radius: 4px; padding: 1px 5px; }
+
+  /* ── TOAST ── */
+  .success-toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: var(--grass); color: white; padding: 0.75rem 1.2rem;
+    border-radius: 10px; font-size: 0.88rem; font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s ease; z-index: 999;
+  }
+  .success-toast.show { transform: translateY(0); opacity: 1; }
+
+  footer { text-align: center; padding: 2rem; font-size: 0.78rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 1rem; }
+
+  /* ── PWA INSTALL BUTTON ── */
+  #pwa-install-btn {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(168,213,240,0.15);
+    border: 1.5px solid var(--ocean-light);
+    color: var(--ocean-light);
+    border-radius: 10px;
+    padding: 0.55rem 1.2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.2s;
+    margin-top: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  #pwa-install-btn:hover { background: rgba(168,213,240,0.25); }
+
+  /* ── EDIT BUTTONS ── */
+  .reg-btn-edit { background: #e0f2fe; color: #0369a1; border: none; border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; }
+  .reg-btn-edit:hover { background: #bae6fd; }
+  .tarea-edit-btn { background: none; border: none; cursor: pointer; font-size: 0.85rem; padding: 0 3px; opacity: 0.5; }
+  .tarea-edit-btn:hover { opacity: 1; }
+  .tarea-time-input {
+    font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+    padding: 0.45rem 0.55rem; border: 1.5px solid var(--border); border-radius: 8px;
+    background: var(--sand); color: var(--ink); outline: none; transition: border-color 0.2s;
+    width: 100px; flex-shrink: 0; cursor: pointer;
+  }
+  .tarea-time-input:focus { border-color: var(--ocean); background: white; }
+
+  /* ── MI DÍA ── */
+  .midia-bloques { display: flex; flex-direction: column; gap: 1.25rem; }
+  .midia-bloque { background: var(--card); border-radius: 16px; border: 1.5px solid var(--border); overflow: hidden; }
+  .midia-bloque-header { display: flex; align-items: center; gap: 0.6rem; padding: 0.9rem 1.1rem 0.7rem; background: var(--sand); border-bottom: 1px solid var(--border); }
+  .midia-bloque-icon { font-size: 1.2rem; }
+  .midia-bloque-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.15rem; letter-spacing: 0.04em; color: var(--navy); }
+  .midia-bloque-hora { margin-left: auto; font-size: 0.72rem; color: var(--muted); font-weight: 600; background: white; border-radius: 6px; padding: 2px 8px; border: 1px solid var(--border); }
+  .midia-items { padding: 0.5rem 0.75rem; min-height: 10px; }
+  .midia-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.3rem; border-bottom: 1px solid var(--border); }
+  .midia-item:last-child { border-bottom: none; }
+  .midia-item-check { width: 17px; height: 17px; accent-color: var(--ocean); cursor: pointer; flex-shrink: 0; }
+  .midia-item-text { flex: 1; font-size: 0.88rem; color: var(--ink); }
+  .midia-item-text.done { text-decoration: line-through; color: var(--muted); }
+  .midia-item-hora { font-size: 0.7rem; font-weight: 700; color: var(--ocean); background: #dbeafe; border-radius: 6px; padding: 1px 7px; white-space: nowrap; flex-shrink: 0; }
+  .midia-item-del { background: none; border: none; cursor: pointer; font-size: 0.78rem; color: var(--muted); padding: 0 3px; opacity: 0.5; }
+  .midia-item-del:hover { opacity: 1; color: #ef4444; }
+  .midia-input-row { display: flex; gap: 0.5rem; padding: 0.65rem 0.75rem; background: var(--sand); border-top: 1px solid var(--border); }
+  .midia-select { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; padding: 0.45rem 0.7rem; border: 1.5px solid var(--border); border-radius: 8px; background: white; color: var(--ink); outline: none; cursor: pointer; }
+  .midia-select:focus { border-color: var(--ocean); }
+  .midia-time { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; padding: 0.45rem 0.4rem; border: 1.5px solid var(--border); border-radius: 8px; background: white; color: var(--ink); outline: none; width: 92px; flex-shrink: 0; cursor: pointer; }
+  .midia-time:focus { border-color: var(--ocean); }
+  .midia-add-btn { background: var(--ocean); color: white; border: none; border-radius: 8px; width: 34px; height: 34px; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .midia-add-btn:hover { background: var(--navy); }
+  .midia-reset-btn { margin-top: 1rem; background: none; border: 1.5px solid var(--border); border-radius: 10px; padding: 0.5rem 1.2rem; font-size: 0.83rem; color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .midia-reset-btn:hover { border-color: #ef4444; color: #ef4444; }
+  .tarea-hora-badge {
+    font-size: 0.68rem; font-weight: 700; color: var(--ocean);
+    background: #dbeafe; border-radius: 6px; padding: 1px 7px;
+    white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px;
+  }
+  .tarea-hora-badge.fired { background: #d1fae5; color: #065f46; }
+  .shop-edit { background: none; border: none; cursor: pointer; font-size: 0.85rem; padding: 0 3px; opacity: 0.5; margin-left: auto; }
+  .shop-edit:hover { opacity: 1; }
+
+  /* ── TIEMPO (WEATHER) ── */
+  .wx-main-card {
+    background: linear-gradient(135deg, #0a2540 0%, #0e6ba8 100%);
+    border-radius: 20px; padding: 1.8rem; color: white;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  @media (max-width: 520px) { .wx-main-card { grid-template-columns: 1fr; } }
+  .wx-main-left { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+  .wx-icon-big { font-size: 4rem; line-height: 1; }
+  .wx-temp-big { font-family: 'Bebas Neue', sans-serif; font-size: 4.5rem; letter-spacing: 0.02em; line-height: 1; }
+  .wx-desc-now { font-size: 1rem; font-weight: 500; opacity: 0.85; text-transform: capitalize; }
+  .wx-main-right { display: flex; flex-direction: column; gap: 0.55rem; justify-content: center; }
+  .wx-detail-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem; }
+  .wx-detail-lbl { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; }
+  .wx-detail-val { font-size: 0.88rem; font-weight: 600; }
+  .wx-sun-bar { display: flex; align-items: center; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 0.75rem 1.2rem; margin-bottom: 0.5rem; gap: 0.75rem; }
+  .wx-sun-item { font-size: 0.88rem; font-weight: 600; color: #92400e; white-space: nowrap; }
+  .wx-sun-line { flex: 1; height: 2px; background: linear-gradient(90deg, #fbbf24, #f97316); border-radius: 2px; }
+  .wx-forecast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.6rem; margin-bottom: 1.5rem; }
+  .wx-day-card { background: white; border: 1.5px solid var(--border); border-radius: 14px; padding: 0.9rem 0.7rem; text-align: center; display: flex; flex-direction: column; gap: 0.35rem; }
+  .wx-day-name { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .wx-day-icon { font-size: 1.8rem; line-height: 1; }
+  .wx-day-max { font-size: 1.05rem; font-weight: 700; color: var(--navy); }
+  .wx-day-min { font-size: 0.8rem; color: var(--muted); }
+  .wx-day-rain { font-size: 0.7rem; color: #2563eb; font-weight: 500; }
+
+  /* ── BUSCADOR DE CIUDAD ── */
+  .wx-search-wrap {
+    position: relative; margin-bottom: 1.2rem;
+  }
+  .wx-search-row {
+    display: flex; gap: 0.5rem; align-items: center;
+  }
+  .wx-search-input {
+    flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    padding: 0.6rem 1rem 0.6rem 2.4rem; border: 1.5px solid var(--border);
+    border-radius: 10px; background: white; color: var(--ink);
+    outline: none; transition: border-color 0.2s;
+  }
+  .wx-search-input:focus { border-color: var(--ocean); }
+  .wx-search-icon {
+    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+    font-size: 0.95rem; pointer-events: none; color: var(--muted);
+  }
+  .wx-search-btn {
+    background: var(--ocean); color: white; border: none; border-radius: 10px;
+    padding: 0.6rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  }
+  .wx-search-btn:hover { background: var(--navy); }
+  .wx-loc-btn {
+    background: var(--sand); border: 1.5px solid var(--border); color: var(--navy);
+    border-radius: 10px; padding: 0.6rem 0.8rem; font-size: 0.95rem;
+    cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+  }
+  .wx-loc-btn:hover { background: #e8e0d4; }
+  .wx-suggestions {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: white; border: 1.5px solid var(--border); border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(10,37,64,0.12); z-index: 300;
+    overflow: hidden; display: none;
+  }
+  .wx-suggestions.open { display: block; }
+  .wx-suggestion-item {
+    padding: 0.65rem 1rem; cursor: pointer; font-size: 0.875rem;
+    color: var(--ink); border-bottom: 1px solid var(--border);
+    transition: background 0.1s; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .wx-suggestion-item:last-child { border-bottom: none; }
+  .wx-suggestion-item:hover { background: #f0f7ff; }
+  .wx-suggestion-country { font-size: 0.7rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
+
+  /* ── UBICACIONES GUARDADAS ── */
+  .wx-saved-wrap { margin-bottom: 1rem; }
+  .wx-saved-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+  .wx-saved-list { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  .wx-saved-chip {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    background: white; border: 1.5px solid var(--border); border-radius: 20px;
+    padding: 0.35rem 0.4rem 0.35rem 0.75rem; font-size: 0.8rem; color: var(--navy);
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+    font-weight: 500; user-select: none;
+  }
+  .wx-saved-chip:hover { border-color: var(--ocean); background: #f0f7ff; color: var(--ocean); }
+  .wx-saved-chip.active { border-color: var(--ocean); background: var(--ocean); color: white; }
+  .wx-chip-name { pointer-events: none; }
+  .wx-saved-chip-del {
+    background: none; border: none; cursor: pointer; font-size: 0.8rem;
+    opacity: 0.45; padding: 0 2px; line-height: 1; transition: opacity 0.15s; color: inherit;
+    pointer-events: all;
+  }
+  .wx-saved-chip-del:hover { opacity: 1; }
+  .wx-save-btn {
+    background: none; border: 1.5px dashed var(--border); border-radius: 20px;
+    padding: 0.35rem 0.85rem; font-size: 0.78rem; color: var(--muted);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .wx-save-btn:hover { border-color: var(--ocean); color: var(--ocean); background: #f0f7ff; }
+  .wx-save-btn.saved { border-style: solid; border-color: var(--grass); color: var(--grass); background: #f0fdf4; cursor: default; }
+
+  .wx-hourly-scroll {
+    display: flex; gap: 0.55rem; overflow-x: auto; padding-bottom: 0.5rem;
+    scrollbar-width: thin; scrollbar-color: var(--ocean-light) transparent;
+    margin-bottom: 1.5rem; scroll-snap-type: x mandatory;
+  }
+  .wx-hourly-scroll::-webkit-scrollbar { height: 4px; }
+  .wx-hourly-scroll::-webkit-scrollbar-thumb { background: var(--ocean-light); border-radius: 2px; }
+  .wx-hour-card {
+    background: white; border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 0.8rem 0.65rem; text-align: center; flex-shrink: 0; min-width: 72px;
+    display: flex; flex-direction: column; gap: 0.28rem; scroll-snap-align: start;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .wx-hour-card.wx-hour-now {
+    border-color: var(--ocean); background: #f0f7ff;
+    box-shadow: 0 0 0 2px rgba(14,107,168,0.15);
+  }
+  .wx-hour-time { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .wx-hour-card.wx-hour-now .wx-hour-time { color: var(--ocean); }
+  .wx-hour-icon { font-size: 1.5rem; line-height: 1; }
+  .wx-hour-temp { font-size: 1rem; font-weight: 700; color: var(--navy); }
+  .wx-hour-rain { font-size: 0.62rem; color: #2563eb; font-weight: 600; }
+  .wx-hour-wind { font-size: 0.6rem; color: var(--muted); }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ PORTADA ══════════════════════════════════ -->
+<div id="portada">
+  <div class="portada-label">Mi espacio personal</div>
+  <div class="portada-title">BIENVENIDO<br><span>¿QUÉ HACEMOS?</span></div>
+  <p class="portada-sub">Selecciona un área para empezar</p>
+
+  <!-- WIDGETS -->
+  <div class="portada-widgets">
+    <!-- Tiempo -->
+    <div class="pw" onclick="goArea('tiempo')" id="pw-tiempo">
+      <span class="pw-label">🌤 Tiempo</span>
+      <div class="pw-main" id="pw-temp">—°</div>
+      <div class="pw-sub" id="pw-desc">Cargando…</div>
+      <div class="pw-icon">🌡️</div>
+    </div>
+    <!-- Próximo evento -->
+    <div class="pw" onclick="goArea('calendario')" id="pw-cal">
+      <span class="pw-label">📅 Próximo evento</span>
+      <div id="pw-evento-content">
+        <div class="pw-empty">Sin eventos próximos</div>
+      </div>
+      <div class="pw-icon">📅</div>
+    </div>
+    <!-- Tareas pendientes -->
+    <div class="pw" onclick="goArea('personal')" id="pw-tareas">
+      <span class="pw-label">✅ Tareas hoy</span>
+      <div id="pw-tareas-content">
+        <div class="pw-empty">Sin tareas pendientes</div>
+      </div>
+      <div class="pw-icon">📋</div>
+    </div>
+  </div>
+
+  <div class="portada-cards">
+    <div class="portada-card" onclick="goArea('entrenamiento')">
+      <div class="portada-card-icon">🏄‍♂️</div>
+      <div class="portada-card-title">ENTRENAMIENTO</div>
+      <div class="portada-card-desc">Surf · Fútbol · Cargas · Progresión</div>
+    </div>
+    <div class="portada-card" onclick="goArea('calendario')">
+      <div class="portada-card-icon">📅</div>
+      <div class="portada-card-title">CALENDARIO</div>
+      <div class="portada-card-desc">Mes · Semana · Día · Eventos</div>
+    </div>
+    <div class="portada-card" onclick="goArea('personal')">
+      <div class="portada-card-icon">✅</div>
+      <div class="portada-card-title">PERSONAL</div>
+      <div class="portada-card-desc">Tareas · Objetivos · Lista de la compra</div>
+    </div>
+    <div class="portada-card" onclick="goArea('tiempo')">
+      <div class="portada-card-icon">🌤️</div>
+      <div class="portada-card-title">TIEMPO</div>
+      <div class="portada-card-desc">Meteorología · Previsión 7 días</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ ÁREA ENTRENAMIENTO ══════════════════════════════════ -->
+<div class="area" id="area-entrenamiento">
+  <div class="back-bar">
+    <button class="back-btn" onclick="goPortada()">← Portada</button>
+    <span class="back-area-label">Entrenamiento</span>
+  </div>
+
+  <div class="hero">
+    <div class="hero-label">Programa de alto rendimiento — 19 años</div>
+    <h1>RUTINA<br><span>SURF + FÚTBOL</span></h1>
+    <p class="hero-desc">Programa profesional de 12 semanas. Pérdida de grasa sin pérdida muscular. 6 días/semana, sesiones de 60 minutos.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">días/semana</div></div>
+      <div class="stat"><div class="stat-val">60'</div><div class="stat-lbl">por sesión</div></div>
+      <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">semanas</div></div>
+      <div class="stat"><div class="stat-val">~500</div><div class="stat-lbl">kcal déficit</div></div>
+    </div>
+  </div>
+
+  <div class="nav-wrap">
+    <div class="nav-tabs">
+      <div class="nav-tab active" data-tab="programa">Programa</div>
+      <div class="nav-tab" data-tab="nutricion">Nutrición</div>
+      <div class="nav-tab" data-tab="progresion">Progresión</div>
+      <div class="nav-tab" data-tab="recuperacion">Recuperación</div>
+      <div class="nav-tab" data-tab="registro">📊 Mis Cargas</div>
+    </div>
+  </div>
+
+  <!-- PROGRAMA -->
+  <div class="section active" id="tab-programa">
+    <div class="week-grid" id="weekGrid">
+      <div class="week-card active" data-day="0"><div class="wc-day">Lunes</div><div class="wc-title">Fuerza tren inferior</div><span class="tag tag-fuerza">Fuerza</span></div>
+      <div class="week-card" data-day="1"><div class="wc-day">Martes</div><div class="wc-title">Cardio + habilidad surf</div><span class="tag tag-surf">Surf</span></div>
+      <div class="week-card" data-day="2"><div class="wc-day">Miércoles</div><div class="wc-title">Potencia + velocidad</div><span class="tag tag-potencia">Potencia</span></div>
+      <div class="week-card" data-day="3"><div class="wc-day">Jueves</div><div class="wc-title">Fuerza tren superior</div><span class="tag tag-fuerza">Fuerza</span></div>
+      <div class="week-card" data-day="4"><div class="wc-day">Viernes</div><div class="wc-title">Fútbol: técnica + físico</div><span class="tag tag-futbol">Fútbol</span></div>
+      <div class="week-card" data-day="5"><div class="wc-day">Sábado</div><div class="wc-title">HIIT + core surf</div><span class="tag tag-cardio">Cardio</span></div>
+      <div class="week-card" data-day="6"><div class="wc-day">Domingo</div><div class="wc-title">Descanso activo</div><span class="tag tag-descanso">Descanso</span></div>
+    </div>
+    <div class="day-detail" id="dayDetail"></div>
+  </div>
+
+  <!-- NUTRICIÓN -->
+  <div class="section" id="tab-nutricion">
+    <div class="section-heading">Nutrición</div>
+    <p class="section-sub">Estrategia para perder grasa sin sacrificar músculo ni rendimiento deportivo.</p>
+    <div class="info-grid">
+      <div class="info-card"><div class="info-key">Proteína</div><div class="info-val">2–2.2 g/kg de peso corporal. Prioridad absoluta para preservar músculo en déficit. Fuentes: pollo, huevos, atún, skyr, requesón.</div></div>
+      <div class="info-card"><div class="info-key">Carbohidratos</div><div class="info-val">Ciclados: más en días de entrenamiento intenso, menos en días de descanso. Fuentes: arroz, avena, patata, fruta.</div></div>
+      <div class="info-card"><div class="info-key">Grasas</div><div class="info-val">0.8–1 g/kg. No bajar de este mínimo para no comprometer hormonas. Aguacate, aceite de oliva, nueces, sardinas.</div></div>
+      <div class="info-card"><div class="info-key">Timing pre-entreno</div><div class="info-val">1.5–2h antes: carbohidratos de absorción media + proteína. Evita grasas abundantes justo antes del entreno.</div></div>
+      <div class="info-card"><div class="info-key">Timing post-entreno</div><div class="info-val">Primeros 45 min: 30–40g proteína + carbohidratos de rápida absorción. Ventana anabólica especialmente importante los días de fuerza.</div></div>
+      <div class="info-card"><div class="info-key">Hidratación</div><div class="info-val">2.5–3.5L de agua al día. Añadir electrolitos (sodio, potasio) en días de HIIT o sesiones bajo el sol en playa.</div></div>
+      <div class="info-card"><div class="info-key">Déficit calórico</div><div class="info-val">Máximo 500 kcal/día de déficit. Un déficit mayor acelera la pérdida muscular y destruye el rendimiento deportivo. Paciencia: 0.5–1 kg/semana es el objetivo ideal.</div></div>
+    </div>
+  </div>
+
+  <!-- PROGRESIÓN -->
+  <div class="section" id="tab-progresion">
+    <div class="section-heading">Progresión de 12 semanas</div>
+    <p class="section-sub">El cuerpo necesita estímulos progresivos y organizados para adaptarse. Sigue este esquema sin saltarte las semanas.</p>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">1–4</div><div><div class="prog-title">Fase de base — aprendizaje técnico</div></div></div><div class="prog-body">Aprende y consolida los movimientos. Carga al 70–75% del máximo. Descansos de 90". El objetivo no es machacarte, sino programar el sistema nervioso correctamente.</div></div>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">5–8</div><div><div class="prog-title">Fase de acumulación — más volumen</div></div></div><div class="prog-body">Aumentar volumen añadiendo 1 serie por ejercicio. Reducir descansos a 60–75". Intensidad al 80%. Aquí empieza la adaptación muscular real.</div></div>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">9–11</div><div><div class="prog-title">Fase de intensificación — más carga</div></div></div><div class="prog-body">Subir carga al 85–90%, bajar repeticiones. Los ejercicios de potencia se vuelven más explosivos. Es la fase más exigente: la dieta y el sueño son críticos.</div></div>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">12</div><div><div class="prog-title">Semana de descarga — test y recuperación</div></div></div><div class="prog-body">Volumen reducido al -40%. Mantener la intensidad. Recuperación total del sistema nervioso. Test de fuerza en los ejercicios principales para medir la progresión del ciclo.</div></div>
+    <div style="background:#f0f7ff;border-radius:12px;padding:1.2rem 1.4rem;margin-top:1rem;border-left:3px solid var(--ocean);">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ocean);margin-bottom:6px;">Regla de oro</div>
+      <div style="font-size:0.88rem;color:var(--navy);line-height:1.6;">Si en alguna semana el rendimiento cae de forma notable, inserta un día extra de descanso activo antes de continuar. El sobreentrenamiento destruye la composición corporal más rápido que cualquier déficit calórico.</div>
+    </div>
+  </div>
+
+  <!-- RECUPERACIÓN -->
+  <div class="section" id="tab-recuperacion">
+    <div class="section-heading">Recuperación</div>
+    <p class="section-sub">El entrenamiento crea el estímulo, pero la mejora ocurre durante la recuperación.</p>
+    <div class="rec-grid">
+      <div class="rec-card"><div class="rec-icon">🌙</div><div class="rec-title">Sueño</div><div class="rec-text">8–9h mínimo. La hormona del crecimiento peak nocturno es tu mejor anabólico. Sin sueño suficiente, pierdes músculo aunque entrenes perfecto.</div></div>
+      <div class="rec-card"><div class="rec-icon">🔄</div><div class="rec-title">Movilidad diaria</div><div class="rec-text">10 min cada mañana: caderas, tobillos, columna torácica. Clave para el pop-up de surf y para prevenir lesiones en fútbol.</div></div>
+      <div class="rec-card"><div class="rec-icon">🧊</div><div class="rec-title">Contraste frío/calor</div><div class="rec-text">Ducha fría post-entreno o baño de contraste 3× (2' caliente / 1' frío). Reduce la inflamación y mejora la recuperación muscular.</div></div>
+      <div class="rec-card"><div class="rec-icon">📊</div><div class="rec-title">Escucha al cuerpo</div><div class="rec-text">Si amaneces con fatiga acumulada o el rendimiento cae, toma un día extra de descanso activo. Es una señal, no una excusa.</div></div>
+      <div class="rec-card"><div class="rec-icon">🌊</div><div class="rec-title">Descanso activo</div><div class="rec-text">El domingo: paddle surf suave, natación o paseo. La recuperación activa elimina el lactato mejor que el reposo total.</div></div>
+      <div class="rec-card"><div class="rec-icon">🧠</div><div class="rec-title">Gestión del estrés</div><div class="rec-text">El cortisol elevado destruye músculo y acumula grasa. Estudios, exámenes y presión académica cuentan como carga. Ajusta el entrenamiento en épocas de máximo estrés.</div></div>
+    </div>
+  </div>
+
+  <!-- REGISTRO -->
+  <div class="section" id="tab-registro">
+    <div class="section-heading">Registro de Cargas</div>
+    <p class="section-sub">Apunta tus cargas, series y repeticiones. Los datos se sincronizan automáticamente en todos tus dispositivos ☁️</p>
+    <div class="reg-stats-bar">
+      <div class="reg-stat-card"><div class="reg-stat-val" id="stat-total">0</div><div class="reg-stat-lbl">Registros</div></div>
+      <div class="reg-stat-card"><div class="reg-stat-val" id="stat-sesiones">0</div><div class="reg-stat-lbl">Sesiones</div></div>
+      <div class="reg-stat-card"><div class="reg-stat-val" id="stat-semana">0</div><div class="reg-stat-lbl">Esta semana</div></div>
+      <div class="reg-stat-card"><div class="reg-stat-val" id="stat-prs">0</div><div class="reg-stat-lbl">Records (PR)</div></div>
+    </div>
+    <div class="reg-form-card">
+      <div class="reg-form-title">➕ Nuevo Registro</div>
+      <div class="reg-grid">
+        <div class="reg-field"><label class="reg-label">Fecha</label><input type="date" class="reg-input" id="reg-fecha"></div>
+        <div class="reg-field"><label class="reg-label">Día / Sesión</label>
+          <select class="reg-select" id="reg-dia">
+            <option value="">Selecciona día...</option>
+            <option value="Lunes — Fuerza Inf.">Lunes — Fuerza Inf.</option>
+            <option value="Martes — Cardio Surf">Martes — Cardio Surf</option>
+            <option value="Miércoles — Potencia">Miércoles — Potencia</option>
+            <option value="Jueves — Fuerza Sup.">Jueves — Fuerza Sup.</option>
+            <option value="Viernes — Fútbol">Viernes — Fútbol</option>
+            <option value="Sábado — HIIT Core">Sábado — HIIT Core</option>
+            <option value="Domingo — Descanso">Domingo — Descanso</option>
+          </select>
+        </div>
+        <div class="reg-field"><label class="reg-label">Ejercicio</label><input type="text" class="reg-input" id="reg-ejercicio" placeholder="ej. Sentadilla trasera"></div>
+        <div class="reg-field"><label class="reg-label">Semana del programa</label>
+          <select class="reg-select" id="reg-semana">
+            <option value="">Semana...</option>
+            <option>S1</option><option>S2</option><option>S3</option><option>S4</option>
+            <option>S5</option><option>S6</option><option>S7</option><option>S8</option>
+            <option>S9</option><option>S10</option><option>S11</option><option>S12</option>
+          </select>
+        </div>
+        <div class="reg-field"><label class="reg-label">Series × Reps</label><input type="text" class="reg-input" id="reg-series" placeholder="ej. 4×6"></div>
+        <div class="reg-field"><label class="reg-label">Carga (kg)</label><input type="number" class="reg-input" id="reg-carga" placeholder="ej. 80" step="0.5" min="0"></div>
+        <div class="reg-field"><label class="reg-label">RPE (1–10)</label><input type="number" class="reg-input" id="reg-rpe" placeholder="ej. 8" min="1" max="10"></div>
+        <div class="reg-field"><label class="reg-label">¿Marca personal?</label>
+          <select class="reg-select" id="reg-pr"><option value="no">No</option><option value="si">🏆 Sí, nuevo PR</option></select>
+        </div>
+        <div class="reg-field full"><label class="reg-label">Notas</label><textarea class="reg-textarea" id="reg-notas" placeholder="Sensaciones, ajustes, lesiones, contexto..."></textarea></div>
+      </div>
+      <button class="reg-btn" onclick="guardarRegistro()">Guardar registro</button>
+    </div>
+    <div class="reg-history-wrap">
+      <div class="reg-history-header">
+        <div class="reg-history-title">Historial</div>
+        <button class="reg-btn-danger" onclick="confirmarBorrarTodo()">Borrar todo</button>
+      </div>
+      <div class="reg-filter-row">
+        <button class="reg-filter-btn active" onclick="setFiltro('todos',this)">Todos</button>
+        <button class="reg-filter-btn" onclick="setFiltro('Lunes — Fuerza Inf.',this)">Fuerza Inf.</button>
+        <button class="reg-filter-btn" onclick="setFiltro('Martes — Cardio Surf',this)">Cardio Surf</button>
+        <button class="reg-filter-btn" onclick="setFiltro('Miércoles — Potencia',this)">Potencia</button>
+        <button class="reg-filter-btn" onclick="setFiltro('Jueves — Fuerza Sup.',this)">Fuerza Sup.</button>
+        <button class="reg-filter-btn" onclick="setFiltro('Viernes — Fútbol',this)">Fútbol</button>
+        <button class="reg-filter-btn" onclick="setFiltro('Sábado — HIIT Core',this)">HIIT Core</button>
+      </div>
+      <div id="reg-tabla-wrap">
+        <div class="reg-empty" id="reg-empty"><div class="reg-empty-icon">🏋️</div><div>Aún no hay registros. ¡Añade tu primer entrenamiento!</div></div>
+        <table class="reg-table" id="reg-tabla" style="display:none">
+          <thead><tr><th>Fecha</th><th>Ejercicio</th><th>Series × Reps</th><th>Kg</th><th>RPE</th><th>Sesión</th><th>Sem.</th><th></th></tr></thead>
+          <tbody id="reg-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>Programa diseñado para 19 años, hombre, alto rendimiento — Surf + Fútbol</footer>
+</div>
+
+<!-- ══════════════════════════════════ ÁREA CALENDARIO ══════════════════════════════════ -->
+<div class="area" id="area-calendario">
+  <div class="back-bar">
+    <button class="back-btn" onclick="goPortada()">← Portada</button>
+    <span class="back-area-label">Calendario</span>
+  </div>
+
+  <div class="hero-personal">
+    <div class="hero-personal-inner">
+      <div>
+        <h2>MI <span>CALENDARIO</span></h2>
+        <div class="hero-personal-desc">Vistas mes, semana y día · Eventos · Festivos</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 2rem; max-width: 900px; margin: 0 auto;">
+    <div class="section-heading">Calendario</div>
+    <p class="section-sub">Escribe la fecha directamente o toca cualquier celda para seleccionarla.</p>
+
+    <!-- Toolbar -->
+    <div class="cal-toolbar">
+      <button class="cal-view-btn active" onclick="setCalView('mes',this)">Mes</button>
+      <button class="cal-view-btn" onclick="setCalView('semana',this)">Semana</button>
+      <button class="cal-view-btn" onclick="setCalView('dia',this)">Día</button>
+      <div class="cal-nav-group">
+        <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+        <button class="cal-period-btn" id="cal-period-btn" onclick="calOpenPicker()"></button>
+        <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+        <button class="cal-today-btn" onclick="calGoToday()">Hoy</button>
+      </div>
+    </div>
+
+    <!-- Month/Year Picker Modal -->
+    <div class="cal-picker-overlay" id="cal-picker-overlay" style="display:none" onclick="if(event.target===this)calClosePicker()">
+      <div class="cal-picker-box">
+        <div class="cal-picker-title">
+          Ir a mes y año
+          <button class="cal-picker-close" onclick="calClosePicker()">✕</button>
+        </div>
+        <div class="cal-picker-year-row">
+          <button class="cal-picker-year-nav" onclick="calPickerYearNav(-1)">‹</button>
+          <div class="cal-picker-year-val" id="cal-picker-year">2025</div>
+          <button class="cal-picker-year-nav" onclick="calPickerYearNav(1)">›</button>
+        </div>
+        <div class="cal-picker-months" id="cal-picker-months"></div>
+      </div>
+    </div>
+
+    <!-- Vista mes -->
+    <div id="cal-view-mes">
+      <div class="cal-mes-wrap">
+        <div class="cal-days-header">
+          <div class="cal-day-name">Lun</div><div class="cal-day-name">Mar</div><div class="cal-day-name">Mié</div>
+          <div class="cal-day-name">Jue</div><div class="cal-day-name">Vie</div><div class="cal-day-name">Sáb</div><div class="cal-day-name">Dom</div>
+        </div>
+        <div class="cal-mes-grid" id="cal-mes-grid"></div>
+      </div>
+    </div>
+
+    <!-- Vista semana -->
+    <div id="cal-view-semana" style="display:none">
+      <div class="cal-semana-wrap">
+        <div class="cal-semana-header" id="cal-semana-header"></div>
+        <div class="cal-semana-body" id="cal-semana-body"></div>
+      </div>
+    </div>
+
+    <!-- Vista día -->
+    <div id="cal-view-dia" style="display:none">
+      <div class="cal-dia-wrap">
+        <div class="cal-dia-header"><div class="cal-dia-title" id="cal-dia-title"></div></div>
+        <div class="cal-dia-body" id="cal-dia-body"></div>
+      </div>
+    </div>
+
+    <!-- Panel evento -->
+    <div class="cal-event-panel" id="cal-event-panel">
+      <div class="cal-event-panel-header">
+        <h3 id="cal-panel-title">Selecciona un día o celda</h3>
+      </div>
+      <div class="cal-event-panel-body">
+        <div class="festivo-banner" id="cal-festivo-banner">Festivo nacional</div>
+        <div class="cal-event-form">
+          <div class="cal-event-row">
+            <div class="cal-ev-date-row">
+              <span class="cal-ev-extra-label" style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px;">Fecha del evento</span>
+              <input class="cal-event-input" id="cal-ev-fecha" type="date" style="font-size:0.88rem;padding:0.45rem 0.7rem;width:100%" />
+            </div>
+          </div>
+          <div class="cal-event-row">
+            <input class="cal-event-input" id="cal-ev-text" type="text" placeholder="Nombre del evento…" maxlength="120" />
+          </div>
+          <!-- Tipo con colores -->
+          <div class="cal-type-row" id="cal-type-row">
+            <button class="cal-type-btn selected" data-type="normal"    onclick="selectCalType('normal',this)">    <span class="type-dot" style="background:#3b82f6"></span>Normal</button>
+            <button class="cal-type-btn"           data-type="cumple"   onclick="selectCalType('cumple',this)">    <span class="type-dot" style="background:#db2777"></span>Cumpleaños</button>
+            <button class="cal-type-btn"           data-type="examen"   onclick="selectCalType('examen',this)">    <span class="type-dot" style="background:#7c3aed"></span>Examen</button>
+            <button class="cal-type-btn"           data-type="evento"   onclick="selectCalType('evento',this)">    <span class="type-dot" style="background:#c96a00"></span>Evento</button>
+            <button class="cal-type-btn"           data-type="festivoev" onclick="selectCalType('festivoev',this)"><span class="type-dot" style="background:#ea580c"></span>Festivo</button>
+            <button class="cal-type-btn"           data-type="rutina"   onclick="selectCalType('rutina',this)">    <span class="type-dot" style="background:#1a5c2a"></span>Rutina</button>
+          </div>
+          <input type="hidden" id="cal-ev-pri" value="normal" />
+          <!-- Todo el día -->
+          <div class="cal-ev-allday-row">
+            <input type="checkbox" class="cal-ev-allday-check" id="cal-ev-allday" onchange="toggleAlldayForm()" />
+            <label class="cal-ev-allday-label" for="cal-ev-allday">Todo el día</label>
+          </div>
+          <!-- Hora + Duración -->
+          <div class="cal-ev-extra" id="cal-ev-time-block">
+            <div class="cal-ev-extra-field">
+              <span class="cal-ev-extra-label">Hora inicio</span>
+              <input class="cal-ev-extra-input cal-event-time" id="cal-ev-hora" type="time" />
+            </div>
+            <div class="cal-ev-extra-field">
+              <span class="cal-ev-extra-label">Duración</span>
+              <select class="cal-ev-extra-select" id="cal-ev-duracion">
+                <option value="">Sin duración</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+                <option value="60">1 hora</option>
+                <option value="90">1h 30 min</option>
+                <option value="120">2 horas</option>
+                <option value="180">3 horas</option>
+                <option value="240">4 horas</option>
+                <option value="360">6 horas</option>
+                <option value="custom">Personalizada…</option>
+              </select>
+            </div>
+          </div>
+          <div class="cal-ev-extra" id="cal-ev-custom-dur-block" style="display:none">
+            <div class="cal-ev-extra-field" style="grid-column:1/-1">
+              <span class="cal-ev-extra-label">Duración personalizada (minutos)</span>
+              <input class="cal-ev-extra-input" id="cal-ev-dur-custom" type="number" min="1" max="1440" placeholder="ej. 75" />
+            </div>
+          </div>
+          <!-- Repetición -->
+          <div class="cal-ev-extra">
+            <div class="cal-ev-extra-field" style="grid-column:1/-1">
+              <span class="cal-ev-extra-label">Repetición</span>
+              <select class="cal-ev-extra-select" id="cal-ev-repeat">
+                <option value="none">Sin repetición</option>
+                <option value="daily">Cada día</option>
+                <option value="weekly">Cada semana</option>
+                <option value="biweekly">Cada 2 semanas</option>
+                <option value="monthly">Cada mes</option>
+                <option value="yearly">Cada año</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:0.5rem">
+            <button class="tarea-add-btn" onclick="addCalEvent()">＋ Añadir evento</button>
+          </div>
+        </div>
+        <div class="cal-event-list" id="cal-event-list">
+          <div class="cal-no-events">Selecciona un día para ver o añadir eventos.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Tu calendario — sincronizado en la nube ☁️</footer>
+</div>
+
+<!-- ══════════════════════════════════ ÁREA PERSONAL ══════════════════════════════════ -->
+<div class="area" id="area-personal">
+  <div class="back-bar">
+    <button class="back-btn" onclick="goPortada()">← Portada</button>
+    <span class="back-area-label">Personal</span>
+  </div>
+
+  <div class="hero-personal">
+    <div class="hero-personal-inner">
+      <div>
+        <h2>MI ESPACIO <span>PERSONAL</span></h2>
+        <div class="hero-personal-desc">Tareas diarias · Objetivos · Lista de la compra</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-personal">
+    <div class="nav-personal-tabs">
+      <div class="pers-tab active" data-ptab="tareas">✅ Tareas</div>
+      <div class="pers-tab" data-ptab="midia">🌅 Mi Día</div>
+      <div class="pers-tab" data-ptab="compra">🛒 Lista Compra</div>
+    </div>
+  </div>
+
+  <!-- TAREAS -->
+  <div class="pers-section active" id="ptab-tareas">
+    <div class="section-heading">Mis Tareas</div>
+    <p class="section-sub">Pendientes del día y objetivos a largo plazo. Todo guardado automáticamente.</p>
+    <div class="tareas-cols">
+      <div class="tarea-panel">
+        <div class="tarea-panel-header"><h3>📋 Tareas del día</h3><span class="tarea-count" id="count-diarias">0</span></div>
+        <div class="tarea-input-row">
+          <input class="tarea-input" id="input-diaria" type="text" placeholder="Nueva tarea de hoy…" maxlength="120" />
+          <input class="tarea-time-input" id="input-diaria-hora" type="time" title="Hora de recordatorio" />
+          <button class="tarea-add-btn" onclick="addTarea('diarias')">＋</button>
+        </div>
+        <div class="tarea-list" id="list-diarias"></div>
+        <div class="tarea-footer"><span id="footer-diarias">0 pendientes</span><button class="tarea-clear-btn" onclick="clearDone('diarias')">Borrar completadas</button></div>
+      </div>
+      <div class="tarea-panel">
+        <div class="tarea-panel-header"><h3>🎯 Objetivos a largo plazo</h3><span class="tarea-count" id="count-largas">0</span></div>
+        <div class="tarea-input-row">
+          <input class="tarea-input" id="input-larga" type="text" placeholder="Nuevo objetivo…" maxlength="120" />
+          <select class="tarea-pri-select" id="pri-larga">
+            <option value="alta">🔴 Alta</option>
+            <option value="media" selected>🟠 Media</option>
+            <option value="baja">🟢 Baja</option>
+          </select>
+          <button class="tarea-add-btn" onclick="addTarea('largas')">＋</button>
+        </div>
+        <div class="tarea-list" id="list-largas"></div>
+        <div class="tarea-footer"><span id="footer-largas">0 pendientes</span><button class="tarea-clear-btn" onclick="clearDone('largas')">Borrar completadas</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MI DÍA -->
+  <div class="pers-section" id="ptab-midia">
+    <div class="section-heading">🌅 Mi Día</div>
+    <p class="section-sub">Organiza tu día en bloques. Todo se guarda automáticamente.</p>
+
+    <div class="midia-bloques">
+      <!-- MAÑANA -->
+      <div class="midia-bloque">
+        <div class="midia-bloque-header">
+          <span class="midia-bloque-icon">🌄</span>
+          <span class="midia-bloque-title">Mañana</span>
+          <span class="midia-bloque-hora">06:00 – 13:00</span>
+        </div>
+        <div class="midia-items" id="midia-manana"></div>
+        <div class="midia-input-row">
+          <select class="midia-select" id="midia-sel-manana"><option value="">— Añadir tarea del día —</option></select>
+          <input class="midia-time" id="midia-time-manana" type="time"/>
+          <button class="midia-add-btn" onclick="addMiDia('manana')">＋</button>
+        </div>
+      </div>
+
+      <!-- TARDE -->
+      <div class="midia-bloque">
+        <div class="midia-bloque-header">
+          <span class="midia-bloque-icon">☀️</span>
+          <span class="midia-bloque-title">Tarde</span>
+          <span class="midia-bloque-hora">13:00 – 21:00</span>
+        </div>
+        <div class="midia-items" id="midia-tarde"></div>
+        <div class="midia-input-row">
+          <select class="midia-select" id="midia-sel-tarde"><option value="">— Añadir tarea del día —</option></select>
+          <input class="midia-time" id="midia-time-tarde" type="time"/>
+          <button class="midia-add-btn" onclick="addMiDia('tarde')">＋</button>
+        </div>
+      </div>
+
+      <!-- NOCHE -->
+      <div class="midia-bloque">
+        <div class="midia-bloque-header">
+          <span class="midia-bloque-icon">🌙</span>
+          <span class="midia-bloque-title">Noche</span>
+          <span class="midia-bloque-hora">21:00 – 00:00</span>
+        </div>
+        <div class="midia-items" id="midia-noche"></div>
+        <div class="midia-input-row">
+          <select class="midia-select" id="midia-sel-noche"><option value="">— Añadir tarea del día —</option></select>
+          <input class="midia-time" id="midia-time-noche" type="time"/>
+          <button class="midia-add-btn" onclick="addMiDia('noche')">＋</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="midia-reset-btn" onclick="resetMiDia()">🗑️ Limpiar completadas</button>
+  </div>
+
+  <!-- LISTA DE LA COMPRA -->
+  <div class="pers-section" id="ptab-compra">
+    <div class="section-heading">🛒 Lista de la Compra</div>
+    <p class="section-sub">Añade artículos, marca lo que ya tienes y organiza por categoría. Se guarda automáticamente.</p>
+    <div class="shop-wrap">
+      <div class="shop-panel">
+        <div class="shop-panel-header">
+          <h3>Mi Lista</h3>
+          <div class="shop-stats-row">
+            <span class="shop-stat-pill" id="shop-count-total">0 items</span>
+            <span class="shop-stat-pill done-pill" id="shop-count-done">0 ✓</span>
+          </div>
+        </div>
+        <div class="shop-input-row">
+          <input class="shop-input" id="shop-input-name" type="text" placeholder="Añadir artículo…" maxlength="80" />
+          <input class="shop-qty-input" id="shop-input-qty" type="text" placeholder="Cant." maxlength="12" title="Cantidad (ej. 1kg, 2uds)" />
+          <select class="shop-cat-select" id="shop-input-cat">
+            <option value="otro">📦 Otro</option>
+            <option value="fruta">🍎 Fruta</option>
+            <option value="verdura">🥦 Verdura</option>
+            <option value="proteina">🥩 Proteína</option>
+            <option value="lacteo">🥛 Lácteo</option>
+            <option value="cereal">🌾 Cereal</option>
+          </select>
+          <button class="tarea-add-btn" onclick="addShopItem()">＋</button>
+        </div>
+        <div class="shop-filter-row">
+          <button class="shop-filter-btn active" onclick="setShopFilter('todos',this)">Todos</button>
+          <button class="shop-filter-btn" onclick="setShopFilter('pendiente',this)">Pendiente</button>
+          <button class="shop-filter-btn" onclick="setShopFilter('comprado',this)">Comprado</button>
+          <button class="shop-filter-btn" onclick="setShopFilter('fruta',this)">🍎 Fruta</button>
+          <button class="shop-filter-btn" onclick="setShopFilter('verdura',this)">🥦 Verdura</button>
+          <button class="shop-filter-btn" onclick="setShopFilter('proteina',this)">🥩 Proteína</button>
+          <button class="shop-filter-btn" onclick="setShopFilter('lacteo',this)">🥛 Lácteo</button>
+          <button class="shop-filter-btn" onclick="setShopFilter('cereal',this)">🌾 Cereal</button>
+        </div>
+        <div class="shop-list" id="shop-list">
+          <div class="shop-empty">Tu lista está vacía. ¡Añade el primer artículo!</div>
+        </div>
+        <div class="shop-footer">
+          <span id="shop-footer-text">0 pendientes</span>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="tarea-clear-btn" onclick="clearShopDone()">Borrar comprados</button>
+            <button class="tarea-clear-btn" onclick="clearShopAll()">Borrar todo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Tu espacio personal — sincronizado en la nube ☁️</footer>
+</div>
+
+<!-- ══════════════════════════════════ ÁREA TIEMPO ══════════════════════════════════ -->
+<div class="area" id="area-tiempo">
+  <div class="back-bar">
+    <button class="back-btn" onclick="goPortada()">← Portada</button>
+    <span class="back-area-label">Tiempo</span>
+  </div>
+
+  <div class="hero-personal">
+    <div class="hero-personal-inner">
+      <div>
+        <h2>EL <span>TIEMPO</span></h2>
+        <div class="hero-personal-desc">Meteorología en tiempo real · Previsión 7 días</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 1.5rem 2rem; max-width: 900px; margin: 0 auto;">
+
+    <!-- Buscador de ciudad -->
+    <div class="wx-search-wrap" id="wx-search-wrap">
+      <div class="wx-search-row">
+        <div style="position:relative;flex:1">
+          <span class="wx-search-icon">🔍</span>
+          <input class="wx-search-input" id="wx-search-input" type="text"
+            placeholder="Buscar ciudad… (ej. Madrid, París, Tokyo)"
+            autocomplete="off"
+            oninput="wxSearchInput()"
+            onkeydown="wxSearchKeydown(event)" />
+          <div class="wx-suggestions" id="wx-suggestions"></div>
+        </div>
+        <button class="wx-search-btn" onclick="wxDoSearch()">Buscar</button>
+        <button class="wx-loc-btn" title="Usar mi ubicación" onclick="wxUseMyLocation()">📍</button>
+      </div>
+    </div>
+
+    <!-- Ubicaciones guardadas -->
+    <div class="wx-saved-wrap" id="wx-saved-wrap" style="display:none">
+      <div class="wx-saved-label">⭐ Guardadas</div>
+      <div class="wx-saved-list" id="wx-saved-list"></div>
+    </div>
+
+    <!-- Estado / error -->
+    <div id="wx-loading" style="text-align:center;padding:3rem;color:var(--muted);font-size:0.9rem;">
+      <div style="font-size:2rem;margin-bottom:0.75rem;">📍</div>
+      Obteniendo tu ubicación…
+    </div>
+    <div id="wx-error" style="display:none;text-align:center;padding:2rem;background:#fff0f0;border-radius:14px;border:1px solid #fca5a5;color:#991b1b;font-size:0.88rem;">
+      <div style="font-size:1.8rem;margin-bottom:0.5rem;">⚠️</div>
+      <div id="wx-error-msg">No se pudo obtener la ubicación.</div>
+      <button onclick="wxUseMyLocation()" style="margin-top:1rem;padding:0.5rem 1.2rem;background:var(--ocean);color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem;">Reintentar</button>
+    </div>
+
+    <!-- Contenido meteorológico -->
+    <div id="wx-content" style="display:none">
+
+      <!-- Ubicación y actualización -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap;gap:0.5rem">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.05em;color:var(--navy)" id="wx-ciudad">—</div>
+          <div style="font-size:0.75rem;color:var(--muted)" id="wx-actualizado">—</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <button id="wx-save-btn" class="wx-save-btn" onclick="wxToggleSave()">＋ Guardar</button>
+          <button onclick="wxUseMyLocation()" style="background:var(--sand);border:1.5px solid var(--border);border-radius:8px;padding:0.45rem 1rem;font-size:0.8rem;color:var(--navy);cursor:pointer;">🔄 Actualizar</button>
+        </div>
+      </div>
+
+      <!-- Card principal -->
+      <div class="wx-main-card">
+        <div class="wx-main-left">
+          <div class="wx-icon-big" id="wx-icon-now">🌤️</div>
+          <div class="wx-temp-big" id="wx-temp-now">—</div>
+          <div class="wx-desc-now" id="wx-desc-now">—</div>
+        </div>
+        <div class="wx-main-right">
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Sensación</span><span class="wx-detail-val" id="wx-sensacion">—</span></div>
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Humedad</span><span class="wx-detail-val" id="wx-humedad">—</span></div>
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Viento</span><span class="wx-detail-val" id="wx-viento">—</span></div>
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Visibilidad</span><span class="wx-detail-val" id="wx-visibilidad">—</span></div>
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Presión</span><span class="wx-detail-val" id="wx-presion">—</span></div>
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Índice UV</span><span class="wx-detail-val" id="wx-uv">—</span></div>
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Lluvia hoy</span><span class="wx-detail-val" id="wx-lluvia">—</span></div>
+          <div class="wx-detail-row"><span class="wx-detail-lbl">Nube</span><span class="wx-detail-val" id="wx-nube">—</span></div>
+        </div>
+      </div>
+
+      <!-- Sol -->
+      <div class="wx-sun-bar">
+        <div class="wx-sun-item">🌅 <span id="wx-amanecer">—</span></div>
+        <div class="wx-sun-line"></div>
+        <div class="wx-sun-item">🌇 <span id="wx-atardecer">—</span></div>
+      </div>
+
+      <!-- Previsión por horas -->
+      <div class="section-heading" style="margin-top:1.5rem;margin-bottom:0.75rem">Hoy por horas</div>
+      <div class="wx-hourly-scroll" id="wx-hourly">
+        <!-- generado por JS -->
+      </div>
+
+      <!-- Previsión 7 días -->
+      <div class="section-heading" style="margin-top:1.5rem;margin-bottom:0.75rem">Previsión 7 días</div>
+      <div class="wx-forecast-grid" id="wx-forecast">
+        <!-- generado por JS -->
+      </div>
+
+    </div>
+  </div>
+  <footer>Datos meteorológicos — Open-Meteo (gratuito, sin API key)</footer>
+</div>
+<div class="modal-overlay" id="modal-edit-event">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-title">✏️ Editar Evento</div>
+    <div class="modal-field">
+      <label class="modal-label">Nombre del evento</label>
+      <input class="modal-input" id="modal-ev-text" type="text" maxlength="120" />
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Tipo de evento</label>
+      <div class="cal-type-row" id="modal-type-row" style="margin-top:4px">
+        <button class="cal-type-btn selected" data-type="normal"     onclick="selectModalType('normal',this)">    <span class="type-dot" style="background:#3b82f6"></span>Normal</button>
+        <button class="cal-type-btn"           data-type="cumple"    onclick="selectModalType('cumple',this)">    <span class="type-dot" style="background:#db2777"></span>Cumpleaños</button>
+        <button class="cal-type-btn"           data-type="examen"    onclick="selectModalType('examen',this)">    <span class="type-dot" style="background:#7c3aed"></span>Examen</button>
+        <button class="cal-type-btn"           data-type="evento"    onclick="selectModalType('evento',this)">    <span class="type-dot" style="background:#c96a00"></span>Evento</button>
+        <button class="cal-type-btn"           data-type="festivoev" onclick="selectModalType('festivoev',this)"><span class="type-dot" style="background:#ea580c"></span>Festivo</button>
+        <button class="cal-type-btn"           data-type="rutina"    onclick="selectModalType('rutina',this)">    <span class="type-dot" style="background:#1a5c2a"></span>Rutina</button>
+      </div>
+      <input type="hidden" id="modal-ev-pri" value="normal" />
+    </div>
+    <div class="modal-field">
+      <div class="cal-ev-allday-row">
+        <input type="checkbox" class="cal-ev-allday-check" id="modal-ev-allday" onchange="toggleModalAlldayForm()" />
+        <label class="cal-ev-allday-label" for="modal-ev-allday">Todo el día</label>
+      </div>
+    </div>
+    <div id="modal-ev-time-block">
+      <div class="cal-ev-extra" style="margin-bottom:0.5rem">
+        <div class="cal-ev-extra-field">
+          <label class="modal-label">Hora inicio</label>
+          <input class="modal-input" id="modal-ev-hora" type="time" />
+        </div>
+        <div class="cal-ev-extra-field">
+          <label class="modal-label">Duración</label>
+          <select class="modal-select" id="modal-ev-duracion" onchange="toggleModalCustomDur()">
+            <option value="">Sin duración</option>
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">1 hora</option>
+            <option value="90">1h 30 min</option>
+            <option value="120">2 horas</option>
+            <option value="180">3 horas</option>
+            <option value="240">4 horas</option>
+            <option value="360">6 horas</option>
+            <option value="custom">Personalizada…</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-field" id="modal-ev-custom-dur-block" style="display:none">
+        <label class="modal-label">Duración en minutos</label>
+        <input class="modal-input" id="modal-ev-dur-custom" type="number" min="1" max="1440" placeholder="ej. 75" />
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Repetición</label>
+      <select class="modal-select" id="modal-ev-repeat">
+        <option value="none">Sin repetición</option>
+        <option value="daily">Cada día</option>
+        <option value="weekly">Cada semana</option>
+        <option value="biweekly">Cada 2 semanas</option>
+        <option value="monthly">Cada mes</option>
+        <option value="yearly">Cada año</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="closeEditModal()">Cancelar</button>
+      <button class="modal-btn-save" onclick="saveEditEvent()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════ NAVEGACIÓN PORTADA ══════════════════════════════
+function goArea(area) {
+  document.getElementById('portada').style.display = 'none';
+  document.querySelectorAll('.area').forEach(a => a.classList.remove('active'));
+  document.getElementById('area-' + area).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goPortada() {
+  document.querySelectorAll('.area').forEach(a => a.classList.remove('active'));
+  document.getElementById('portada').style.display = 'flex';
+  window.scrollTo(0,0);
+  pwRefreshAll();
+}
+
+// ══════════════════════════════ PORTADA WIDGETS ══════════════════════════════
+
+// Widget Tiempo
+async function pwLoadWeather() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+        + `&current=temperature_2m,weather_code&timezone=auto`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const temp = Math.round(data.current.temperature_2m);
+      const icon = wxIcon ? wxIcon(data.current.weather_code) : '🌡️';
+      const desc = wxDesc ? wxDesc(data.current.weather_code) : '';
+      document.getElementById('pw-temp').textContent = temp + '°C';
+      document.getElementById('pw-desc').textContent = icon + ' ' + desc;
+    } catch(e) {
+      document.getElementById('pw-desc').textContent = 'No disponible';
+    }
+  }, () => {
+    document.getElementById('pw-desc').textContent = 'Ubicación no disponible';
+  });
+}
+
+// Widget Calendario — próximo evento
+function pwLoadCalendar() {
+  const el = document.getElementById('pw-evento-content');
+  if (!el) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const upcoming = [];
+  if (typeof calEventsDB !== 'undefined') {
+    const keys = Object.keys(calEventsDB).sort();
+    for (const key of keys) {
+      const d = new Date(key + 'T00:00:00');
+      if (d < today) continue;
+      const evts = calEventsDB[key] || [];
+      for (const ev of evts) {
+        upcoming.push({ date: d, key, ev });
+        if (upcoming.length >= 3) break;
+      }
+      if (upcoming.length >= 3) break;
+    }
+  }
+  if (!upcoming.length) {
+    el.innerHTML = '<div class="pw-empty">Sin eventos próximos</div>';
+    return;
+  }
+  const MESES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  el.innerHTML = upcoming.map(({date, ev}) => {
+    const isToday = date.toDateString() === today.toDateString();
+    const isTomorrow = date.toDateString() === new Date(today.getTime() + 86400000).toDateString();
+    const dateStr = isToday ? 'Hoy' : isTomorrow ? 'Mañana' : `${date.getDate()} ${MESES_SHORT[date.getMonth()]}`;
+    const timeStr = ev.hora ? ` · ${ev.hora}` : '';
+    return `<div class="pw-task-item"><span class="pw-task-dot"></span><span>${dateStr}${timeStr} — ${ev.text}</span></div>`;
+  }).join('');
+}
+
+// Widget Tareas
+function pwLoadTareas() {
+  const el = document.getElementById('pw-tareas-content');
+  if (!el) return;
+  let pending = [];
+  if (typeof tareasData !== 'undefined' && Array.isArray(tareasData.diarias)) {
+    pending = tareasData.diarias.filter(t => !t.done);
+  }
+  if (!pending.length) {
+    el.innerHTML = '<div class="pw-empty">Sin tareas pendientes</div>';
+    return;
+  }
+  el.innerHTML = `<div class="pw-main" style="font-size:1.8rem;margin-bottom:0.3rem">${pending.length}</div>` +
+    pending.slice(0,3).map(t =>
+      `<div class="pw-task-item"><span class="pw-task-dot"></span><span>${t.text}</span></div>`
+    ).join('');
+}
+
+function pwRefreshAll() {
+  pwLoadWeather();
+  pwLoadCalendar();
+  pwLoadTareas();
+}
+
+// Inicializar widgets al cargar la página
+window.addEventListener('load', () => setTimeout(pwRefreshAll, 500));
+
+// ══════════════════════════════ TABS ENTRENAMIENTO ══════════════════════════════
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ══════════════════════════════ TABS PERSONAL ══════════════════════════════
+document.querySelectorAll('.pers-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.pers-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.pers-section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('ptab-' + tab.dataset.ptab).classList.add('active');
+  });
+});
+
+// ══════════════════════════════ TOAST ══════════════════════════════
+function mostrarToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ══════════════════════════════ DÍAS DE ENTRENAMIENTO ══════════════════════════════
+const days = [
+  { title:"Fuerza tren inferior", day:"Lunes", tag:"Fuerza", tagClass:"tag-fuerza",
+    sub:"Objetivo: hipertrofia + fuerza base. Enfoque: glúteos, cuádriceps, isquios y estabilidad de tobillo (clave para surf y recepción de balón).",
+    phases:[
+      { name:"Calentamiento (10')", items:["Foam roller cuádriceps e IT band","Activación glúteo medio: 2×15 clamshells","Sentadilla profunda controlada: 2×8","Saltos de activación: 2×5"] },
+      { name:"Bloque principal (40')", items:["Sentadilla trasera: 4×6 @ 80%","Peso muerto rumano: 3×8","Prensa unilateral: 3×10/pierna","Step-up con mancuerna: 3×10/pierna","Elevaciones de talón: 3×15"] },
+      { name:"Finisher quemagrasa (5')", items:["Tabata: sentadilla jump 20\" on / 10\" off × 8 rondas"] },
+      { name:"Vuelta a la calma (5')", items:["Estiramiento psoas, cuádriceps, isquiotibiales"] }
+    ], tip:"Controlado en la bajada (3\" excéntrico), explosivo en la subida. Así maximizas masa con menos volumen." },
+  { title:"Cardio + habilidad surf", day:"Martes", tag:"Surf", tagClass:"tag-surf",
+    sub:"Objetivo: capacidad aeróbica + patrones de movimiento del surf. Simula la demanda real del paddle y los pop-ups.",
+    phases:[
+      { name:"Calentamiento (8')", items:["Rotaciones torácicas en cuadrupedia","Dislocaciones de hombro con goma","Plancha dinámica: 2×30\"","Hip circles: 1×10/lado"] },
+      { name:"Bloque cardio fartlek (25')", items:["2' carrera suave → 1' sprint × 8 series","O: remo en máquina 25' con cambios de ritmo","FC objetivo: 75–85% FC máx"] },
+      { name:"Surf drills (22')", items:["Pop-up en tabla en suelo: 4×10 reps","Paddling con goma elástica: 4×60\"","Balance board: 3×90\" con gestos de surf","Duck dive drill (TRX o en seco): 3×8"] },
+      { name:"Vuelta a la calma (5')", items:["Cobra, child's pose, rotaciones de columna"] }
+    ], tip:"El pop-up perfecto necesita fuerza de tríceps + explosividad de cadera. Practica en seco cada semana." },
+  { title:"Potencia + velocidad", day:"Miércoles", tag:"Potencia", tagClass:"tag-potencia",
+    sub:"Objetivo: explosividad neuromuscular. Directamente transferible a sprint en fútbol, saltos, cambios de dirección y pop-up de surf.",
+    phases:[
+      { name:"Calentamiento neuromuscular (10')", items:["Activación con saltos en caja baja","Skipping A y B: 2×20m","Aceleraciones: 3×20m al 80%"] },
+      { name:"Pliometría (15')", items:["Salto a caja: 4×5 reps (caída suave)","Broad jump: 4×4 reps","Lateral bound: 3×6/lado"] },
+      { name:"Velocidad (20')", items:["Sprint 40m: 6×1 (recuperación completa 3')","Sprint lanzado 20m: 4×1","Cambio de dirección 5-10-5: 4 reps/lado"] },
+      { name:"Core anti-rotacional (10')", items:["Pallof press: 3×12/lado","Plank to push-up: 3×10","Dead bug: 3×8/lado"] }
+    ], tip:"Recuperación COMPLETA entre sprints. Si no descansas bien, trabajas resistencia, no velocidad. El objetivo hoy es calidad máxima." },
+  { title:"Fuerza tren superior", day:"Jueves", tag:"Fuerza", tagClass:"tag-fuerza",
+    sub:"Objetivo: fuerza de empuje + tracción + estabilidad escapular. Clave para el paddle de surf y los duelos aéreos en fútbol.",
+    phases:[
+      { name:"Calentamiento (8')", items:["Rotación externa de hombro con goma: 2×15","Face pulls: 2×20","Flexiones scapulares: 2×10","Apertura torácica en foam roller"] },
+      { name:"Bloque principal (42')", items:["Press banca plano: 4×6 @ 78%","Dominadas lastradas: 4×5–6","Press militar: 3×8","Remo con barra: 3×8","Curl martillo + tríceps en polea: 3×12 superset"] },
+      { name:"Core funcional (5')", items:["Hollow body hold: 3×30\"","Ab wheel rollout: 3×8"] },
+      { name:"Vuelta a la calma (5')", items:["Doorway stretch pectoral, estiramiento dorsal"] }
+    ], tip:"La relación tracción:empuje debe ser 2:1 para proteger el manguito rotador. Prioriza siempre dominadas y remos." },
+  { title:"Fútbol: técnica + físico", day:"Viernes", tag:"Fútbol", tagClass:"tag-futbol",
+    sub:"Objetivo: transferir toda la base física al deporte. Técnica con fatiga controlada, como en partido real.",
+    phases:[
+      { name:"Calentamiento dinámico (10')", items:["Rondo 4v1 o pases en movimiento","Cambios de dirección con balón: 5'","Sprints cortos 10–15m con balón"] },
+      { name:"Técnica bajo fatiga (25')", items:["Conducción + regate en circuito: 3×5'","Finalización tras sprint: 4×5 remates","Presión y recuperación defensiva: 3×3'"] },
+      { name:"Físico específico fútbol (20')", items:["Agilidad con escalera: 3×30\" patter a máxima vel.","Sprint + vuelta + salto cabeceo: 6×1","Resistencia intermitente 10-10: 10' (10\" sprint / 10\" trote)"] },
+      { name:"Vuelta a la calma (5')", items:["Estiramiento cadena posterior, adductores"] }
+    ], tip:"La resistencia intermitente 10-10 simula exactamente la demanda energética del fútbol real. Muy eficiente para quemar grasa sin perder velocidad." },
+  { title:"HIIT + core surf", day:"Sábado", tag:"Cardio", tagClass:"tag-cardio",
+    sub:"Objetivo: máxima oxidación de grasa + core profundo para equilibrio en la tabla. Sesión de alta intensidad corta.",
+    phases:[
+      { name:"Calentamiento (8')", items:["Saltos de cuerda suave: 3'","Movilidad de cadera: 5'"] },
+      { name:"HIIT metabólico (30') — 40\" trabajo / 20\" descanso × 4 rondas", items:["Burpee con salto","Kettlebell swing","Box jump","Battle rope o sprints","Mountain climbers"] },
+      { name:"Core para surf (17')", items:["Turkish get-up: 3×3/lado","Surfing plank (rotación sobre manos): 3×10","Rotación rusa con balón medicinal: 3×20","Superman hold: 3×30\""] },
+      { name:"Movilidad (5')", items:["Pigeon pose, rotación espinal tumbado"] }
+    ], tip:"Este día es el de mayor oxidación de grasa de la semana. Combinación HIIT + déficit calórico muy potente. Hidratación óptima." },
+  { title:"Descanso activo", day:"Domingo", tag:"Descanso", tagClass:"tag-descanso",
+    sub:"No es un día perdido. La recuperación activa acelera la eliminación de lactato y mejora la preparación para la semana siguiente.",
+    phases:[
+      { name:"Opción A: playa o agua (45–60')", items:["Paddle surf, natación suave o kayak","FC por debajo del 60% FC máx","Disfruta del entorno — beneficio psicológico real"] },
+      { name:"Opción B: sin agua (45–60')", items:["Paseo o ciclismo suave","Yoga o sesión de movilidad guiada","Foam roller cuerpo completo: 15'"] },
+      { name:"Protocolos de recuperación", items:["Baño de contraste: 3× (2' caliente / 1' frío)","Sueño: objetivo 9h esta noche","Revisión mental de la semana y ajustes"] },
+      { name:"Nutrición del domingo", items:["Día bajo en carbohidratos (carb cycling)","Mantener proteína alta: 2g/kg","Aumentar vegetales y grasas saludables"] }
+    ], tip:"Los atletas de élite no descansan pasivamente. Usa este día para activar la recuperación y llegar al lunes al 100%." }
+];
+
+function renderDay(idx) {
+  const d = days[idx];
+  const phasesHtml = d.phases.map(p => `
+    <div class="phase-block">
+      <div class="phase-name">${p.name}</div>
+      ${p.items.map(i => `<div class="phase-item">${i}</div>`).join('')}
+    </div>`).join('');
+  document.getElementById('dayDetail').innerHTML = `
+    <div class="day-header">
+      <div class="day-header-top"><h2>${d.title}</h2><span class="tag ${d.tagClass}">${d.tag}</span></div>
+      <div class="day-sub">${d.sub}</div>
+    </div>
+    <div class="phases-grid">${phasesHtml}</div>
+    <div class="tip-bar"><strong>Consejo de rendimiento</strong>${d.tip}</div>`;
+}
+document.getElementById('weekGrid').addEventListener('click', e => {
+  const card = e.target.closest('.week-card');
+  if (!card) return;
+  document.querySelectorAll('.week-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  renderDay(+card.dataset.day);
+});
+renderDay(0);
+
+// ══════════════════════════════ REGISTRO DE CARGAS ══════════════════════════════
+const STORAGE_KEY = 'rutina_surf_cargas_v1';
+let registros = [];
+let filtroActivo = 'todos';
+
+function cargarDatos() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); registros = raw ? JSON.parse(raw) : []; } catch(e) { registros = []; }
+  renderTabla(); actualizarStats();
+  const startRegistrosListener = () => {
+    window._fbListen('registros', docs => {
+      registros = Object.values(docs).sort((a,b) => b.id - a.id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+      renderTabla(); actualizarStats();
+    });
+  };
+  if (window._fbReady) startRegistrosListener();
+  else window.addEventListener('firebase-ready', startRegistrosListener, { once: true });
+}
+function guardarDatos() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+}
+function _fbSyncRegistro(r) {
+  if (window._fbReady) window._fbSet('registros', String(r.id), r);
+  else window.addEventListener('firebase-ready', () => window._fbSet('registros', String(r.id), r), { once: true });
+}
+function _fbDeleteRegistro(id) {
+  if (window._fbReady) window._fbDelete('registros', String(id));
+  else window.addEventListener('firebase-ready', () => window._fbDelete('registros', String(id)), { once: true });
+}
+function setFechaPorDefecto() { document.getElementById('reg-fecha').value = new Date().toISOString().split('T')[0]; }
+
+function guardarRegistro() {
+  const fecha = document.getElementById('reg-fecha').value;
+  const dia = document.getElementById('reg-dia').value;
+  const ejercicio = document.getElementById('reg-ejercicio').value.trim();
+  const semana = document.getElementById('reg-semana').value;
+  const series = document.getElementById('reg-series').value.trim();
+  const carga = document.getElementById('reg-carga').value;
+  const rpe = document.getElementById('reg-rpe').value;
+  const pr = document.getElementById('reg-pr').value;
+  const notas = document.getElementById('reg-notas').value.trim();
+  if (!fecha || !ejercicio || !dia) { mostrarToast('⚠️ Rellena fecha, ejercicio y sesión'); return; }
+  registros.unshift({ id: Date.now(), fecha, dia, ejercicio, semana, series, carga: carga ? parseFloat(carga) : null, rpe: rpe ? parseInt(rpe) : null, pr, notas });
+  guardarDatos(); _fbSyncRegistro(registros[0]); renderTabla(); actualizarStats(); mostrarToast('✓ Registro guardado');
+  document.getElementById('reg-ejercicio').value = '';
+  document.getElementById('reg-series').value = '';
+  document.getElementById('reg-carga').value = '';
+  document.getElementById('reg-rpe').value = '';
+  document.getElementById('reg-pr').value = 'no';
+  document.getElementById('reg-notas').value = '';
+}
+function eliminarRegistro(id) { registros = registros.filter(r => r.id !== id); guardarDatos(); _fbDeleteRegistro(id); renderTabla(); actualizarStats(); mostrarToast('🗑 Registro eliminado'); }
+function confirmarBorrarTodo() {
+  if (!registros.length) return;
+  if (confirm('¿Seguro que quieres borrar todos los registros?')) {
+    registros.forEach(r => _fbDeleteRegistro(r.id));
+    registros = []; guardarDatos(); renderTabla(); actualizarStats(); mostrarToast('🗑 Historial borrado');
+  }
+}
+function setFiltro(filtro, btn) {
+  filtroActivo = filtro;
+  document.querySelectorAll('.reg-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTabla();
+}
+function renderTabla() {
+  const filtrados = filtroActivo === 'todos' ? registros : registros.filter(r => r.dia === filtroActivo);
+  const empty = document.getElementById('reg-empty'), tabla = document.getElementById('reg-tabla'), tbody = document.getElementById('reg-tbody');
+  if (!filtrados.length) { empty.style.display = 'block'; tabla.style.display = 'none'; return; }
+  empty.style.display = 'none'; tabla.style.display = 'table';
+  tbody.innerHTML = filtrados.map(r => {
+    const fechaFmt = r.fecha ? r.fecha.split('-').reverse().join('/') : '—';
+    const prBadge = r.pr === 'si' ? '<span class="pr-badge">PR</span>' : '';
+    return `<tr>
+      <td style="white-space:nowrap;color:var(--muted);font-size:0.8rem">${fechaFmt}</td>
+      <td style="font-weight:500">${r.ejercicio}${prBadge}${r.notas ? `<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">${r.notas}</div>` : ''}</td>
+      <td>${r.series || '—'}</td>
+      <td style="font-weight:600;color:var(--ocean)">${r.carga != null ? r.carga + ' kg' : '—'}</td>
+      <td style="color:var(--muted)">${r.rpe != null ? r.rpe : '—'}</td>
+      <td><span style="font-size:0.72rem;color:var(--muted)">${r.dia.split('—')[0].trim()}</span></td>
+      <td style="color:var(--muted);font-size:0.8rem">${r.semana || '—'}</td>
+      <td style="display:flex;gap:4px"><button class="reg-btn-edit" onclick="abrirEditRegistro(${r.id})">✏️</button><button class="reg-btn-danger" onclick="eliminarRegistro(${r.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+function actualizarStats() {
+  document.getElementById('stat-total').textContent = registros.length;
+  document.getElementById('stat-sesiones').textContent = new Set(registros.map(r => r.fecha + r.dia)).size;
+  const lunes = new Date(); lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7)); lunes.setHours(0,0,0,0);
+  document.getElementById('stat-semana').textContent = registros.filter(r => r.fecha && new Date(r.fecha) >= lunes).length;
+  document.getElementById('stat-prs').textContent = registros.filter(r => r.pr === 'si').length;
+}
+cargarDatos(); setFechaPorDefecto();
+
+// ══════════════════════════════ TAREAS ══════════════════════════════
+const TAREAS_KEY = 'rutina_tareas_v1';
+let tareasData = { diarias: [], largas: [] };
+
+function loadTareas() {
+  try { const raw = localStorage.getItem(TAREAS_KEY); if (raw) tareasData = JSON.parse(raw); } catch(e) {}
+  renderTareas('diarias'); renderTareas('largas');
+  const startTareasListener = () => {
+    window._fbListen('tareas', docs => {
+      // El documento es único: id="data"
+      if (docs['data']) {
+        tareasData = docs['data'];
+        localStorage.setItem(TAREAS_KEY, JSON.stringify(tareasData));
+        renderTareas('diarias'); renderTareas('largas');
+      }
+    });
+  };
+  if (window._fbReady) startTareasListener();
+  else window.addEventListener('firebase-ready', startTareasListener, { once: true });
+}
+function saveTareas() {
+  localStorage.setItem(TAREAS_KEY, JSON.stringify(tareasData));
+  if (window._fbReady) window._fbSet('tareas', 'data', tareasData);
+  else window.addEventListener('firebase-ready', () => window._fbSet('tareas', 'data', tareasData), { once: true });
+}
+
+function addTarea(tipo) {
+  const id = tipo === 'diarias' ? 'input-diaria' : 'input-larga';
+  const input = document.getElementById(id);
+  const text = input.value.trim();
+  if (!text) return;
+  const t = { id: Date.now(), text, done: false };
+  if (tipo === 'largas') t.pri = document.getElementById('pri-larga').value;
+  if (tipo === 'diarias') {
+    const horaInput = document.getElementById('input-diaria-hora');
+    if (horaInput && horaInput.value) {
+      t.hora = horaInput.value;
+      horaInput.value = '';
+    }
+  }
+  tareasData[tipo].unshift(t);
+  saveTareas(); renderTareas(tipo); input.value = ''; mostrarToast('✓ Tarea añadida');
+  if (tipo === 'diarias' && t.hora) scheduleTaskNotification(t);
+}
+function toggleTarea(tipo, id) {
+  const t = tareasData[tipo].find(x => x.id === id);
+  if (t) t.done = !t.done;
+  saveTareas(); renderTareas(tipo);
+}
+function deleteTarea(tipo, id) { if (tipo === 'diarias') cancelTaskNotification && cancelTaskNotification(id); tareasData[tipo] = tareasData[tipo].filter(x => x.id !== id); saveTareas(); renderTareas(tipo); }
+function clearDone(tipo) {
+  if (tipo === 'diarias') tareasData.diarias.filter(x => x.done).forEach(t => cancelTaskNotification && cancelTaskNotification(t.id));
+  tareasData[tipo] = tareasData[tipo].filter(x => !x.done); saveTareas(); renderTareas(tipo);
+}
+
+function renderTareas(tipo) {
+  const list = document.getElementById('list-' + tipo);
+  const items = tareasData[tipo];
+  const pending = items.filter(x => !x.done).length;
+  document.getElementById('count-' + tipo).textContent = items.length;
+  document.getElementById('footer-' + tipo).textContent = pending === 0 && items.length > 0 ? '¡Todo completado! 🎉' : `${pending} pendiente${pending !== 1 ? 's' : ''}`;
+  if (!items.length) { list.innerHTML = '<div class="tarea-empty">Sin tareas. ¡Añade una arriba!</div>'; return; }
+  const dots = { alta:'dot-alta', media:'dot-media', baja:'dot-baja' };
+  // Refresh portada widget if visible
+  if (tipo === 'diarias' && typeof pwLoadTareas === 'function') pwLoadTareas();
+  list.innerHTML = items.map(t => `
+    <div class="tarea-item">
+      ${tipo === 'largas' ? `<span class="pri-dot ${dots[t.pri]||'dot-media'}"></span>` : ''}
+      <input type="checkbox" class="tarea-check" ${t.done?'checked':''} onchange="toggleTarea('${tipo}',${t.id})" />
+      <span class="tarea-text${t.done?' done':''}">${t.text}</span>
+      ${tipo === 'diarias' && t.hora ? `<span class="tarea-hora-badge${t.done?' fired':''}">⏰ ${t.hora}</span>` : ''}
+      <button class="tarea-edit-btn" onclick="abrirEditTarea('${tipo}',${t.id})">✏️</button>
+      <button class="tarea-del" onclick="deleteTarea('${tipo}',${t.id})">✕</button>
+    </div>`).join('');
+}
+document.getElementById('input-diaria').addEventListener('keydown', e => { if (e.key==='Enter') addTarea('diarias'); });
+document.getElementById('input-larga').addEventListener('keydown', e => { if (e.key==='Enter') addTarea('largas'); });
+loadTareas();
+
+// ══════════════════════════════ MI DÍA ══════════════════════════════
+let miDiaData = { manana: [], tarde: [], noche: [] };
+
+function saveMiDia() {
+  if (window._fbSet) window._fbSet('midia', 'data', miDiaData);
+}
+
+function loadMiDia() {
+  if (!window._fbGet) return;
+  window._fbGet('midia', 'data').then(d => {
+    if (d) { miDiaData = d; }
+    ['manana','tarde','noche'].forEach(renderMiDia);
+    refreshMiDiaSelects();
+  });
+}
+
+function refreshMiDiaSelects() {
+  // Ids ya asignados en algún bloque
+  const asignados = new Set([
+    ...miDiaData.manana.map(t => t.id),
+    ...miDiaData.tarde.map(t => t.id),
+    ...miDiaData.noche.map(t => t.id)
+  ]);
+  const tareasPendientes = (tareasData.diarias || []).filter(t => !asignados.has(t.id));
+  ['manana','tarde','noche'].forEach(b => {
+    const sel = document.getElementById('midia-sel-' + b);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Selecciona una tarea —</option>' +
+      tareasPendientes.map(t => `<option value="${t.id}">${t.text}</option>`).join('');
+  });
+}
+
+function renderMiDia(bloque) {
+  const container = document.getElementById('midia-' + bloque);
+  if (!container) return;
+  const items = miDiaData[bloque] || [];
+  container.innerHTML = items.map(t => `
+    <div class="midia-item">
+      <input type="checkbox" class="midia-item-check" ${t.done?'checked':''} onchange="toggleMiDiaItem('${bloque}',${t.id})"/>
+      <span class="midia-item-text${t.done?' done':''}">${t.text}</span>
+      ${t.hora ? `<span class="midia-item-hora">⏰ ${t.hora}</span>` : ''}
+      <button class="midia-item-del" onclick="deleteMiDiaItem('${bloque}',${t.id})">✕</button>
+    </div>`).join('') || '<p style="font-size:0.8rem;color:var(--muted);padding:0.5rem 0.3rem">Sin tareas asignadas</p>';
+}
+
+function addMiDia(bloque) {
+  const sel = document.getElementById('midia-sel-' + bloque);
+  const timeInput = document.getElementById('midia-time-' + bloque);
+  const id = parseInt(sel.value);
+  if (!id) return;
+  const tarea = (tareasData.diarias || []).find(t => t.id === id);
+  if (!tarea) return;
+  const item = { id: tarea.id, text: tarea.text, done: tarea.done };
+  if (timeInput && timeInput.value) { item.hora = timeInput.value; timeInput.value = ''; }
+  miDiaData[bloque].push(item);
+  saveMiDia(); renderMiDia(bloque); refreshMiDiaSelects();
+  mostrarToast('✓ Tarea asignada a ' + (bloque === 'manana' ? 'Mañana' : bloque.charAt(0).toUpperCase() + bloque.slice(1)));
+}
+
+function toggleMiDiaItem(bloque, id) {
+  const t = miDiaData[bloque].find(x => x.id === id);
+  if (t) t.done = !t.done;
+  // Sincronizar con tareasData.diarias
+  const orig = (tareasData.diarias || []).find(x => x.id === id);
+  if (orig) { orig.done = t.done; saveTareas(); renderTareas('diarias'); }
+  saveMiDia(); renderMiDia(bloque);
+}
+
+function deleteMiDiaItem(bloque, id) {
+  miDiaData[bloque] = miDiaData[bloque].filter(x => x.id !== id);
+  saveMiDia(); renderMiDia(bloque); refreshMiDiaSelects();
+}
+
+function resetMiDia() {
+  ['manana','tarde','noche'].forEach(b => {
+    miDiaData[b] = miDiaData[b].filter(x => !x.done);
+    renderMiDia(b);
+  });
+  saveMiDia(); refreshMiDiaSelects(); mostrarToast('🗑️ Completadas eliminadas');
+}
+
+// Refrescar selects cuando cambien las tareas diarias
+const _origRenderTareasMiDia = renderTareas;
+window.renderTareas = function(tipo) {
+  _origRenderTareasMiDia(tipo);
+  if (tipo === 'diarias') refreshMiDiaSelects();
+};
+
+window.addEventListener('firebase-ready', loadMiDia, { once: true });
+if (window._fbReady) loadMiDia();
+
+// ══════════════════════════════ FESTIVOS ESPAÑA ══════════════════════════════
+// Calcula el Domingo de Pascua (algoritmo de Butcher/Meeus)
+function easterSunday(year) {
+  const a = year % 19, b = Math.floor(year/100), c = year % 100;
+  const d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+  const g = Math.floor((b-f+1)/3), h = (19*a+b-d-g+15) % 30;
+  const i = Math.floor(c/4), k = c % 4;
+  const l = (32+2*e+2*i-h-k) % 7;
+  const m = Math.floor((a+11*h+22*l)/451);
+  const month = Math.floor((h+l-7*m+114)/31);
+  const day = ((h+l-7*m+114) % 31) + 1;
+  return new Date(year, month-1, day);
+}
+
+function getSpanishHolidays(year) {
+  const easter = easterSunday(year);
+  const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  const fixed = {
+    [`${year}-01-01`]: 'Año Nuevo',
+    [`${year}-01-06`]: 'Reyes Magos',
+    [`${year}-05-01`]: 'Día del Trabajador',
+    [`${year}-08-15`]: 'Asunción de la Virgen',
+    [`${year}-10-12`]: 'Fiesta Nacional de España',
+    [`${year}-11-01`]: 'Todos los Santos',
+    [`${year}-12-06`]: 'Día de la Constitución',
+    [`${year}-12-08`]: 'Inmaculada Concepción',
+    [`${year}-12-25`]: 'Navidad',
+  };
+
+  // Castilla y León (Burgos)
+  fixed[`${year}-04-23`] = 'Castilla y León';
+
+  // Semana Santa (variable)
+  const viernesSanto = addDays(easter, -2);
+  const juevesSanto  = addDays(easter, -3);
+  fixed[fmt(juevesSanto)]  = 'Jueves Santo';
+  fixed[fmt(viernesSanto)] = 'Viernes Santo';
+
+  return fixed;
+}
+
+// Cache de festivos por año
+const _festivosCache = {};
+function getFestivos(year) {
+  if (!_festivosCache[year]) _festivosCache[year] = getSpanishHolidays(year);
+  return _festivosCache[year];
+}
+function isFestivo(key) {
+  const year = parseInt(key.split('-')[0]);
+  return getFestivos(year)[key] || null;
+}
+
+// ══════════════════════════════ CALENDARIO ══════════════════════════════
+const CAL_KEY = 'mi_calendario_v1';
+let calEventsDB = {};  // { 'YYYY-MM-DD': [{id, text, hora, pri}] }
+let calView = 'mes';
+let calYear, calMonth, calWeekStart, calDayDate;
+let calSelectedKey = null;
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const DIAS_LARGO = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+
+function loadCal() {
+  try { const raw = localStorage.getItem(CAL_KEY); if (raw) calEventsDB = JSON.parse(raw); } catch(e) {}
+  const startCalListener = () => {
+    window._fbListen('calendario', docs => {
+      if (docs['data']) {
+        calEventsDB = docs['data'];
+        localStorage.setItem(CAL_KEY, JSON.stringify(calEventsDB));
+        renderCal(); renderCalPanel();
+      }
+    });
+  };
+  if (window._fbReady) startCalListener();
+  else window.addEventListener('firebase-ready', startCalListener, { once: true });
+}
+function saveCal() {
+  localStorage.setItem(CAL_KEY, JSON.stringify(calEventsDB));
+  if (window._fbReady) window._fbSet('calendario', 'data', calEventsDB);
+  else window.addEventListener('firebase-ready', () => window._fbSet('calendario', 'data', calEventsDB), { once: true });
+  if (typeof pwLoadCalendar === 'function') pwLoadCalendar();
+}
+
+function getEventsFor(key) { return calEventsDB[key] || []; }
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayKey() { return dateKey(new Date()); }
+
+function setCalView(v, btn) {
+  calView = v;
+  document.querySelectorAll('.cal-view-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('cal-view-mes').style.display = v==='mes' ? '' : 'none';
+  document.getElementById('cal-view-semana').style.display = v==='semana' ? '' : 'none';
+  document.getElementById('cal-view-dia').style.display = v==='dia' ? '' : 'none';
+  renderCal();
+}
+
+function calGoToday() {
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  calWeekStart = getMondayOf(now);
+  calDayDate = now;
+  renderCal();
+}
+
+function calNav(dir) {
+  if (calView === 'mes') {
+    calMonth += dir;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+  } else if (calView === 'semana') {
+    calWeekStart = new Date(calWeekStart); calWeekStart.setDate(calWeekStart.getDate() + dir * 7);
+  } else {
+    calDayDate = new Date(calDayDate); calDayDate.setDate(calDayDate.getDate() + dir);
+  }
+  renderCal();
+}
+
+// ── MES/AÑO PICKER ──
+let calPickerYear = new Date().getFullYear();
+
+function calOpenPicker() {
+  calPickerYear = calView === 'mes' ? calYear :
+    calView === 'semana' ? calWeekStart.getFullYear() : calDayDate.getFullYear();
+  calRenderPicker();
+  document.getElementById('cal-picker-overlay').style.display = 'flex';
+}
+
+function calClosePicker() {
+  document.getElementById('cal-picker-overlay').style.display = 'none';
+}
+
+function calPickerYearNav(dir) {
+  calPickerYear += dir;
+  calRenderPicker();
+}
+
+function calRenderPicker() {
+  document.getElementById('cal-picker-year').textContent = calPickerYear;
+  const activeMonth = calView === 'mes' && calPickerYear === calYear ? calMonth : -1;
+  document.getElementById('cal-picker-months').innerHTML = MESES.map((m, i) =>
+    `<button class="cal-picker-month-btn${i === activeMonth ? ' active' : ''}" onclick="calPickerSelect(${i})">${m.slice(0,3)}</button>`
+  ).join('');
+}
+
+function calPickerSelect(month) {
+  calYear = calPickerYear;
+  calMonth = month;
+  // Also update week/day views to be in that month
+  calWeekStart = getMondayOf(new Date(calYear, calMonth, 1));
+  calDayDate = new Date(calYear, calMonth, 1);
+  // Switch to month view
+  calView = 'mes';
+  document.querySelectorAll('.cal-view-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  document.getElementById('cal-view-mes').style.display = '';
+  document.getElementById('cal-view-semana').style.display = 'none';
+  document.getElementById('cal-view-dia').style.display = 'none';
+  calClosePicker();
+  renderCal();
+}
+
+function getMondayOf(d) {
+  const day = new Date(d);
+  const dow = day.getDay(); // 0=sun
+  const diff = dow === 0 ? -6 : 1 - dow;
+  day.setDate(day.getDate() + diff);
+  day.setHours(0,0,0,0);
+  return day;
+}
+
+function renderCal() {
+  if (calView === 'mes') renderCalMes();
+  else if (calView === 'semana') renderCalSemana();
+  else renderCalDia();
+}
+
+function fmtMes(y, m) { return `${MESES[m]} ${y}`; }
+function fmtSemana(d) {
+  const end = new Date(d); end.setDate(d.getDate() + 6);
+  return `${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} — ${end.getDate()} ${MESES[end.getMonth()].slice(0,3)} ${end.getFullYear()}`;
+}
+function fmtDia(d) {
+  const dow = DIAS_LARGO[(d.getDay()+6)%7];
+  return `${dow.charAt(0).toUpperCase()+dow.slice(1)}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
+// ── MES ──
+function renderCalMes() {
+  document.getElementById('cal-period-btn').textContent = fmtMes(calYear, calMonth);
+  const grid = document.getElementById('cal-mes-grid');
+  const tk = todayKey();
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const offset = firstDow === 0 ? 6 : firstDow - 1;
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  let html = '';
+  for (let i = 0; i < offset; i++) html += '<div class="cal-cell empty"><div class="cal-num"></div></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = key === tk, isSel = key === calSelectedKey;
+    const festivo = isFestivo(key);
+    const evts = getEventsFor(key);
+    const hasFestivoEv = evts.some(e => e.pri === 'festivoev');
+    const festivoHtml = festivo ? `<div class="cal-festivo-label">${festivo}</div>` : '';
+    const evHtml = evts.slice(0,2).map(e => `<div class="cal-ev-mini ${e.pri!=='normal'?e.pri:''}">${e.hora?e.hora+' ':'' }${e.text}</div>`).join('');
+    html += `<div class="cal-cell${isToday?' today':''}${isSel?' selected':''}${(festivo||hasFestivoEv)?' festivo':''}" onclick="selectCalDay('${key}')">
+      <div class="cal-num">${d}</div>${festivoHtml}${evHtml}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+// ── SEMANA ──
+function renderCalSemana() {
+  const tk = todayKey();
+  // Generar los 7 días
+  const cols = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(calWeekStart); d.setDate(d.getDate() + i);
+    cols.push(d);
+  }
+  document.getElementById('cal-period-btn').textContent = fmtSemana(calWeekStart);
+
+  // Header
+  let hdr = '<div style="background:var(--sand);border-right:1px solid var(--border)"></div>';
+  cols.forEach(d => {
+    const key = dateKey(d);
+    const isT = key === tk;
+    const fest = isFestivo(key);
+    const hasFestivoEv = getEventsFor(key).some(e => e.pri === 'festivoev');
+    const isFest = fest || hasFestivoEv;
+    hdr += `<div class="cal-semana-col-head${isT?' today-col':''}${isFest?' festivo-col':''}" onclick="selectCalDayAndSwitch('${key}')" title="${fest||''}">
+      <span>${DIAS_CORTO[(d.getDay()+6)%7]}</span>
+      <span class="sday-num">${d.getDate()}</span>
+      ${isFest ? `<span style="font-size:0.55rem;color:#c2410c;display:block;line-height:1.2;font-weight:700;">${fest?'F':'🔴'}</span>` : ''}
+    </div>`;
+  });
+  document.getElementById('cal-semana-header').innerHTML = hdr;
+
+  // Body — horas 6–23
+  let body = '';
+  for (let h = 6; h <= 23; h++) {
+    body += `<div class="cal-hour-label"><span>${h}:00</span></div>`;
+    cols.forEach(d => {
+      const key = dateKey(d);
+      const isT = key === tk;
+      const evts = getEventsFor(key).filter(e => e.hora && parseInt(e.hora.split(':')[0]) === h);
+      const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" onclick="event.stopPropagation();selectCalDay('${key}')">${e.hora} ${e.text}</div>`).join('');
+      body += `<div class="cal-hour-cell${isT?' today-col':''}" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
+    });
+  }
+  document.getElementById('cal-semana-body').innerHTML = body;
+
+  // Scroll to 8am
+  const bodyEl = document.getElementById('cal-semana-body');
+  setTimeout(() => { bodyEl.scrollTop = 2 * 44; }, 50);
+}
+
+// ── DÍA ──
+function renderCalDia() {
+  const key = dateKey(calDayDate);
+  document.getElementById('cal-period-btn').textContent = fmtDia(calDayDate);
+  document.getElementById('cal-dia-title').textContent = fmtDia(calDayDate);
+
+  const fest = isFestivo(key);
+  const hasFestivoEv = getEventsFor(key).some(e => e.pri === 'festivoev');
+  const diaWrap = document.getElementById('cal-dia-body').closest('.cal-dia-wrap');
+  if (fest || hasFestivoEv) diaWrap.classList.add('festivo-day');
+  else diaWrap.classList.remove('festivo-day');
+
+  let html = '';
+  for (let h = 6; h <= 23; h++) {
+    const evts = getEventsFor(key).filter(e => e.hora && parseInt(e.hora.split(':')[0]) === h);
+    const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" style="cursor:pointer" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`).join('');
+    html += `<div class="cal-dia-hour-label"><span>${h}:00</span></div>
+      <div class="cal-dia-hour-cell" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
+  }
+  document.getElementById('cal-dia-body').innerHTML = html;
+  const bodyEl = document.getElementById('cal-dia-body');
+  setTimeout(() => { bodyEl.scrollTop = 2 * 48; }, 50);
+
+  // Auto-select this day in panel
+  calSelectedKey = key;
+  renderCalPanel();
+}
+
+function selectCalDay(key) {
+  calSelectedKey = key;
+  document.getElementById('cal-ev-fecha').value = key;
+  renderCalMes(); // re-render to show selected
+  renderCalPanel();
+  document.getElementById('cal-ev-text').focus();
+}
+
+function selectCalDayAndSwitch(key) {
+  // Switch to day view for this date
+  const [y,m,d] = key.split('-').map(Number);
+  calDayDate = new Date(y, m-1, d);
+  calSelectedKey = key;
+  setCalView('dia', document.querySelectorAll('.cal-view-btn')[2]);
+}
+
+function selectCalDayAndTime(key, hora) {
+  calSelectedKey = key;
+  document.getElementById('cal-ev-fecha').value = key;
+  document.getElementById('cal-ev-hora').value = hora;
+  renderCalPanel();
+  document.getElementById('cal-ev-text').focus();
+}
+
+function renderCalPanel() {
+  if (!calSelectedKey) return;
+  const [y,m,d] = calSelectedKey.split('-').map(Number);
+  const dow = DIAS_LARGO[(new Date(y,m-1,d).getDay()+6)%7];
+  document.getElementById('cal-panel-title').textContent =
+    `${dow.charAt(0).toUpperCase()+dow.slice(1)}, ${d} de ${MESES[m-1]} de ${y}`;
+  // Sync date input with selected day
+  document.getElementById('cal-ev-fecha').value = calSelectedKey;
+
+  // Mostrar banner de festivo
+  const fest = isFestivo(calSelectedKey);
+  const banner = document.getElementById('cal-festivo-banner');
+  if (fest) { banner.textContent = `Festivo: ${fest}`; banner.classList.add('show'); }
+  else { banner.classList.remove('show'); }
+
+  const TIPO_INFO = {
+    normal:    { label: 'Normal',      cls: 'badge-normal' },
+    cumple:    { label: 'Cumpleaños',  cls: 'badge-cumple' },
+    examen:    { label: 'Examen',      cls: 'badge-examen' },
+    evento:    { label: 'Evento',      cls: 'badge-evento' },
+    festivoev: { label: 'Festivo',     cls: 'badge-festivoev' },
+    rutina:    { label: 'Rutina',      cls: 'badge-rutina' },
+  };
+
+  const evts = getEventsFor(calSelectedKey).sort((a,b) => (a.hora||'99:99').localeCompare(b.hora||'99:99'));
+  if (!evts.length) {
+    document.getElementById('cal-event-list').innerHTML = '<div class="cal-no-events">Sin eventos. Añade uno arriba.</div>';
+    return;
+  }
+  document.getElementById('cal-event-list').innerHTML = evts.map((e,i) => {
+    const tipo = TIPO_INFO[e.pri] || TIPO_INFO.normal;
+    const REPEAT_LABELS = { daily:'↺ Diario', weekly:'↺ Semanal', biweekly:'↺ 2 semanas', monthly:'↺ Mensual', yearly:'↺ Anual' };
+    const repeatBadge = (e.repeat && e.repeat !== 'none') ? `<span class="ev-repeat">${REPEAT_LABELS[e.repeat]||''}</span>` : '';
+    const durationBadge = e.duracion ? `<span class="ev-duration">⏱ ${e.duracion >= 60 ? Math.floor(e.duracion/60)+'h'+(e.duracion%60?` ${e.duracion%60}m`:'') : e.duracion+'min'}</span>` : '';
+    const alldayBadge = e.allday ? `<span class="ev-allday">Todo el día</span>` : '';
+    const actions = e._readOnly
+      ? `<span style="font-size:0.65rem;color:var(--muted)">Repetido</span>`
+      : `<button class="cal-event-edit" title="Editar" onclick="openEditModal(${i})">Editar</button>
+         <button class="cal-event-del" onclick="deleteCalEvent(${i})">✕</button>`;
+    return `<div class="cal-event-item ${e.pri !== 'normal' ? e.pri : ''}">
+      <span class="ev-time">${e.allday ? '🌅' : (e.hora || '—')}</span>
+      <span class="ev-type-badge ${tipo.cls}">${tipo.label}</span>
+      <span style="flex:1">${e.text} ${alldayBadge}${durationBadge}${repeatBadge}</span>
+      ${actions}
+    </div>`;
+  }).join('');
+}
+
+function addCalEvent() {
+  const fechaInput = document.getElementById('cal-ev-fecha').value;
+  if (!fechaInput) { mostrarToast('⚠️ Selecciona o escribe una fecha'); return; }
+  // Use the date from the input field (allows manual entry without clicking calendar)
+  const targetKey = fechaInput;
+  const text = document.getElementById('cal-ev-text').value.trim();
+  if (!text) return;
+  const allday = document.getElementById('cal-ev-allday').checked;
+  const hora = allday ? '' : document.getElementById('cal-ev-hora').value;
+  const pri = document.getElementById('cal-ev-pri').value;
+  const durSelect = document.getElementById('cal-ev-duracion').value;
+  const duracion = durSelect === 'custom'
+    ? (parseInt(document.getElementById('cal-ev-dur-custom').value) || '')
+    : (durSelect ? parseInt(durSelect) : '');
+  const repeat = document.getElementById('cal-ev-repeat').value;
+  if (!calEventsDB[targetKey]) calEventsDB[targetKey] = [];
+  calEventsDB[targetKey].push({ id: Date.now(), text, hora, pri, allday, duracion, repeat });
+  // Update selected key to match the date used
+  calSelectedKey = targetKey;
+  // Navigate calendar to the month of the added event
+  const [y,m] = targetKey.split('-').map(Number);
+  calYear = y; calMonth = m - 1;
+  saveCal(); renderCal(); renderCalPanel();
+  document.getElementById('cal-ev-text').value = '';
+  document.getElementById('cal-ev-hora').value = '';
+  document.getElementById('cal-ev-duracion').value = '';
+  document.getElementById('cal-ev-repeat').value = 'none';
+  document.getElementById('cal-ev-allday').checked = false;
+  document.getElementById('cal-ev-time-block').style.display = '';
+  mostrarToast('✓ Evento añadido');
+}
+
+function deleteCalEvent(idx) {
+  const sorted = getEventsFor(calSelectedKey).sort((a,b) => (a.hora||'99:99').localeCompare(b.hora||'99:99'));
+  const ev = sorted[idx];
+  if (ev._readOnly) { mostrarToast('ℹ️ Elimina el evento en su fecha original'); return; }
+  const evId = ev.id;
+  calEventsDB[calSelectedKey] = calEventsDB[calSelectedKey].filter(e => e.id !== evId);
+  if (!calEventsDB[calSelectedKey].length) delete calEventsDB[calSelectedKey];
+  saveCal(); renderCal(); renderCalPanel(); mostrarToast('🗑 Evento eliminado');
+}
+
+document.getElementById('cal-ev-text').addEventListener('keydown', e => { if (e.key==='Enter') addCalEvent(); });
+
+// ── SELECTOR DE TIPO CON COLOR ──
+function selectCalType(type, btn) {
+  document.querySelectorAll('#cal-type-row .cal-type-btn').forEach(b => b.classList.remove('selected'));
+  if (btn) btn.classList.add('selected');
+  document.getElementById('cal-ev-pri').value = type;
+}
+function selectModalType(type, btn) {
+  document.querySelectorAll('#modal-type-row .cal-type-btn').forEach(b => b.classList.remove('selected'));
+  if (btn) btn.classList.add('selected');
+  document.getElementById('modal-ev-pri').value = type;
+}
+
+// ── TODO EL DÍA ──
+function toggleAlldayForm() {
+  const allday = document.getElementById('cal-ev-allday').checked;
+  document.getElementById('cal-ev-time-block').style.display = allday ? 'none' : '';
+}
+function toggleModalAlldayForm() {
+  const allday = document.getElementById('modal-ev-allday').checked;
+  document.getElementById('modal-ev-time-block').style.display = allday ? 'none' : '';
+}
+
+// ── DURACIÓN PERSONALIZADA ──
+document.getElementById('cal-ev-duracion').addEventListener('change', function() {
+  document.getElementById('cal-ev-custom-dur-block').style.display = this.value === 'custom' ? '' : 'none';
+});
+function toggleModalCustomDur() {
+  const val = document.getElementById('modal-ev-duracion').value;
+  document.getElementById('modal-ev-custom-dur-block').style.display = val === 'custom' ? '' : 'none';
+}
+
+// ── EVENTOS REPETIDOS: getEventsFor con soporte repeat ──
+const _origGetEventsFor = getEventsFor;
+// Override getEventsFor to include repeated events from other dates
+function getEventsFor(key) {
+  const direct = calEventsDB[key] || [];
+  const [y,m,d] = key.split('-').map(Number);
+  const targetDate = new Date(y, m-1, d);
+  const repeated = [];
+  for (const [srcKey, evts] of Object.entries(calEventsDB)) {
+    if (srcKey === key) continue;
+    const [sy,sm,sd] = srcKey.split('-').map(Number);
+    const srcDate = new Date(sy, sm-1, sd);
+    if (srcDate > targetDate) continue;
+    for (const ev of evts) {
+      if (!ev.repeat || ev.repeat === 'none') continue;
+      const diff = targetDate - srcDate;
+      const days = Math.round(diff / 86400000);
+      let matches = false;
+      if (ev.repeat === 'daily')    matches = days > 0;
+      if (ev.repeat === 'weekly')   matches = days > 0 && days % 7 === 0;
+      if (ev.repeat === 'biweekly') matches = days > 0 && days % 14 === 0;
+      if (ev.repeat === 'monthly') {
+        matches = days > 0 && targetDate.getDate() === srcDate.getDate() &&
+          (targetDate.getFullYear() * 12 + targetDate.getMonth()) >
+          (srcDate.getFullYear() * 12 + srcDate.getMonth());
+      }
+      if (ev.repeat === 'yearly') {
+        matches = days > 0 && targetDate.getDate() === srcDate.getDate() &&
+          targetDate.getMonth() === srcDate.getMonth() &&
+          targetDate.getFullYear() > srcDate.getFullYear();
+      }
+      if (matches) repeated.push({ ...ev, id: ev.id + '_rep_' + key, _readOnly: true });
+    }
+  }
+  return [...direct, ...repeated];
+}
+
+// Init calendario
+const _now = new Date();
+calYear = _now.getFullYear(); calMonth = _now.getMonth();
+calWeekStart = getMondayOf(_now);
+calDayDate = _now;
+loadCal();
+renderCal();
+// Set today's date as default in the date input
+document.getElementById('cal-ev-fecha').value = dateKey(_now);
+calSelectedKey = dateKey(_now);
+renderCalPanel();
+
+// When user manually changes the date input, update panel title and selected key
+document.getElementById('cal-ev-fecha').addEventListener('change', function() {
+  const val = this.value;
+  if (!val) return;
+  calSelectedKey = val;
+  const [y,m,d] = val.split('-').map(Number);
+  const dow = DIAS_LARGO[(new Date(y,m-1,d).getDay()+6)%7];
+  document.getElementById('cal-panel-title').textContent =
+    `${dow.charAt(0).toUpperCase()+dow.slice(1)}, ${d} de ${MESES[m-1]} de ${y}`;
+  // Also show festivo banner if applicable
+  const fest = isFestivo(val);
+  const banner = document.getElementById('cal-festivo-banner');
+  if (fest) { banner.textContent = `Festivo: ${fest}`; banner.classList.add('show'); }
+  else { banner.classList.remove('show'); }
+  renderCalPanel();
+});
+
+// ── EDICIÓN DE EVENTOS ──
+let editingEventId = null;
+
+function openEditModal(idx) {
+  const sorted = getEventsFor(calSelectedKey).sort((a,b) => (a.hora||'99:99').localeCompare(b.hora||'99:99'));
+  const ev = sorted[idx];
+  if (ev._readOnly) { mostrarToast('ℹ️ Edita el evento en su fecha original'); return; }
+  editingEventId = ev.id;
+  document.getElementById('modal-ev-text').value = ev.text;
+  document.getElementById('modal-ev-hora').value = ev.hora || '';
+  // Type
+  selectModalType(ev.pri || 'normal', document.querySelector(`#modal-type-row [data-type="${ev.pri||'normal'}"]`));
+  // All day
+  document.getElementById('modal-ev-allday').checked = !!ev.allday;
+  toggleModalAlldayForm();
+  // Duration
+  const presets = ['','15','30','45','60','90','120','180','240','360'];
+  const durVal = ev.duracion ? String(ev.duracion) : '';
+  if (!durVal || presets.includes(durVal)) {
+    document.getElementById('modal-ev-duracion').value = durVal;
+    document.getElementById('modal-ev-custom-dur-block').style.display = 'none';
+  } else {
+    document.getElementById('modal-ev-duracion').value = 'custom';
+    document.getElementById('modal-ev-dur-custom').value = durVal;
+    document.getElementById('modal-ev-custom-dur-block').style.display = '';
+  }
+  // Repeat
+  document.getElementById('modal-ev-repeat').value = ev.repeat || 'none';
+  document.getElementById('modal-edit-event').classList.add('open');
+  setTimeout(() => document.getElementById('modal-ev-text').focus(), 50);
+}
+
+function closeEditModal() {
+  document.getElementById('modal-edit-event').classList.remove('open');
+  editingEventId = null;
+}
+
+function saveEditEvent() {
+  if (!editingEventId) return;
+  const text = document.getElementById('modal-ev-text').value.trim();
+  if (!text) { mostrarToast('⚠️ El nombre no puede estar vacío'); return; }
+  const allday = document.getElementById('modal-ev-allday').checked;
+  const hora = allday ? '' : document.getElementById('modal-ev-hora').value;
+  const pri = document.getElementById('modal-ev-pri').value;
+  const durSel = document.getElementById('modal-ev-duracion').value;
+  const duracion = durSel === 'custom'
+    ? (parseInt(document.getElementById('modal-ev-dur-custom').value) || '')
+    : (durSel ? parseInt(durSel) : '');
+  const repeat = document.getElementById('modal-ev-repeat').value;
+  const list = calEventsDB[calSelectedKey];
+  if (!list) return;
+  const idx = list.findIndex(e => e.id === editingEventId);
+  if (idx === -1) return;
+  list[idx] = { ...list[idx], text, hora, pri, allday, duracion, repeat };
+  saveCal(); renderCal(); renderCalPanel(); closeEditModal();
+  mostrarToast('✏️ Evento actualizado');
+}
+
+// Cerrar modal al hacer click fuera
+document.getElementById('modal-edit-event').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+document.getElementById('modal-ev-text').addEventListener('keydown', e => { if (e.key === 'Enter') saveEditEvent(); if (e.key === 'Escape') closeEditModal(); });
+
+// ── LISTA DE LA COMPRA ──
+const SHOP_KEY = 'mi_lista_compra_v1';
+let shopItems = [];
+let shopFilter = 'todos';
+const CAT_LABELS = { fruta:'fruta', verdura:'verdura', proteina:'proteina', lacteo:'lacteo', cereal:'cereal', otro:'otro' };
+
+function loadShop() {
+  try { const r = localStorage.getItem(SHOP_KEY); shopItems = r ? JSON.parse(r) : []; } catch(e) { shopItems = []; }
+  renderShop();
+  const startShopListener = () => {
+    window._fbListen('compra', docs => {
+      if (docs['data']) {
+        shopItems = docs['data'].items || docs['data'];
+        localStorage.setItem(SHOP_KEY, JSON.stringify(shopItems));
+        renderShop();
+      }
+    });
+  };
+  if (window._fbReady) startShopListener();
+  else window.addEventListener('firebase-ready', startShopListener, { once: true });
+}
+function saveShop() {
+  localStorage.setItem(SHOP_KEY, JSON.stringify(shopItems));
+  if (window._fbReady) window._fbSet('compra', 'data', { items: shopItems });
+  else window.addEventListener('firebase-ready', () => window._fbSet('compra', 'data', { items: shopItems }), { once: true });
+}
+
+function addShopItem() {
+  const name = document.getElementById('shop-input-name').value.trim();
+  if (!name) return;
+  const qty = document.getElementById('shop-input-qty').value.trim();
+  const cat = document.getElementById('shop-input-cat').value;
+  shopItems.unshift({ id: Date.now(), name, qty, cat, done: false });
+  saveShop(); renderShop();
+  document.getElementById('shop-input-name').value = '';
+  document.getElementById('shop-input-qty').value = '';
+  mostrarToast('✓ Artículo añadido');
+}
+
+function toggleShopItem(id) {
+  const item = shopItems.find(i => i.id === id);
+  if (item) { item.done = !item.done; saveShop(); renderShop(); }
+}
+
+function deleteShopItem(id) {
+  shopItems = shopItems.filter(i => i.id !== id);
+  saveShop(); renderShop(); mostrarToast('🗑 Eliminado');
+}
+
+function clearShopDone() {
+  if (!shopItems.some(i => i.done)) return;
+  shopItems = shopItems.filter(i => !i.done);
+  saveShop(); renderShop(); mostrarToast('🗑 Comprados eliminados');
+}
+
+function clearShopAll() {
+  if (!shopItems.length) return;
+  if (confirm('¿Borrar toda la lista de la compra?')) { shopItems = []; saveShop(); renderShop(); mostrarToast('🗑 Lista borrada'); }
+}
+
+function setShopFilter(f, btn) {
+  shopFilter = f;
+  document.querySelectorAll('.shop-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderShop();
+}
+
+function renderShop() {
+  const total = shopItems.length;
+  const done = shopItems.filter(i => i.done).length;
+  const pending = total - done;
+  document.getElementById('shop-count-total').textContent = `${total} items`;
+  document.getElementById('shop-count-done').textContent = `${done} ✓`;
+  document.getElementById('shop-footer-text').textContent = `${pending} pendiente${pending !== 1 ? 's' : ''}`;
+
+  let filtered = shopItems;
+  if (shopFilter === 'pendiente') filtered = shopItems.filter(i => !i.done);
+  else if (shopFilter === 'comprado') filtered = shopItems.filter(i => i.done);
+  else if (shopFilter !== 'todos') filtered = shopItems.filter(i => i.cat === shopFilter);
+
+  const list = document.getElementById('shop-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="shop-empty">${shopFilter === 'todos' ? 'Tu lista está vacía. ¡Añade el primer artículo!' : 'No hay artículos en esta categoría.'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(item => {
+    const catCls = 'cat-' + (item.cat || 'otro');
+    const catIcon = { fruta:'🍎', verdura:'🥦', proteina:'🥩', lacteo:'🥛', cereal:'🌾', otro:'📦' }[item.cat] || '📦';
+    return `<div class="shop-item">
+      <input type="checkbox" class="shop-item-check" ${item.done?'checked':''} onchange="toggleShopItem(${item.id})" />
+      <span class="shop-cat-badge ${catCls}">${catIcon}</span>
+      <span class="shop-item-name${item.done?' done':''}">${item.name}</span>
+      ${item.qty ? `<span class="shop-item-qty">${item.qty}</span>` : ''}
+      <button class="shop-edit" onclick="abrirEditShop(${item.id})">✏️</button>
+      <button class="shop-del" onclick="deleteShopItem(${item.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('shop-input-name').addEventListener('keydown', e => { if (e.key === 'Enter') addShopItem(); });
+
+loadShop();
+renderShop();
+
+// ══════ EDITAR REGISTRO ══════
+let _editRegId = null;
+function abrirEditRegistro(id) {
+  const r = registros.find(x => x.id === id);
+  if (!r) return;
+  _editRegId = id;
+  document.getElementById('er-fecha').value = r.fecha || '';
+  document.getElementById('er-dia').value = r.dia || '';
+  document.getElementById('er-ejercicio').value = r.ejercicio || '';
+  document.getElementById('er-semana').value = r.semana || '';
+  document.getElementById('er-series').value = r.series || '';
+  document.getElementById('er-carga').value = r.carga != null ? r.carga : '';
+  document.getElementById('er-rpe').value = r.rpe != null ? r.rpe : '';
+  document.getElementById('er-pr').value = r.pr || 'no';
+  document.getElementById('er-notas').value = r.notas || '';
+  document.getElementById('modal-edit-registro').style.display = 'flex';
+}
+function cerrarEditRegistro() { document.getElementById('modal-edit-registro').style.display = 'none'; _editRegId = null; }
+function guardarEditRegistro() {
+  const r = registros.find(x => x.id === _editRegId);
+  if (!r) return;
+  r.fecha = document.getElementById('er-fecha').value;
+  r.dia = document.getElementById('er-dia').value;
+  r.ejercicio = document.getElementById('er-ejercicio').value.trim();
+  r.semana = document.getElementById('er-semana').value;
+  r.series = document.getElementById('er-series').value.trim();
+  const c = document.getElementById('er-carga').value;
+  r.carga = c ? parseFloat(c) : null;
+  const rpe = document.getElementById('er-rpe').value;
+  r.rpe = rpe ? parseInt(rpe) : null;
+  r.pr = document.getElementById('er-pr').value;
+  r.notas = document.getElementById('er-notas').value.trim();
+  guardarDatos(); _fbSyncRegistro(r); renderTabla(); actualizarStats();
+  cerrarEditRegistro(); mostrarToast('✏️ Registro actualizado');
+}
+
+// ══════ EDITAR TAREA ══════
+let _editTareaTipo = null, _editTareaId = null;
+function abrirEditTarea(tipo, id) {
+  const t = tareasData[tipo].find(x => x.id === id);
+  if (!t) return;
+  _editTareaTipo = tipo; _editTareaId = id;
+  document.getElementById('et-texto').value = t.text;
+  document.getElementById('et-pri').value = t.pri || 'media';
+  document.getElementById('et-pri-field').style.display = tipo === 'largas' ? '' : 'none';
+  const horaField = document.getElementById('et-hora-field');
+  horaField.style.display = tipo === 'diarias' ? '' : 'none';
+  if (tipo === 'diarias') document.getElementById('et-hora').value = t.hora || '';
+  document.getElementById('modal-edit-tarea').style.display = 'flex';
+}
+function cerrarEditTarea() { document.getElementById('modal-edit-tarea').style.display = 'none'; _editTareaTipo = _editTareaId = null; }
+function guardarEditTarea() {
+  const t = tareasData[_editTareaTipo].find(x => x.id === _editTareaId);
+  if (!t) return;
+  t.text = document.getElementById('et-texto').value.trim();
+  if (_editTareaTipo === 'largas') t.pri = document.getElementById('et-pri').value;
+  if (_editTareaTipo === 'diarias') {
+    const nuevaHora = document.getElementById('et-hora').value;
+    t.hora = nuevaHora || null;
+    if (nuevaHora) scheduleTaskNotification(t);
+  }
+  saveTareas(); renderTareas(_editTareaTipo);
+  cerrarEditTarea(); mostrarToast('✏️ Tarea actualizada');
+}
+
+// ══════ EDITAR COMPRA ══════
+let _editShopId = null;
+function abrirEditShop(id) {
+  const item = shopItems.find(i => i.id === id);
+  if (!item) return;
+  _editShopId = id;
+  document.getElementById('es-nombre').value = item.name;
+  document.getElementById('es-qty').value = item.qty || '';
+  document.getElementById('es-cat').value = item.cat || 'otro';
+  document.getElementById('modal-edit-shop').style.display = 'flex';
+}
+function cerrarEditShop() { document.getElementById('modal-edit-shop').style.display = 'none'; _editShopId = null; }
+function guardarEditShop() {
+  const item = shopItems.find(i => i.id === _editShopId);
+  if (!item) return;
+  item.name = document.getElementById('es-nombre').value.trim();
+  item.qty = document.getElementById('es-qty').value.trim();
+  item.cat = document.getElementById('es-cat').value;
+  saveShop(); renderShop();
+  cerrarEditShop(); mostrarToast('✏️ Artículo actualizado');
+}
+
+// ══════════════════════════════ METEOROLOGÍA ══════════════════════════════
+const WX_CODES = {
+  0:'Despejado',1:'Mayormente despejado',2:'Parcialmente nublado',3:'Nublado',
+  45:'Niebla',48:'Niebla con escarcha',
+  51:'Llovizna ligera',53:'Llovizna moderada',55:'Llovizna densa',
+  61:'Lluvia ligera',63:'Lluvia moderada',65:'Lluvia fuerte',
+  71:'Nieve ligera',73:'Nieve moderada',75:'Nieve fuerte',77:'Granizo',
+  80:'Chubascos ligeros',81:'Chubascos moderados',82:'Chubascos violentos',
+  85:'Nieve ligera',86:'Nieve fuerte',
+  95:'Tormenta',96:'Tormenta con granizo',99:'Tormenta fuerte con granizo'
+};
+const WX_ICONS = {
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌧️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'🌨️',73:'🌨️',75:'❄️',77:'🌨️',
+  80:'🌦️',81:'🌧️',82:'⛈️',
+  85:'🌨️',86:'❄️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
+};
+const DIAS_WX = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function wxIcon(code) { return WX_ICONS[code] || '🌡️'; }
+function wxDesc(code) { return WX_CODES[code] || 'Desconocido'; }
+function fmtHora(iso) { if (!iso) return '—'; const d = new Date(iso); return d.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'}); }
+
+async function initWeather() {
+  wxUseMyLocation();
+}
+
+async function wxUseMyLocation() {
+  document.getElementById('wx-loading').style.display = 'block';
+  document.getElementById('wx-error').style.display = 'none';
+  document.getElementById('wx-content').style.display = 'none';
+  document.getElementById('wx-search-input').value = '';
+  wxCloseSuggestions();
+  if (!navigator.geolocation) { showWxError('Tu navegador no soporta geolocalización.'); return; }
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      const geo = await geoRes.json();
+      const ciudad = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || 'Tu ubicación';
+      await wxFetchAndRender(lat, lon, ciudad);
+    } catch(e) { showWxError('Error al obtener los datos meteorológicos.'); }
+  }, () => { showWxError('No se pudo obtener tu ubicación. Comprueba los permisos del navegador.'); });
+}
+
+async function wxFetchAndRender(lat, lon, ciudad) {
+  wxCurrentLocation = { name: ciudad, lat, lon };
+  const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+    + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,`
+    + `weather_code,cloud_cover,visibility,surface_pressure,precipitation,uv_index`
+    + `&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset`
+    + `&timezone=auto&forecast_days=7`;
+  const wxRes = await fetch(wxUrl);
+  const wx = await wxRes.json();
+  renderWeather(wx, ciudad);
+  wxRenderSavedChips();
+}
+
+// ── BUSCADOR ──
+let wxSearchTimer = null;
+let wxSuggestions = [];
+let wxSelectedIdx = -1;
+
+function wxSearchInput() {
+  clearTimeout(wxSearchTimer);
+  const q = document.getElementById('wx-search-input').value.trim();
+  if (q.length < 2) { wxCloseSuggestions(); return; }
+  wxSearchTimer = setTimeout(() => wxFetchSuggestions(q), 320);
+}
+
+async function wxFetchSuggestions(q) {
+  try {
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=es&format=json`);
+    const data = await res.json();
+    wxSuggestions = data.results || [];
+    wxSelectedIdx = -1;
+    const box = document.getElementById('wx-suggestions');
+    if (!wxSuggestions.length) { wxCloseSuggestions(); return; }
+    box.innerHTML = wxSuggestions.map((r, i) => {
+      const name = [r.name, r.admin1].filter(Boolean).join(', ');
+      const country = r.country || '';
+      return `<div class="wx-suggestion-item" onmousedown="wxPickSuggestion(${i})">
+        📍 <span>${name}</span><span class="wx-suggestion-country">${country}</span>
+      </div>`;
+    }).join('');
+    box.classList.add('open');
+  } catch(e) { wxCloseSuggestions(); }
+}
+
+function wxPickSuggestion(idx) {
+  const r = wxSuggestions[idx];
+  if (!r) return;
+  const name = [r.name, r.admin1, r.country].filter(Boolean).join(', ');
+  document.getElementById('wx-search-input').value = r.name;
+  wxCloseSuggestions();
+  document.getElementById('wx-loading').style.display = 'block';
+  document.getElementById('wx-error').style.display = 'none';
+  document.getElementById('wx-content').style.display = 'none';
+  wxFetchAndRender(r.latitude, r.longitude, name).catch(() => showWxError('Error al obtener los datos.'));
+}
+
+function wxDoSearch() {
+  const q = document.getElementById('wx-search-input').value.trim();
+  if (!q) return;
+  // If suggestions available, pick the first one
+  if (wxSuggestions.length) { wxPickSuggestion(0); return; }
+  // Otherwise fetch suggestions first then pick
+  wxFetchSuggestions(q).then(() => { if (wxSuggestions.length) wxPickSuggestion(0); });
+}
+
+function wxSearchKeydown(e) {
+  const box = document.getElementById('wx-suggestions');
+  const items = box.querySelectorAll('.wx-suggestion-item');
+  if (e.key === 'ArrowDown') {
+    wxSelectedIdx = Math.min(wxSelectedIdx + 1, items.length - 1);
+    items.forEach((el, i) => el.style.background = i === wxSelectedIdx ? '#f0f7ff' : '');
+    e.preventDefault();
+  } else if (e.key === 'ArrowUp') {
+    wxSelectedIdx = Math.max(wxSelectedIdx - 1, 0);
+    items.forEach((el, i) => el.style.background = i === wxSelectedIdx ? '#f0f7ff' : '');
+    e.preventDefault();
+  } else if (e.key === 'Enter') {
+    if (wxSelectedIdx >= 0) wxPickSuggestion(wxSelectedIdx);
+    else wxDoSearch();
+  } else if (e.key === 'Escape') { wxCloseSuggestions(); }
+}
+
+function wxCloseSuggestions() {
+  document.getElementById('wx-suggestions').classList.remove('open');
+  wxSuggestions = [];
+  wxSelectedIdx = -1;
+}
+
+// Cerrar sugerencias al hacer click fuera
+document.addEventListener('click', e => {
+  if (!e.target.closest('#wx-search-wrap')) wxCloseSuggestions();
+});
+
+// ── UBICACIONES GUARDADAS ──
+let wxCurrentLocation = null; // { name, lat, lon }
+let wxSavedLocations = {};    // keyed by id from Firebase
+
+function wxSavedKey(name) {
+  return 'loc_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0, 40);
+}
+
+function wxIsCurrentSaved() {
+  if (!wxCurrentLocation) return false;
+  return Object.values(wxSavedLocations).some(l => l.name === wxCurrentLocation.name);
+}
+
+function wxUpdateSaveBtn() {
+  const btn = document.getElementById('wx-save-btn');
+  if (!btn) return;
+  if (wxIsCurrentSaved()) {
+    btn.textContent = '✓ Guardada';
+    btn.classList.add('saved');
+  } else {
+    btn.textContent = '＋ Guardar';
+    btn.classList.remove('saved');
+  }
+}
+
+function wxRenderSavedChips() {
+  const wrap = document.getElementById('wx-saved-wrap');
+  const list = document.getElementById('wx-saved-list');
+  const locs = Object.entries(wxSavedLocations);
+  if (!locs.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = locs.map(([id, loc]) => {
+    const isActive = wxCurrentLocation && wxCurrentLocation.name === loc.name;
+    return `<div class="wx-saved-chip${isActive ? ' active' : ''}" onclick="wxLoadSaved('${id}')">
+      <span class="wx-chip-name">${loc.name.split(',')[0]}</span>
+      <button class="wx-saved-chip-del" onclick="event.stopPropagation();wxDeleteSaved('${id}')" title="Eliminar">✕</button>
+    </div>`;
+  }).join('');
+  wxUpdateSaveBtn();
+}
+
+async function wxToggleSave() {
+  if (!wxCurrentLocation) return;
+  if (wxIsCurrentSaved()) return; // already saved, do nothing
+  const id = wxSavedKey(wxCurrentLocation.name);
+  const data = { name: wxCurrentLocation.name, lat: wxCurrentLocation.lat, lon: wxCurrentLocation.lon, ts: Date.now() };
+  wxSavedLocations[id] = data;
+  if (window._fbSet) await window._fbSet('wxLocations', id, data);
+  wxRenderSavedChips();
+  mostrarToast('📍 ' + wxCurrentLocation.name.split(',')[0] + ' guardada');
+}
+
+async function wxDeleteSaved(id) {
+  delete wxSavedLocations[id];
+  if (window._fbDelete) await window._fbDelete('wxLocations', id);
+  wxRenderSavedChips();
+}
+
+function wxLoadSaved(id) {
+  const loc = wxSavedLocations[id];
+  if (!loc) return;
+  document.getElementById('wx-loading').style.display = 'block';
+  document.getElementById('wx-error').style.display = 'none';
+  document.getElementById('wx-content').style.display = 'none';
+  wxCurrentLocation = { name: loc.name, lat: loc.lat, lon: loc.lon };
+  wxFetchAndRender(loc.lat, loc.lon, loc.name).catch(() => showWxError('Error al obtener los datos.'));
+}
+
+// Cargar ubicaciones guardadas desde Firebase
+function wxInitSaved() {
+  if (window._fbReady) {
+    window._fbListen('wxLocations', docs => {
+      wxSavedLocations = docs;
+      wxRenderSavedChips();
+    });
+  } else {
+    window.addEventListener('firebase-ready', () => {
+      window._fbListen('wxLocations', docs => {
+        wxSavedLocations = docs;
+        wxRenderSavedChips();
+      });
+    });
+  }
+}
+wxInitSaved();
+
+function showWxError(msg) {
+  document.getElementById('wx-loading').style.display = 'none';
+  document.getElementById('wx-error').style.display = 'block';
+  document.getElementById('wx-error-msg').textContent = msg;
+}
+
+function windDir(deg) {
+  const dirs = ['N','NE','E','SE','S','SO','O','NO'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function renderWeather(wx, ciudad) {
+  const c = wx.current;
+  const d = wx.daily;
+  document.getElementById('wx-loading').style.display = 'none';
+  document.getElementById('wx-content').style.display = 'block';
+
+  document.getElementById('wx-ciudad').textContent = ciudad;
+  document.getElementById('wx-actualizado').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
+
+  document.getElementById('wx-icon-now').textContent = wxIcon(c.weather_code);
+  document.getElementById('wx-temp-now').textContent = Math.round(c.temperature_2m) + '°C';
+  document.getElementById('wx-desc-now').textContent = wxDesc(c.weather_code);
+  document.getElementById('wx-sensacion').textContent = Math.round(c.apparent_temperature) + '°C';
+  document.getElementById('wx-humedad').textContent = c.relative_humidity_2m + '%';
+  document.getElementById('wx-viento').textContent = Math.round(c.wind_speed_10m) + ' km/h ' + windDir(c.wind_direction_10m);
+  document.getElementById('wx-visibilidad').textContent = c.visibility >= 1000 ? (c.visibility/1000).toFixed(0) + ' km' : c.visibility + ' m';
+  document.getElementById('wx-presion').textContent = Math.round(c.surface_pressure) + ' hPa';
+  document.getElementById('wx-uv').textContent = c.uv_index != null ? c.uv_index : '—';
+  document.getElementById('wx-lluvia').textContent = c.precipitation != null ? c.precipitation + ' mm' : '—';
+  document.getElementById('wx-nube').textContent = c.cloud_cover + '%';
+
+  // Sol
+  document.getElementById('wx-amanecer').textContent = 'Amanecer ' + fmtHora(d.sunrise[0]);
+  document.getElementById('wx-atardecer').textContent = 'Atardecer ' + fmtHora(d.sunset[0]);
+
+  // Previsión por horas (horas de hoy)
+  const hContainer = document.getElementById('wx-hourly');
+  const now = new Date();
+  const nowH = now.getHours();
+  const todayStr = now.toISOString().slice(0,10);
+  const h = wx.hourly;
+  // Filtra solo las horas de hoy (desde la hora actual hasta fin de día) + primeras horas de mañana si quedan pocas
+  const hoursToday = h.time
+    .map((t, i) => ({ t, i }))
+    .filter(({t}) => t.startsWith(todayStr));
+  // Show from current hour onward (include a couple hours before for context)
+  const startIdx = Math.max(0, hoursToday.findIndex(({i}) => {
+    const hr = new Date(h.time[i] + ':00').getHours();
+    return hr >= nowH;
+  }) - 1);
+  const visibleHours = hoursToday.slice(startIdx);
+
+  hContainer.innerHTML = visibleHours.map(({t, i}) => {
+    const hr = parseInt(t.slice(11,13));
+    const isNow = hr === nowH;
+    const rain = h.precipitation_probability[i];
+    const wind = Math.round(h.wind_speed_10m[i]);
+    return `<div class="wx-hour-card${isNow ? ' wx-hour-now' : ''}">
+      <div class="wx-hour-time">${isNow ? 'Ahora' : hr.toString().padStart(2,'0') + ':00'}</div>
+      <div class="wx-hour-icon">${wxIcon(h.weather_code[i])}</div>
+      <div class="wx-hour-temp">${Math.round(h.temperature_2m[i])}°</div>
+      ${rain > 0 ? `<div class="wx-hour-rain">💧${rain}%</div>` : '<div class="wx-hour-rain" style="opacity:0">–</div>'}
+      <div class="wx-hour-wind">💨${wind}km/h</div>
+    </div>`;
+  }).join('');
+
+  // Scroll to current hour
+  setTimeout(() => {
+    const nowCard = hContainer.querySelector('.wx-hour-now');
+    if (nowCard) nowCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, 100);
+
+  // Previsión 7 días
+  const fg = document.getElementById('wx-forecast');
+  fg.innerHTML = d.time.map((fecha, i) => {
+    const day = new Date(fecha + 'T12:00:00');
+    const nombre = i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : DIAS_WX[day.getDay()];
+    const rain = d.precipitation_sum[i];
+    return `<div class="wx-day-card">
+      <div class="wx-day-name">${nombre}</div>
+      <div class="wx-day-icon">${wxIcon(d.weather_code[i])}</div>
+      <div class="wx-day-max">${Math.round(d.temperature_2m_max[i])}°</div>
+      <div class="wx-day-min">${Math.round(d.temperature_2m_min[i])}°</div>
+      ${rain > 0 ? `<div class="wx-day-rain">💧 ${rain} mm</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// Cargar tiempo automáticamente al entrar al área
+document.getElementById('area-tiempo').addEventListener('click', function handler() {
+  // Solo la primera vez que se abre
+  this.removeEventListener('click', handler);
+}, { once: false });
+
+// Cargar el tiempo cuando se navega al área
+const _origGoArea = window.goArea;
+window.goArea = function(area) {
+  _origGoArea(area);
+  if (area === 'tiempo') initWeather();
+};
+
+// ══════════════════════════════ NOTIFICACIONES DE TAREAS ══════════════════════════════
+const _notifTimers = {}; // id → timeoutId
+
+function requestNotifPermission(callback) {
+  if (!('Notification' in window)) { callback(false); return; }
+  if (Notification.permission === 'granted') { callback(true); return; }
+  if (Notification.permission === 'denied') { callback(false); return; }
+  Notification.requestPermission().then(p => callback(p === 'granted'));
+}
+
+function scheduleTaskNotification(tarea) {
+  if (!tarea.hora || !tarea.id) return;
+  // Cancela el anterior si existe
+  if (_notifTimers[tarea.id]) { clearTimeout(_notifTimers[tarea.id]); delete _notifTimers[tarea.id]; }
+
+  requestNotifPermission(granted => {
+    if (!granted) { mostrarToast('⚠️ Activa los permisos de notificación'); return; }
+
+    const [h, m] = tarea.hora.split(':').map(Number);
+    const now = new Date();
+    const target = new Date();
+    target.setHours(h, m, 0, 0);
+    // Si la hora ya pasó hoy, programa para mañana
+    if (target <= now) target.setDate(target.getDate() + 1);
+    const ms = target - now;
+
+    _notifTimers[tarea.id] = setTimeout(() => {
+      new Notification('⏰ Recordatorio de tarea', {
+        body: tarea.text,
+        icon: 'icons/icon-192.png',
+        badge: 'icons/icon-96.png',
+        tag: 'tarea-' + tarea.id,
+        vibrate: [200, 100, 200]
+      });
+      delete _notifTimers[tarea.id];
+    }, ms);
+  });
+}
+
+function cancelTaskNotification(id) {
+  if (_notifTimers[id]) { clearTimeout(_notifTimers[id]); delete _notifTimers[id]; }
+}
+
+// Al cargar la página, re-programa notificaciones de tareas con hora pendientes
+function rescheduleAllTaskNotifications() {
+  if (!tareasData || !Array.isArray(tareasData.diarias)) return;
+  tareasData.diarias.forEach(t => {
+    if (t.hora && !t.done) scheduleTaskNotification(t);
+  });
+}
+
+// Hook: cancela notificación al completar o borrar
+const _origToggleTarea = toggleTarea;
+window.toggleTarea = function(tipo, id) {
+  _origToggleTarea(tipo, id);
+  if (tipo === 'diarias') {
+    const t = tareasData.diarias.find(x => x.id === id);
+    if (t && t.done) cancelTaskNotification(id);
+    else if (t && t.hora) scheduleTaskNotification(t);
+  }
+};
+const _origDeleteTarea = deleteTarea;
+window.deleteTarea = function(tipo, id) {
+  if (tipo === 'diarias') cancelTaskNotification(id);
+  _origDeleteTarea(tipo, id);
+};
+
+// Re-programar notificaciones cuando Firebase cargue los datos
+const _origLoadTareas = loadTareas;
+window.addEventListener('firebase-ready', () => { setTimeout(rescheduleAllTaskNotifications, 1500); });
+window.addEventListener('load', () => { setTimeout(rescheduleAllTaskNotifications, 2000); });
+
+// ── PWA: Registro del Service Worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+      console.log('[PWA] Service Worker registrado:', reg.scope);
+    } catch (err) {
+      console.warn('[PWA] Error registrando Service Worker:', err);
+    }
+  });
+}
+
+// ── PWA: Instalar en pantalla de inicio ──
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const installBtn = document.getElementById('pwa-install-btn');
+  if (installBtn) installBtn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  mostrarToast('✅ ¡App instalada en tu pantalla de inicio!');
+  const installBtn = document.getElementById('pwa-install-btn');
+  if (installBtn) installBtn.style.display = 'none';
+});
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') mostrarToast('✅ Instalando…');
+    deferredPrompt = null;
+  });
+}
+</script>
+
+<!-- MODAL EDITAR REGISTRO -->
+<div class="modal-overlay" id="modal-edit-registro" style="display:none" onclick="if(event.target===this)cerrarEditRegistro()">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-title">✏️ Editar Registro</div>
+    <div class="modal-field"><label class="modal-label">Fecha</label><input class="modal-input" id="er-fecha" type="date"/></div>
+    <div class="modal-field"><label class="modal-label">Día / Sesión</label>
+      <select class="modal-input" id="er-dia">
+        <option value="Lunes — Fuerza Inf.">Lunes — Fuerza Inf.</option>
+        <option value="Martes — Cardio Surf">Martes — Cardio Surf</option>
+        <option value="Miércoles — Potencia">Miércoles — Potencia</option>
+        <option value="Jueves — Fuerza Sup.">Jueves — Fuerza Sup.</option>
+        <option value="Viernes — Fútbol">Viernes — Fútbol</option>
+        <option value="Sábado — HIIT Core">Sábado — HIIT Core</option>
+        <option value="Domingo — Descanso">Domingo — Descanso</option>
+      </select></div>
+    <div class="modal-field"><label class="modal-label">Ejercicio</label><input class="modal-input" id="er-ejercicio" type="text"/></div>
+    <div class="modal-field"><label class="modal-label">Semana</label>
+      <select class="modal-input" id="er-semana"><option value="">—</option>
+        <option>S1</option><option>S2</option><option>S3</option><option>S4</option>
+        <option>S5</option><option>S6</option><option>S7</option><option>S8</option>
+        <option>S9</option><option>S10</option><option>S11</option><option>S12</option>
+      </select></div>
+    <div class="modal-field"><label class="modal-label">Series × Reps</label><input class="modal-input" id="er-series" type="text"/></div>
+    <div class="modal-field"><label class="modal-label">Carga (kg)</label><input class="modal-input" id="er-carga" type="number" step="0.5" min="0"/></div>
+    <div class="modal-field"><label class="modal-label">RPE (1–10)</label><input class="modal-input" id="er-rpe" type="number" min="1" max="10"/></div>
+    <div class="modal-field"><label class="modal-label">¿PR?</label>
+      <select class="modal-input" id="er-pr"><option value="no">No</option><option value="si">🏆 Sí, nuevo PR</option></select></div>
+    <div class="modal-field"><label class="modal-label">Notas</label><textarea class="modal-input" id="er-notas" rows="2" style="resize:vertical"></textarea></div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="cerrarEditRegistro()">Cancelar</button>
+      <button class="modal-btn-save" onclick="guardarEditRegistro()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR TAREA -->
+<div class="modal-overlay" id="modal-edit-tarea" style="display:none" onclick="if(event.target===this)cerrarEditTarea()">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">✏️ Editar Tarea</div>
+    <div class="modal-field"><label class="modal-label">Texto</label><input class="modal-input" id="et-texto" type="text" maxlength="120"/></div>
+    <div class="modal-field" id="et-hora-field"><label class="modal-label">⏰ Hora de recordatorio</label><input class="modal-input" id="et-hora" type="time"/></div>
+    <div class="modal-field" id="et-pri-field"><label class="modal-label">Prioridad</label>
+      <select class="modal-input" id="et-pri">
+        <option value="alta">🔴 Alta</option><option value="media">🟠 Media</option><option value="baja">🟢 Baja</option>
+      </select></div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="cerrarEditTarea()">Cancelar</button>
+      <button class="modal-btn-save" onclick="guardarEditTarea()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR COMPRA -->
+<div class="modal-overlay" id="modal-edit-shop" style="display:none" onclick="if(event.target===this)cerrarEditShop()">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">✏️ Editar Artículo</div>
+    <div class="modal-field"><label class="modal-label">Nombre</label><input class="modal-input" id="es-nombre" type="text" maxlength="80"/></div>
+    <div class="modal-field"><label class="modal-label">Cantidad</label><input class="modal-input" id="es-qty" type="text" maxlength="12"/></div>
+    <div class="modal-field"><label class="modal-label">Categoría</label>
+      <select class="modal-input" id="es-cat">
+        <option value="otro">📦 Otro</option><option value="fruta">🍎 Fruta</option>
+        <option value="verdura">🥦 Verdura</option><option value="proteina">🥩 Proteína</option>
+        <option value="lacteo">🥛 Lácteo</option><option value="cereal">🌾 Cereal</option>
+      </select></div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="cerrarEditShop()">Cancelar</button>
+      <button class="modal-btn-save" onclick="guardarEditShop()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ FCM NOTIFICACIONES PUSH ══════════════════════════════════ -->
+<style>
+  #fcm-banner {
+    display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: var(--ocean, #2563eb); color: white; border-radius: 14px;
+    padding: 12px 20px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999;
+    display: flex; align-items: center; gap: 10px; max-width: 320px;
+  }
+  #fcm-banner button {
+    background: white; color: var(--ocean, #2563eb); border: none;
+    border-radius: 8px; padding: 6px 14px; font-weight: 700;
+    cursor: pointer; font-size: 0.85rem; white-space: nowrap;
+  }
+  #fcm-banner .fcm-close {
+    background: none; color: white; padding: 4px 6px;
+    font-size: 1rem; opacity: 0.7;
+  }
+</style>
+
+<div id="fcm-banner" style="display:none">
+  <span>🔔 Activa las notificaciones para los recordatorios</span>
+  <button id="fcm-allow-btn">Activar</button>
+  <button class="fcm-close" onclick="document.getElementById('fcm-banner').style.display='none'">✕</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+
+  const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
+    authDomain: "organizacionml.firebaseapp.com",
+    projectId: "organizacionml",
+    storageBucket: "organizacionml.firebasestorage.app",
+    messagingSenderId: "217963164755",
+    appId: "1:217963164755:web:6504fc815010b7110242a6"
+  };
+
+  async function initFCM() {
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    try {
+      const app = initializeApp(firebaseConfig, 'fcm-app');
+      const messaging = getMessaging(app);
+      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+      // Si ya tiene permiso, registra el token directamente
+      if (Notification.permission === 'granted') {
+        await registerToken(messaging, swReg);
+        return;
+      }
+
+      // Si está denegado, no hacer nada
+      if (Notification.permission === 'denied') return;
+
+      // Si está pendiente, mostrar el banner para que el usuario pulse
+      const banner = document.getElementById('fcm-banner');
+      if (banner) banner.style.display = 'flex';
+
+      document.getElementById('fcm-allow-btn').addEventListener('click', async () => {
+        if (banner) banner.style.display = 'none';
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          await registerToken(messaging, swReg);
+        }
+      });
+
+      onMessage(messaging, payload => {
+        const { title, body } = payload.notification;
+        if (typeof mostrarToast === 'function') mostrarToast('🔔 ' + body);
+        new Notification(title, { body, icon: '/icons/icon-192.png' });
+      });
+
+    } catch(e) {
+      console.warn('[FCM] Error:', e);
+    }
+  }
+
+  async function registerToken(messaging, swReg) {
+    try {
+      const token = await getToken(messaging, {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: swReg
+      });
+      if (token) {
+        await window._fbSet('fcm_tokens', token.slice(-20), { token, ts: Date.now() });
+        console.log('[FCM] Token guardado ✓');
+      }
+    } catch(e) {
+      console.warn('[FCM] Error registrando token:', e);
+    }
+  }
+
+  window.addEventListener('load', () => {
+    const tryInit = () => {
+      if (window._fbReady) initFCM();
+      else window.addEventListener('firebase-ready', initFCM, { once: true });
+    };
+    setTimeout(tryInit, 1500);
+  });
+</script>
+
+</body>
+</html>
