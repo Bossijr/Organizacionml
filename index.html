@@ -707,6 +707,72 @@
   .cal-event-del:hover { color: var(--coral); }
   .cal-no-events { text-align: center; color: var(--muted); font-size: 0.82rem; padding: 0.75rem 0; }
 
+  /* ── BOTÓN RECORDATORIO ── */
+  .cal-event-remind {
+    background: none; border: none; cursor: pointer; font-size: 0.85rem;
+    padding: 0 3px; transition: transform 0.15s, opacity 0.15s; opacity: 0.45; line-height: 1;
+    flex-shrink: 0;
+  }
+  .cal-event-remind:hover { opacity: 1; transform: scale(1.2); }
+  .cal-event-remind.active { opacity: 1; filter: drop-shadow(0 0 3px #f59e0b); }
+  .remind-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(10,37,64,0.55);
+    z-index: 600; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .remind-modal-overlay.open { display: flex; }
+  .remind-modal-box {
+    background: white; border-radius: 20px; padding: 1.6rem;
+    box-shadow: 0 20px 60px rgba(10,37,64,0.25); width: 100%; max-width: 360px;
+    animation: modalIn 0.22s ease;
+  }
+  .remind-modal-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.06em;
+    color: var(--navy); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .remind-modal-event-name {
+    font-size: 0.82rem; color: var(--muted); margin-bottom: 1.2rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .remind-options { display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 1.2rem; }
+  .remind-option-btn {
+    display: flex; align-items: center; gap: 0.7rem;
+    background: var(--sand); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 0.7rem 1rem; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem; color: var(--ink); transition: all 0.15s; text-align: left;
+  }
+  .remind-option-btn:hover { border-color: var(--ocean); background: #f0f7ff; color: var(--ocean); }
+  .remind-option-btn .remind-icon { font-size: 1.1rem; }
+  .remind-custom-row { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; }
+  .remind-custom-input {
+    flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.875rem;
+    padding: 0.5rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px;
+    background: var(--sand); color: var(--ink); outline: none; transition: border-color 0.2s;
+  }
+  .remind-custom-input:focus { border-color: var(--ocean); background: white; }
+  .remind-custom-set {
+    background: var(--navy); color: white; border: none; border-radius: 8px;
+    padding: 0.5rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+    font-weight: 600; cursor: pointer; transition: background 0.15s; white-space: nowrap;
+  }
+  .remind-custom-set:hover { background: var(--ocean); }
+  .remind-cancel-btn {
+    width: 100%; background: none; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 0.55rem; font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .remind-cancel-btn:hover { border-color: var(--coral); color: var(--coral); }
+  .remind-active-info {
+    background: #fef9c3; border: 1.5px solid #fde047; border-radius: 10px;
+    padding: 0.6rem 0.9rem; font-size: 0.8rem; color: #713f12;
+    margin-bottom: 1rem; display: none; align-items: center; gap: 0.5rem;
+  }
+  .remind-active-info.show { display: flex; }
+  .remind-clear-btn {
+    background: none; border: none; cursor: pointer; font-size: 0.75rem;
+    color: var(--coral); font-family: 'DM Sans', sans-serif; font-weight: 600;
+    margin-left: auto; text-decoration: underline;
+  }
+
   /* ── EDIT EVENT BUTTON ── */
   .cal-event-edit {
     background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 0.7rem;
@@ -2618,6 +2684,8 @@ function renderCalPanel() {
     const repeatBadge = (e.repeat && e.repeat !== 'none') ? `<span class="ev-repeat">${REPEAT_LABELS[e.repeat]||''}</span>` : '';
     const durationBadge = e.duracion ? `<span class="ev-duration">⏱ ${e.duracion >= 60 ? Math.floor(e.duracion/60)+'h'+(e.duracion%60?` ${e.duracion%60}m`:'') : e.duracion+'min'}</span>` : '';
     const alldayBadge = e.allday ? `<span class="ev-allday">Todo el día</span>` : '';
+    const remindActive = hasActiveReminder(String(e.id));
+    const remindBtn = e._readOnly ? '' : `<button class="cal-event-remind${remindActive?' active':''}" title="${remindActive?'Recordatorio activo':'Añadir recordatorio'}" onclick="openRemindModal('${e.id}',${JSON.stringify(e.text)},${JSON.stringify(e.hora||'')})">🔔</button>`;
     const actions = e._readOnly
       ? `<span style="font-size:0.65rem;color:var(--muted)">Repetido</span>`
       : `<button class="cal-event-edit" title="Editar" onclick="openEditModal(${i})">Editar</button>
@@ -2626,6 +2694,7 @@ function renderCalPanel() {
       <span class="ev-time">${e.allday ? '🌅' : (e.hora || '—')}</span>
       <span class="ev-type-badge ${tipo.cls}">${tipo.label}</span>
       <span style="flex:1">${e.text} ${alldayBadge}${durationBadge}${repeatBadge}</span>
+      ${remindBtn}
       ${actions}
     </div>`;
   }).join('');
@@ -3538,6 +3607,215 @@ function installPWA() {
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════ MODAL RECORDATORIO EVENTO ══════════════════════════════════ -->
+<div class="remind-modal-overlay" id="remind-modal" onclick="if(event.target===this)closeRemindModal()">
+  <div class="remind-modal-box">
+    <div class="remind-modal-title">🔔 Recordatorio</div>
+    <div class="remind-modal-event-name" id="remind-event-name"></div>
+    <div class="remind-active-info" id="remind-active-info">
+      <span>⏰ Activo:</span>
+      <span id="remind-active-label" style="font-weight:700"></span>
+      <button class="remind-clear-btn" onclick="clearCurrentReminder()">Cancelar</button>
+    </div>
+    <div class="remind-options">
+      <button class="remind-option-btn" onclick="setReminder(5)"><span class="remind-icon">⚡</span> En 5 minutos</button>
+      <button class="remind-option-btn" onclick="setReminder(15)"><span class="remind-icon">🕐</span> En 15 minutos</button>
+      <button class="remind-option-btn" onclick="setReminder(30)"><span class="remind-icon">🕧</span> En 30 minutos</button>
+      <button class="remind-option-btn" onclick="setReminder(60)"><span class="remind-icon">⏰</span> En 1 hora</button>
+      <button class="remind-option-btn" id="remind-before-event-btn" onclick="setReminderBeforeEvent()" style="display:none"><span class="remind-icon">📅</span> 15 min antes del evento</button>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase">Personalizado</div>
+    <div class="remind-custom-row">
+      <input class="remind-custom-input" type="number" id="remind-custom-min" min="1" max="10080" placeholder="Minutos…" />
+      <button class="remind-custom-set" onclick="setReminderCustom()">Añadir</button>
+    </div>
+    <button class="remind-cancel-btn" onclick="closeRemindModal()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════ RECORDATORIOS DE EVENTOS ══════════════════════════════
+const REMIND_KEY = 'cal_reminders_v1';
+let remindTimers = {};   // { eventId: timeoutId }
+let currentRemindEventId = null;
+let currentRemindEventData = null;
+
+function loadReminders() {
+  try {
+    const raw = localStorage.getItem(REMIND_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    const now = Date.now();
+    for (const [evId, info] of Object.entries(saved)) {
+      const remaining = info.fireAt - now;
+      if (remaining > 0) {
+        scheduleReminderTimer(evId, info.text, remaining);
+      } else {
+        // Missed — fire immediately with a note
+        fireReminder(evId, info.text, true);
+      }
+    }
+  } catch(e) {}
+}
+
+function saveReminders() {
+  const data = {};
+  try {
+    const existing = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
+    Object.assign(data, existing);
+  } catch(e) {}
+  localStorage.setItem(REMIND_KEY, JSON.stringify(data));
+}
+
+function scheduleReminderTimer(evId, text, msFromNow) {
+  if (remindTimers[evId]) clearTimeout(remindTimers[evId]);
+  remindTimers[evId] = setTimeout(() => fireReminder(evId, text, false), msFromNow);
+}
+
+function fireReminder(evId, text, missed) {
+  const title = missed ? '⏰ Recordatorio perdido' : '⏰ Recordatorio';
+  const body = (missed ? '[Pasado] ' : '') + text;
+  // Browser Notification
+  if (Notification.permission === 'granted') {
+    try { new Notification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-96.png', tag: 'remind-' + evId }); } catch(e) {}
+  }
+  // In-app toast
+  if (typeof mostrarToast === 'function') mostrarToast((missed ? '⏰ Perdido: ' : '🔔 ') + text);
+  // Clean up
+  delete remindTimers[evId];
+  try {
+    const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
+    delete saved[evId];
+    localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
+  } catch(e) {}
+  // Refresh bell icons
+  renderCalPanel && renderCalPanel();
+}
+
+function openRemindModal(evId, evText, evHora) {
+  currentRemindEventId = evId;
+  currentRemindEventData = { text: evText, hora: evHora };
+  document.getElementById('remind-event-name').textContent = evText;
+
+  // Show/hide "15 min before event" button
+  const beforeBtn = document.getElementById('remind-before-event-btn');
+  if (evHora && !document.getElementById('cal-ev-allday').checked) {
+    beforeBtn.style.display = '';
+    beforeBtn.querySelector('span:last-child').textContent = ' 15 min antes (' + evHora + ')';
+    beforeBtn.lastChild.textContent = ' 15 min antes (' + evHora + ')';
+    // update label text properly
+    beforeBtn.innerHTML = '<span class="remind-icon">📅</span> 15 min antes del evento (' + evHora + ')';
+    beforeBtn.onclick = () => setReminderBeforeEvent();
+  } else {
+    beforeBtn.style.display = 'none';
+  }
+
+  // Show active reminder if exists
+  const activeInfo = document.getElementById('remind-active-info');
+  try {
+    const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
+    if (saved[evId]) {
+      const remaining = saved[evId].fireAt - Date.now();
+      if (remaining > 0) {
+        const mins = Math.ceil(remaining / 60000);
+        document.getElementById('remind-active-label').textContent = mins + ' min restantes';
+        activeInfo.classList.add('show');
+      } else {
+        activeInfo.classList.remove('show');
+      }
+    } else {
+      activeInfo.classList.remove('show');
+    }
+  } catch(e) { activeInfo.classList.remove('show'); }
+
+  document.getElementById('remind-modal').classList.add('open');
+  document.getElementById('remind-custom-min').value = '';
+}
+
+function closeRemindModal() {
+  document.getElementById('remind-modal').classList.remove('open');
+  currentRemindEventId = null;
+  currentRemindEventData = null;
+}
+
+async function ensureNotificationPermission() {
+  if (!('Notification' in window)) { mostrarToast('⚠️ Tu navegador no soporta notificaciones'); return false; }
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') { mostrarToast('🚫 Notificaciones bloqueadas. Actívalas en ajustes del navegador.'); return false; }
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+async function setReminder(minutes) {
+  if (!currentRemindEventId) return;
+  const ok = await ensureNotificationPermission();
+  // We still schedule even without permission (in-app toast will work)
+  const fireAt = Date.now() + minutes * 60 * 1000;
+  const text = currentRemindEventData.text;
+  const evId = currentRemindEventId;
+
+  // Save to localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
+    saved[evId] = { fireAt, text, minutes };
+    localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
+  } catch(e) {}
+
+  scheduleReminderTimer(evId, text, minutes * 60 * 1000);
+  closeRemindModal();
+  renderCalPanel && renderCalPanel();
+
+  const label = minutes < 60 ? minutes + ' min' : (minutes/60) + 'h';
+  mostrarToast('🔔 Recordatorio en ' + label + ': ' + text);
+}
+
+async function setReminderBeforeEvent() {
+  if (!currentRemindEventData || !currentRemindEventData.hora) return;
+  const [h, m] = currentRemindEventData.hora.split(':').map(Number);
+  const now = new Date();
+  const eventTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+  const reminderTime = new Date(eventTime.getTime() - 15 * 60 * 1000);
+  const remaining = reminderTime.getTime() - Date.now();
+  if (remaining <= 0) { mostrarToast('⚠️ Ese momento ya ha pasado'); return; }
+  const minutes = Math.round(remaining / 60000);
+  await setReminder(minutes);
+}
+
+function setReminderCustom() {
+  const val = parseInt(document.getElementById('remind-custom-min').value);
+  if (!val || val < 1) { mostrarToast('⚠️ Introduce un número de minutos válido'); return; }
+  setReminder(val);
+}
+
+function clearCurrentReminder() {
+  if (!currentRemindEventId) return;
+  cancelReminder(currentRemindEventId);
+  document.getElementById('remind-active-info').classList.remove('show');
+  mostrarToast('🗑 Recordatorio cancelado');
+  closeRemindModal();
+  renderCalPanel && renderCalPanel();
+}
+
+function cancelReminder(evId) {
+  if (remindTimers[evId]) { clearTimeout(remindTimers[evId]); delete remindTimers[evId]; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
+    delete saved[evId];
+    localStorage.setItem(REMIND_KEY, JSON.stringify(saved));
+  } catch(e) {}
+}
+
+function hasActiveReminder(evId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(REMIND_KEY) || '{}');
+    return saved[evId] && saved[evId].fireAt > Date.now();
+  } catch(e) { return false; }
+}
+
+// Load reminders on startup
+window.addEventListener('load', () => loadReminders());
+</script>
 
 <!-- ══════════════════════════════════ FCM NOTIFICACIONES PUSH ══════════════════════════════════ -->
 <style>
