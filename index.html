@@ -4193,6 +4193,14 @@ function timerFinish() {
   mostrarToast('✅ ¡Descanso terminado! A por la siguiente serie');
 }
 
+// ── Comunicación con el Service Worker para notificaciones en background ──
+function timerSwSend(msg) {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then(reg => {
+    if (reg.active) reg.active.postMessage(msg);
+  }).catch(() => {});
+}
+
 function timerStart() {
   if (timerRunning) {
     // Pausar: guardar cuánto queda
@@ -4204,6 +4212,7 @@ function timerStart() {
     timerStartBtn.textContent = '▶ Reanudar';
     timerStartBtn.className = 'timer-btn timer-btn-start';
     timerFab.classList.remove('running');
+    timerSwSend({ type: 'TIMER_CANCEL' });
     timerUpdateUI();
     return;
   }
@@ -4216,7 +4225,9 @@ function timerStart() {
   timerStartBtn.textContent = '⏸ Pausar';
   timerStartBtn.className = 'timer-btn timer-btn-pause';
   timerFab.classList.add('running');
-  timerInterval = setInterval(timerTick, 500); // 500ms para reaccionar rápido al volver
+  timerInterval = setInterval(timerTick, 500);
+  // Decirle al SW cuándo debe disparar la notificación
+  timerSwSend({ type: 'TIMER_START', endAt: timerEndAt });
 }
 
 function timerReset() {
@@ -4229,7 +4240,17 @@ function timerReset() {
   timerStartBtn.textContent = '▶ Iniciar';
   timerStartBtn.className = 'timer-btn timer-btn-start';
   timerFab.classList.remove('running');
+  timerSwSend({ type: 'TIMER_CANCEL' });
   timerUpdateUI();
+}
+
+// Escuchar confirmación del SW (la página estaba abierta pero en background)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'TIMER_DONE' && timerRunning) {
+      timerFinish();
+    }
+  });
 }
 
 function timerSetPreset(secs) {
