@@ -2036,6 +2036,7 @@ function goPortada() {
   document.getElementById('portada').style.display = 'flex';
   window.scrollTo(0,0);
   pwRefreshAll();
+  setTimeout(timerSyncVisibility, 50);
 }
 
 // ══════════════════════════════ PORTADA WIDGETS ══════════════════════════════
@@ -3605,11 +3606,12 @@ document.getElementById('area-tiempo').addEventListener('click', function handle
   this.removeEventListener('click', handler);
 }, { once: false });
 
-// Cargar el tiempo cuando se navega al área
+// Cargar el tiempo cuando se navega al área + mostrar temporizador en entrenamiento
 const _origGoArea = window.goArea;
 window.goArea = function(area) {
   _origGoArea(area);
   if (area === 'tiempo') initWeather();
+  setTimeout(timerSyncVisibility, 50);
 };
 
 // ══════════════════════════════ NOTIFICACIONES DE TAREAS ══════════════════════════════
@@ -4240,18 +4242,6 @@ function timerSyncVisibility() {
     document.getElementById('timer-panel').classList.remove('open');
   }
 }
-
-// Hook into existing navigation
-const _origGoArea = window.goArea;
-window.goArea = function(area) {
-  if (_origGoArea) _origGoArea(area);
-  setTimeout(timerSyncVisibility, 50);
-};
-const _origGoPortada = window.goPortada;
-window.goPortada = function() {
-  if (_origGoPortada) _origGoPortada();
-  setTimeout(timerSyncVisibility, 50);
-};
 
 // Initial render
 timerUpdateUI();
