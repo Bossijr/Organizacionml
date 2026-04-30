@@ -3984,6 +3984,18 @@ window.addEventListener('load', () => loadReminders());
       const messaging = getMessaging(app);
       const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
+      // ✅ FIX #1: Registrar onMessage SIEMPRE, independientemente del estado del permiso.
+      // Antes estaba dentro del bloque "pending", por lo que nunca se registraba
+      // si el permiso ya había sido concedido en una sesión anterior.
+      onMessage(messaging, payload => {
+        const title = payload.notification?.title || '⏰ Recordatorio';
+        const body  = payload.notification?.body  || '';
+        if (typeof mostrarToast === 'function') mostrarToast('🔔 ' + body);
+        if (Notification.permission === 'granted') {
+          new Notification(title, { body, icon: '/icons/icon-192.png' });
+        }
+      });
+
       // Si ya tiene permiso, registra el token directamente
       if (Notification.permission === 'granted') {
         await registerToken(messaging, swReg);
@@ -4005,12 +4017,6 @@ window.addEventListener('load', () => loadReminders());
         }
       });
 
-      onMessage(messaging, payload => {
-        const { title, body } = payload.notification;
-        if (typeof mostrarToast === 'function') mostrarToast('🔔 ' + body);
-        new Notification(title, { body, icon: '/icons/icon-192.png' });
-      });
-
     } catch(e) {
       console.warn('[FCM] Error:', e);
     }
@@ -4023,8 +4029,20 @@ window.addEventListener('load', () => loadReminders());
         serviceWorkerRegistration: swReg
       });
       if (token) {
-        await window._fbSet('fcm_tokens', token.slice(-20), { token, ts: Date.now() });
-        console.log('[FCM] Token guardado ✓');
+        // ✅ FIX #2: Esperar a que _fbSet esté disponible antes de guardar el token.
+        // Antes se llamaba directamente y podía ser undefined si Firebase aún no había cargado,
+        // dejando el token sin guardar en Firestore y la Cloud Function sin destinatario.
+        const doSave = async () => {
+          if (window._fbSet) {
+            await window._fbSet('fcm_tokens', token.slice(-20), { token, ts: Date.now() });
+            console.log('[FCM] Token guardado ✓');
+          }
+        };
+        if (window._fbReady) {
+          await doSave();
+        } else {
+          window.addEventListener('firebase-ready', doSave, { once: true });
+        }
       }
     } catch(e) {
       console.warn('[FCM] Error registrando token:', e);
