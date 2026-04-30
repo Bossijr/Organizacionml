@@ -2036,7 +2036,7 @@ function goPortada() {
   document.getElementById('portada').style.display = 'flex';
   window.scrollTo(0,0);
   pwRefreshAll();
-  setTimeout(timerSyncVisibility, 50);
+  if (typeof timerSyncVisibility === 'function') setTimeout(timerSyncVisibility, 50);
 }
 
 // ══════════════════════════════ PORTADA WIDGETS ══════════════════════════════
@@ -3611,7 +3611,7 @@ const _origGoArea = window.goArea;
 window.goArea = function(area) {
   _origGoArea(area);
   if (area === 'tiempo') initWeather();
-  setTimeout(timerSyncVisibility, 50);
+  if (typeof timerSyncVisibility === 'function') setTimeout(timerSyncVisibility, 50);
 };
 
 // ══════════════════════════════ NOTIFICACIONES DE TAREAS ══════════════════════════════
@@ -4303,7 +4303,7 @@ function timerSyncVisibility() {
 
 // Initial render
 timerUpdateUI();
-window.addEventListener('load', () => setTimeout(timerSyncVisibility, 300));
+window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVisibility === 'function') timerSyncVisibility(); }, 300));
 </script>
 
 
