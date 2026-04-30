@@ -3736,19 +3736,9 @@ const _origLoadTareas = loadTareas;
 window.addEventListener('firebase-ready', () => { setTimeout(rescheduleAllTaskNotifications, 1500); });
 window.addEventListener('load', () => { setTimeout(rescheduleAllTaskNotifications, 2000); });
 
-// ── PWA: Registro del Service Worker ──
-// firebase-messaging-sw.js actúa como SW unificado (FCM + timer + PWA)
-// Su registro lo hace el módulo FCM más abajo; aquí solo lo registramos como PWA fallback
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const reg = await navigator.serviceWorker.register('./firebase-messaging-sw.js', { scope: './' });
-      console.log('[PWA] Service Worker registrado:', reg.scope);
-    } catch (err) {
-      console.warn('[PWA] Error registrando Service Worker:', err);
-    }
-  });
-}
+// ── PWA: Service Worker ──
+// El registro lo gestiona el bloque FCM más abajo (firebase-messaging-sw.js)
+// para evitar doble registro con scopes distintos.
 
 // ── PWA: Instalar en pantalla de inicio ──
 let deferredPrompt = null;
@@ -4238,11 +4228,14 @@ function timerFinish() {
 // ── Comunicación con el Service Worker para notificaciones en background ──
 function timerSwSend(msg) {
   if (!('serviceWorker' in navigator)) return;
-  // Usa el SW de Firebase (firebase-messaging-sw.js) que es el que queda activo
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    const sw = regs.find(r => r.active) || regs[0];
-    if (sw && sw.active) sw.active.postMessage(msg);
-  }).catch(() => {});
+  navigator.serviceWorker.ready.then(reg => {
+    if (reg.active) {
+      reg.active.postMessage(msg);
+      console.log('[Timer] Mensaje enviado al SW:', msg.type);
+    } else {
+      console.warn('[Timer] SW no activo todavía');
+    }
+  }).catch(e => console.warn('[Timer] Error enviando al SW:', e));
 }
 
 function timerStart() {

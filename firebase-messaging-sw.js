@@ -5,6 +5,16 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
+// Activar el SW inmediatamente sin esperar a que se cierre la pestaña anterior
+self.addEventListener('install', () => {
+  console.log('[SW] Instalado');
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  console.log('[SW] Activado');
+  e.waitUntil(self.clients.claim());
+});
+
 firebase.initializeApp({
   apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
   authDomain: "organizacionml.firebaseapp.com",
@@ -36,10 +46,12 @@ let timerTimeout = null;
 self.addEventListener('message', e => {
   const data = e.data;
   if (!data) return;
+  console.log('[SW] Mensaje recibido:', data.type);
 
   if (data.type === 'TIMER_START') {
     if (timerTimeout) { clearTimeout(timerTimeout); timerTimeout = null; }
     const delay = data.endAt - Date.now();
+    console.log('[SW] Timer programado en', Math.round(delay / 1000), 'seg');
     if (delay <= 0) {
       fireTimerNotification();
       notifyClients();
@@ -47,10 +59,10 @@ self.addEventListener('message', e => {
     }
     timerTimeout = setTimeout(() => {
       timerTimeout = null;
+      console.log('[SW] Timer disparado');
       fireTimerNotification();
       notifyClients();
     }, delay);
-    console.log('[SW] Timer programado en', Math.round(delay / 1000), 'segundos');
   }
 
   if (data.type === 'TIMER_CANCEL') {
