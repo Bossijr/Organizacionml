@@ -1,5 +1,5 @@
 // firebase-messaging-sw.js
-// Service Worker para notificaciones push en background (FCM)
+// Service Worker unificado: FCM (recordatorios) + Temporizador de series
 // Debe estar en la RAÍZ del proyecto (mismo nivel que index.html)
 
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
@@ -16,13 +16,11 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Muestra la notificación cuando la app está en BACKGROUND o cerrada
+// ── FCM: notificaciones en background / app cerrada ──
 messaging.onBackgroundMessage(payload => {
-  console.log('[SW] Mensaje en background recibido:', payload);
-
+  console.log('[SW] Mensaje FCM en background:', payload);
   const title = payload.notification?.title || '⏰ Recordatorio';
   const body  = payload.notification?.body  || '';
-
   self.registration.showNotification(title, {
     body,
     icon:  '/icons/icon-192.png',
@@ -32,7 +30,55 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-// Al pulsar la notificación, abre / enfoca la app
+// ── Temporizador de series ──
+let timerTimeout = null;
+
+self.addEventListener('message', e => {
+  const data = e.data;
+  if (!data) return;
+
+  if (data.type === 'TIMER_START') {
+    if (timerTimeout) { clearTimeout(timerTimeout); timerTimeout = null; }
+    const delay = data.endAt - Date.now();
+    if (delay <= 0) {
+      fireTimerNotification();
+      notifyClients();
+      return;
+    }
+    timerTimeout = setTimeout(() => {
+      timerTimeout = null;
+      fireTimerNotification();
+      notifyClients();
+    }, delay);
+    console.log('[SW] Timer programado en', Math.round(delay / 1000), 'segundos');
+  }
+
+  if (data.type === 'TIMER_CANCEL') {
+    if (timerTimeout) { clearTimeout(timerTimeout); timerTimeout = null; }
+    console.log('[SW] Timer cancelado');
+  }
+});
+
+function fireTimerNotification() {
+  self.registration.showNotification('⏱ ¡Descanso terminado!', {
+    body: 'A por la siguiente serie 💪',
+    icon:  '/icons/icon-192.png',
+    badge: '/icons/icon-96.png',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: 'timer',
+    renotify: true,
+    requireInteraction: false,
+    silent: false
+  });
+}
+
+function notifyClients() {
+  self.clients.matchAll({ type: 'window' }).then(clients => {
+    clients.forEach(c => c.postMessage({ type: 'TIMER_DONE' }));
+  });
+}
+
+// ── Click en cualquier notificación → abrir / enfocar la app ──
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
