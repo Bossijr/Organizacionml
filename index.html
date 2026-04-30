@@ -3320,15 +3320,55 @@ async function wxUseMyLocation() {
   document.getElementById('wx-search-input').value = '';
   wxCloseSuggestions();
   if (!navigator.geolocation) { showWxError('Tu navegador no soporta geolocalización.'); return; }
-  navigator.geolocation.getCurrentPosition(async pos => {
-    try {
-      const { latitude: lat, longitude: lon } = pos.coords;
-      const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-      const geo = await geoRes.json();
-      const ciudad = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || 'Tu ubicación';
-      await wxFetchAndRender(lat, lon, ciudad);
-    } catch(e) { showWxError('Error al obtener los datos meteorológicos.'); }
-  }, () => { showWxError('No se pudo obtener tu ubicación. Comprueba los permisos del navegador.'); });
+
+  // Promesa con timeout de 6s para no esperar eternamente
+  const posPromise = new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: false,   // más rápido que high accuracy
+      timeout: 6000,
+      maximumAge: 60000            // acepta posición cacheada de hasta 1 min
+    });
+  });
+
+  let pos;
+  try {
+    pos = await posPromise;
+  } catch(e) {
+    showWxError('No se pudo obtener tu ubicación. Comprueba los permisos del navegador.');
+    return;
+  }
+
+  try {
+    const { latitude: lat, longitude: lon } = pos.coords;
+
+    // Lanzar ambas peticiones en paralelo: clima + nombre de ciudad (Open-Meteo geocoding, sin Nominatim)
+    const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+      + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,`
+      + `weather_code,cloud_cover,visibility,surface_pressure,precipitation,uv_index`
+      + `&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m`
+      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset`
+      + `&timezone=auto&forecast_days=7`;
+    const geoUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`;
+
+    const [wxRes, geoRes] = await Promise.allSettled([fetch(wxUrl), fetch(geoUrl)]);
+
+    const wx = wxRes.status === 'fulfilled' ? await wxRes.value.json() : null;
+    if (!wx) { showWxError('Error al obtener los datos meteorológicos.'); return; }
+
+    let ciudad = 'Tu ubicación';
+    if (geoRes.status === 'fulfilled') {
+      try {
+        const geo = await geoRes.value.json();
+        ciudad = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || 'Tu ubicación';
+      } catch(e) {}
+    }
+
+    renderWeather(wx, ciudad);
+    wxCurrentLocation = { name: ciudad, lat, lon };
+    wxRenderSavedChips();
+  } catch(e) {
+    showWxError('Error al obtener los datos meteorológicos.');
+  }
 }
 
 async function wxFetchAndRender(lat, lon, ciudad) {
