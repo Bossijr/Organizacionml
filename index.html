@@ -935,6 +935,141 @@
 
   footer { text-align: center; padding: 2rem; font-size: 0.78rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 1rem; }
 
+  /* ── TEMPORIZADOR SERIES ── */
+  #timer-fab {
+    position: fixed;
+    bottom: 90px;
+    right: 1.2rem;
+    z-index: 300;
+    background: var(--ocean);
+    border: none;
+    border-radius: 50%;
+    width: 54px; height: 54px;
+    box-shadow: 0 4px 18px rgba(14,107,168,0.45);
+    cursor: pointer;
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    transition: transform 0.15s, background 0.15s;
+    color: white;
+  }
+  #timer-fab:hover { transform: scale(1.08); background: var(--navy); }
+  #timer-fab.running { background: var(--coral); box-shadow: 0 4px 18px rgba(192,57,43,0.45); }
+  #timer-fab.show { display: flex; }
+
+  #timer-panel {
+    position: fixed;
+    bottom: 90px;
+    right: 1.2rem;
+    z-index: 301;
+    background: var(--navy);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 22px;
+    padding: 1.4rem 1.5rem 1.2rem;
+    box-shadow: 0 16px 48px rgba(10,37,64,0.45);
+    width: 240px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+  }
+  #timer-panel.open { display: flex; }
+
+  .timer-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    color: var(--ocean-light);
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+  .timer-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4.2rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: white;
+    transition: color 0.3s;
+  }
+  .timer-display.warning { color: #facc15; }
+  .timer-display.danger  { color: var(--coral); }
+
+  .timer-bar-wrap {
+    width: 100%; height: 5px; background: rgba(255,255,255,0.12); border-radius: 99px; overflow: hidden;
+  }
+  .timer-bar {
+    height: 100%; background: var(--ocean-light); border-radius: 99px;
+    transition: width 0.3s linear, background 0.3s;
+    width: 100%;
+  }
+  .timer-bar.warning { background: #facc15; }
+  .timer-bar.danger  { background: var(--coral); }
+
+  .timer-presets {
+    display: flex; gap: 0.45rem; flex-wrap: wrap; justify-content: center;
+  }
+  .timer-preset-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1.5px solid rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.8);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .timer-preset-btn:hover, .timer-preset-btn.active {
+    background: var(--ocean); border-color: var(--ocean); color: white;
+  }
+
+  .timer-custom-row {
+    display: flex; gap: 0.4rem; align-items: center; width: 100%;
+  }
+  .timer-custom-input {
+    flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+    padding: 0.38rem 0.6rem; border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 8px; background: rgba(255,255,255,0.08); color: white;
+    outline: none; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .timer-custom-input:focus { border-color: var(--ocean-light); }
+  .timer-custom-input::placeholder { color: rgba(255,255,255,0.3); }
+  .timer-custom-set {
+    font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 700;
+    padding: 0.38rem 0.7rem; border-radius: 8px;
+    border: none; background: rgba(168,213,240,0.18); color: var(--ocean-light);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .timer-custom-set:hover { background: var(--ocean); color: white; }
+
+  .timer-controls { display: flex; gap: 0.6rem; }
+  .timer-btn {
+    font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 700;
+    padding: 0.6rem 1.1rem; border-radius: 12px; border: none; cursor: pointer;
+    transition: all 0.15s; min-width: 66px; text-align: center;
+  }
+  .timer-btn-start  { background: #22c55e; color: white; }
+  .timer-btn-start:hover { background: #16a34a; }
+  .timer-btn-pause  { background: #facc15; color: #1a1a2e; }
+  .timer-btn-pause:hover { background: #eab308; }
+  .timer-btn-reset  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); }
+  .timer-btn-reset:hover { background: rgba(255,255,255,0.22); }
+
+  .timer-close-btn {
+    position: absolute; top: 0.7rem; right: 0.9rem;
+    background: none; border: none; color: rgba(255,255,255,0.35); font-size: 1rem;
+    cursor: pointer; line-height: 1; padding: 2px 5px; border-radius: 6px;
+    transition: color 0.15s;
+  }
+  .timer-close-btn:hover { color: white; }
+  #timer-panel { position: fixed; }
+
+  .timer-series-counter {
+    font-size: 0.72rem; color: rgba(255,255,255,0.45); letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .timer-series-counter span { color: var(--ocean-light); font-weight: 700; }
+
   /* ── PWA INSTALL BUTTON ── */
   #pwa-install-btn {
     display: none;
@@ -3936,7 +4071,194 @@ window.scheduleEventReminder = scheduleEventReminder;
 window.addEventListener('load', () => loadReminders());
 </script>
 
-<!-- ══════════════════════════════════ FCM NOTIFICACIONES PUSH ══════════════════════════════════ -->
+<!-- ══════════════════════════════════ TEMPORIZADOR SERIES ══════════════════════════════════ -->
+
+<!-- FAB -->
+<button id="timer-fab" title="Temporizador de series" onclick="timerTogglePanel()">⏱</button>
+
+<!-- Panel -->
+<div id="timer-panel">
+  <button class="timer-close-btn" onclick="timerTogglePanel()">✕</button>
+  <div class="timer-title">⏱ Descanso entre series</div>
+  <div class="timer-display" id="timer-display">01:30</div>
+  <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar"></div></div>
+  <div class="timer-series-counter">Serie completada: <span id="timer-series-count">0</span></div>
+  <div class="timer-presets">
+    <button class="timer-preset-btn" onclick="timerSetPreset(60)">1'</button>
+    <button class="timer-preset-btn active" onclick="timerSetPreset(90)">1:30'</button>
+    <button class="timer-preset-btn" onclick="timerSetPreset(120)">2'</button>
+    <button class="timer-preset-btn" onclick="timerSetPreset(180)">3'</button>
+  </div>
+  <div class="timer-custom-row">
+    <input class="timer-custom-input" id="timer-custom-input" type="number" min="5" max="600" placeholder="seg." />
+    <button class="timer-custom-set" onclick="timerSetCustom()">OK</button>
+  </div>
+  <div class="timer-controls">
+    <button class="timer-btn timer-btn-start" id="timer-start-btn" onclick="timerStart()">▶ Iniciar</button>
+    <button class="timer-btn timer-btn-reset" onclick="timerReset()">↺</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════ TEMPORIZADOR DE SERIES ══════════════════════════════
+let timerDuration  = 90;   // segundos configurados
+let timerRemaining = 90;   // segundos restantes
+let timerInterval  = null;
+let timerRunning   = false;
+let timerSeriesCount = 0;
+
+const timerDisplay    = document.getElementById('timer-display');
+const timerBar        = document.getElementById('timer-bar');
+const timerFab        = document.getElementById('timer-fab');
+const timerStartBtn   = document.getElementById('timer-start-btn');
+const timerSeriesEl   = document.getElementById('timer-series-count');
+
+function timerFmt(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function timerUpdateUI() {
+  timerDisplay.textContent = timerFmt(timerRemaining);
+  const pct = timerDuration > 0 ? (timerRemaining / timerDuration) * 100 : 100;
+  timerBar.style.width = pct + '%';
+  // Color states
+  const warning = timerRemaining <= Math.max(10, timerDuration * 0.2);
+  const danger   = timerRemaining <= 5;
+  timerDisplay.className = 'timer-display' + (danger ? ' danger' : warning ? ' warning' : '');
+  timerBar.className     = 'timer-bar'     + (danger ? ' danger' : warning ? ' warning' : '');
+}
+
+function timerBeep(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'tick') {
+      osc.frequency.value = 880; gain.gain.value = 0.12;
+      osc.start(); osc.stop(ctx.currentTime + 0.05);
+    } else if (type === 'end') {
+      // Triple beep
+      [0, 0.18, 0.36].forEach(offset => {
+        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.frequency.value = 1047; g2.gain.value = 0.3;
+        o2.start(ctx.currentTime + offset); o2.stop(ctx.currentTime + offset + 0.14);
+      });
+    } else if (type === 'warn') {
+      osc.frequency.value = 660; gain.gain.value = 0.2;
+      osc.start(); osc.stop(ctx.currentTime + 0.08);
+    }
+  } catch(e) {}
+}
+
+function timerStart() {
+  if (timerRunning) {
+    // Pause
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerRunning = false;
+    timerStartBtn.textContent = '▶ Reanudar';
+    timerStartBtn.className = 'timer-btn timer-btn-start';
+    timerFab.classList.remove('running');
+    return;
+  }
+  if (timerRemaining <= 0) timerRemaining = timerDuration;
+  timerRunning = true;
+  timerStartBtn.textContent = '⏸ Pausar';
+  timerStartBtn.className = 'timer-btn timer-btn-pause';
+  timerFab.classList.add('running');
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    timerUpdateUI();
+    if (timerRemaining === Math.max(5, Math.floor(timerDuration * 0.15))) timerBeep('warn');
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRunning = false;
+      timerSeriesCount++;
+      timerSeriesEl.textContent = timerSeriesCount;
+      timerStartBtn.textContent = '▶ Iniciar';
+      timerStartBtn.className = 'timer-btn timer-btn-start';
+      timerFab.classList.remove('running');
+      timerBeep('end');
+      // Vibración si disponible
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      mostrarToast('✅ ¡Descanso terminado! A por la siguiente serie');
+    }
+  }, 1000);
+}
+
+function timerReset() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerRunning = false;
+  timerRemaining = timerDuration;
+  timerStartBtn.textContent = '▶ Iniciar';
+  timerStartBtn.className = 'timer-btn timer-btn-start';
+  timerFab.classList.remove('running');
+  timerUpdateUI();
+}
+
+function timerSetPreset(secs) {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerRunning = false;
+  timerDuration = secs;
+  timerRemaining = secs;
+  timerStartBtn.textContent = '▶ Iniciar';
+  timerStartBtn.className = 'timer-btn timer-btn-start';
+  timerFab.classList.remove('running');
+  // Update active preset button
+  document.querySelectorAll('.timer-preset-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.getAttribute('onclick').match(/\d+/)[0]) === secs);
+  });
+  timerUpdateUI();
+}
+
+function timerSetCustom() {
+  const val = parseInt(document.getElementById('timer-custom-input').value);
+  if (!val || val < 5 || val > 600) { mostrarToast('⚠️ Introduce entre 5 y 600 segundos'); return; }
+  document.querySelectorAll('.timer-preset-btn').forEach(b => b.classList.remove('active'));
+  timerSetPreset(val);
+  document.getElementById('timer-custom-input').value = '';
+}
+
+function timerTogglePanel() {
+  const panel = document.getElementById('timer-panel');
+  panel.classList.toggle('open');
+}
+
+// Mostrar el FAB cuando estamos en el área de entrenamiento
+function timerSyncVisibility() {
+  const entArea = document.getElementById('area-entrenamiento');
+  const isEntrenamiento = entArea && entArea.classList.contains('active');
+  timerFab.classList.toggle('show', isEntrenamiento);
+  if (!isEntrenamiento) {
+    document.getElementById('timer-panel').classList.remove('open');
+  }
+}
+
+// Hook into existing navigation
+const _origGoArea = window.goArea;
+window.goArea = function(area) {
+  if (_origGoArea) _origGoArea(area);
+  setTimeout(timerSyncVisibility, 50);
+};
+const _origGoPortada = window.goPortada;
+window.goPortada = function() {
+  if (_origGoPortada) _origGoPortada();
+  setTimeout(timerSyncVisibility, 50);
+};
+
+// Initial render
+timerUpdateUI();
+window.addEventListener('load', () => setTimeout(timerSyncVisibility, 300));
+</script>
+
+
 <style>
   #fcm-banner {
     display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
