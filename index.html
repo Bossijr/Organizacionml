@@ -2491,7 +2491,7 @@ function resetMiDia() {
 }
 
 // Refrescar selects cuando cambien las tareas diarias
-const _origRenderTareasMiDia = renderTareas;
+var _origRenderTareasMiDia = renderTareas;
 window.renderTareas = function(tipo) {
   _origRenderTareasMiDia(tipo);
   if (tipo === 'diarias') refreshMiDiaSelects();
@@ -2944,7 +2944,7 @@ function toggleModalCustomDur() {
 }
 
 // ── EVENTOS REPETIDOS: getEventsFor con soporte repeat ──
-const _origGetEventsFor = getEventsFor;
+var _origGetEventsFor = getEventsFor;
 // Override getEventsFor to include repeated events from other dates
 function getEventsFor(key) {
   const direct = calEventsDB[key] || [];
@@ -3647,7 +3647,7 @@ document.getElementById('area-tiempo').addEventListener('click', function handle
 }, { once: false });
 
 // Cargar el tiempo cuando se navega al área + mostrar temporizador en entrenamiento
-const _origGoArea = window.goArea;
+var _origGoArea = window.goArea;
 window.goArea = function(area) {
   _origGoArea(area);
   if (area === 'tiempo') initWeather();
@@ -3716,7 +3716,7 @@ window.resetMiDia = resetMiDia;
 window.abrirEditTarea = abrirEditTarea;
 
 // Hook: cancela notificación al completar o borrar
-const _origToggleTarea = toggleTarea;
+var _origToggleTarea = toggleTarea;
 window.toggleTarea = function(tipo, id) {
   _origToggleTarea(tipo, id);
   if (tipo === 'diarias') {
@@ -3725,14 +3725,14 @@ window.toggleTarea = function(tipo, id) {
     else if (t && t.hora) scheduleTaskNotification(t);
   }
 };
-const _origDeleteTarea = deleteTarea;
+var _origDeleteTarea = deleteTarea;
 window.deleteTarea = function(tipo, id) {
   if (tipo === 'diarias') cancelTaskNotification(id);
   _origDeleteTarea(tipo, id);
 };
 
 // Re-programar notificaciones cuando Firebase cargue los datos
-const _origLoadTareas = loadTareas;
+var _origLoadTareas = loadTareas;
 window.addEventListener('firebase-ready', () => { setTimeout(rescheduleAllTaskNotifications, 1500); });
 window.addEventListener('load', () => { setTimeout(rescheduleAllTaskNotifications, 2000); });
 
@@ -4145,11 +4145,11 @@ let timerRunning     = false;
 let timerSeriesCount = 0;
 let timerWarnFired   = false; // para no repetir el pitido de aviso
 
-const timerDisplay  = document.getElementById('timer-display');
-const timerBar      = document.getElementById('timer-bar');
-const timerFab      = document.getElementById('timer-fab');
-const timerStartBtn = document.getElementById('timer-start-btn');
-const timerSeriesEl = document.getElementById('timer-series-count');
+const timerDisplay  = () => document.getElementById('timer-display');
+const timerBar      = () => document.getElementById('timer-bar');
+const timerFab      = () => document.getElementById('timer-fab');
+const timerStartBtn = () => document.getElementById('timer-start-btn');
+const timerSeriesEl = () => document.getElementById('timer-series-count');
 
 function timerFmt(s) {
   s = Math.max(0, s);
@@ -4163,13 +4163,13 @@ function timerUpdateUI() {
     ? Math.round((timerEndAt - Date.now()) / 1000)
     : timerRemaining;
   const rem = Math.max(0, remaining);
-  timerDisplay.textContent = timerFmt(rem);
+  timerDisplay().textContent = timerFmt(rem);
   const pct = timerDuration > 0 ? (rem / timerDuration) * 100 : 100;
-  timerBar.style.width = pct + '%';
+  timerBar().style.width = pct + '%';
   const warning = rem <= Math.max(10, timerDuration * 0.2);
   const danger  = rem <= 5;
-  timerDisplay.className = 'timer-display' + (danger ? ' danger' : warning ? ' warning' : '');
-  timerBar.className     = 'timer-bar'     + (danger ? ' danger' : warning ? ' warning' : '');
+  timerDisplay().className = 'timer-display' + (danger ? ' danger' : warning ? ' warning' : '');
+  timerBar().className     = 'timer-bar'     + (danger ? ' danger' : warning ? ' warning' : '');
 }
 
 function timerBeep(type) {
@@ -4215,10 +4215,10 @@ function timerFinish() {
   timerRemaining = timerDuration;
   timerEndAt     = null;
   timerSeriesCount++;
-  timerSeriesEl.textContent = timerSeriesCount;
-  timerStartBtn.textContent = '▶ Iniciar';
-  timerStartBtn.className = 'timer-btn timer-btn-start';
-  timerFab.classList.remove('running');
+  timerSeriesEl().textContent = timerSeriesCount;
+  timerStartBtn().textContent = '▶ Iniciar';
+  timerStartBtn().className = 'timer-btn timer-btn-start';
+  timerFab().classList.remove('running');
   timerUpdateUI();
   timerBeep('end');
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -4246,9 +4246,9 @@ function timerStart() {
     timerInterval = null;
     timerRunning  = false;
     timerEndAt    = null;
-    timerStartBtn.textContent = '▶ Reanudar';
-    timerStartBtn.className = 'timer-btn timer-btn-start';
-    timerFab.classList.remove('running');
+    timerStartBtn().textContent = '▶ Reanudar';
+    timerStartBtn().className = 'timer-btn timer-btn-start';
+    timerFab().classList.remove('running');
     timerSwSend({ type: 'TIMER_CANCEL' });
     timerUpdateUI();
     return;
@@ -4259,9 +4259,9 @@ function timerStart() {
   timerEndAt      = Date.now() + secs * 1000;
   timerRunning    = true;
   timerWarnFired  = false;
-  timerStartBtn.textContent = '⏸ Pausar';
-  timerStartBtn.className = 'timer-btn timer-btn-pause';
-  timerFab.classList.add('running');
+  timerStartBtn().textContent = '⏸ Pausar';
+  timerStartBtn().className = 'timer-btn timer-btn-pause';
+  timerFab().classList.add('running');
   timerInterval = setInterval(timerTick, 500);
   // Decirle al SW cuándo debe disparar la notificación
   timerSwSend({ type: 'TIMER_START', endAt: timerEndAt });
@@ -4274,9 +4274,9 @@ function timerReset() {
   timerEndAt     = null;
   timerRemaining = timerDuration;
   timerWarnFired = false;
-  timerStartBtn.textContent = '▶ Iniciar';
-  timerStartBtn.className = 'timer-btn timer-btn-start';
-  timerFab.classList.remove('running');
+  timerStartBtn().textContent = '▶ Iniciar';
+  timerStartBtn().className = 'timer-btn timer-btn-start';
+  timerFab().classList.remove('running');
   timerSwSend({ type: 'TIMER_CANCEL' });
   timerUpdateUI();
 }
@@ -4328,7 +4328,7 @@ document.addEventListener('visibilitychange', () => {
 function timerSyncVisibility() {
   const entArea = document.getElementById('area-entrenamiento');
   const isEntrenamiento = entArea && entArea.classList.contains('active');
-  timerFab.classList.toggle('show', isEntrenamiento);
+  timerFab().classList.toggle('show', isEntrenamiento);
   if (!isEntrenamiento) {
     document.getElementById('timer-panel').classList.remove('open');
   }
