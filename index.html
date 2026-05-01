@@ -13,6 +13,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mi Web">
 <meta name="description" content="Entrenamiento, calendario y lista de la compra">
+<!-- Open Graph / Social -->
+<meta property="og:title" content="Mi Web Personal">
+<meta property="og:description" content="Entrenamiento · Calendario · Tareas · Tiempo">
+<meta property="og:type" content="website">
+<meta property="og:image" content="icons/icon-192.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Mi Web Personal">
+<meta name="twitter:description" content="Entrenamiento · Calendario · Tareas · Tiempo">
 
 <!-- Apple Touch Icons -->
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
@@ -26,14 +34,16 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72.png">
 
-<!-- Firebase -->
+<!-- Firebase — inicializado UNA sola vez para Firestore + FCM -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
   // ══════════ CONFIGURACIÓN FIREBASE ══════════
-  // INSTRUCCIONES: Reemplaza estos valores con los de tu proyecto Firebase.
-  // Ve a https://console.firebase.google.com → Nuevo proyecto → Web app → copia firebaseConfig
+  // IMPORTANTE: Restringe esta API key en la consola de Firebase:
+  // → Restricciones de app: añade solo tu dominio
+  // → Restricciones de API: Firebase APIs únicamente
   const firebaseConfig = {
     apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
     authDomain: "organizacionml.firebaseapp.com",
@@ -44,11 +54,11 @@
     measurementId: "G-GXFENBBT8B"
   };
 
+  // Instancia única compartida
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
   // ══════════ HELPERS FIRESTORE ══════════
-  // Guarda cualquier dato bajo user/default/<colección>/<docId>
   window._fbSet = async (coleccion, id, data) => {
     try {
       await setDoc(doc(db, "user", "default", coleccion, id), data);
@@ -61,7 +71,6 @@
     } catch(e) { console.warn('[Firebase] Error borrando:', e); }
   };
 
-  // Escucha cambios en tiempo real de una colección entera
   window._fbListen = (coleccion, callback) => {
     return onSnapshot(collection(db, "user", "default", coleccion), snapshot => {
       const docs = {};
@@ -72,6 +81,67 @@
 
   window._fbReady = true;
   window.dispatchEvent(new Event('firebase-ready'));
+
+  // ══════════ FCM (notificaciones push) ══════════
+  const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
+
+  async function initFCM() {
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    try {
+      const messaging = getMessaging(app);
+      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+      // Registrar onMessage SIEMPRE (independiente del estado del permiso)
+      onMessage(messaging, payload => {
+        const title = payload.notification?.title || '⏰ Recordatorio';
+        const body  = payload.notification?.body  || '';
+        if (typeof mostrarToast === 'function') mostrarToast('🔔 ' + body);
+        if (Notification.permission === 'granted') {
+          new Notification(title, { body, icon: '/icons/icon-192.png' });
+        }
+      });
+
+      if (Notification.permission === 'granted') {
+        await registerFCMToken(messaging, swReg);
+        return;
+      }
+      if (Notification.permission === 'denied') return;
+
+      // Permiso pendiente → mostrar banner
+      const banner = document.getElementById('fcm-banner');
+      if (banner) banner.style.display = 'flex';
+
+      document.getElementById('fcm-allow-btn').addEventListener('click', async () => {
+        if (banner) banner.style.display = 'none';
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') await registerFCMToken(messaging, swReg);
+      });
+    } catch(e) {
+      console.warn('[FCM] Error:', e);
+    }
+  }
+
+  async function registerFCMToken(messaging, swReg) {
+    try {
+      const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+      if (token) {
+        const doSave = async () => {
+          if (window._fbSet) {
+            await window._fbSet('fcm_tokens', token.slice(-20), { token, ts: Date.now() });
+            console.log('[FCM] Token guardado ✓');
+          }
+        };
+        if (window._fbReady) await doSave();
+        else window.addEventListener('firebase-ready', doSave, { once: true });
+      }
+    } catch(e) {
+      console.warn('[FCM] Error registrando token:', e);
+    }
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(() => initFCM(), 1500);
+  });
 </script>
 
 <!-- Fuentes -->
@@ -155,7 +225,7 @@
     position: relative;
     z-index: 1;
   }
-  @media (max-width: 640px) { .portada-cards { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .portada-cards { grid-template-columns: 1fr 1fr; } }
   .portada-card {
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.15);
@@ -192,7 +262,7 @@
     position: relative;
     z-index: 1;
   }
-  @media (max-width: 640px) { .portada-widgets { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .portada-widgets { grid-template-columns: 1fr 1fr; } }
   .pw {
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.12);
@@ -228,6 +298,27 @@
   }
   .pw-task-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ocean-light); flex-shrink: 0; }
   .pw-empty { font-size: 0.78rem; color: rgba(255,255,255,0.3); font-style: italic; }
+
+  /* Skeleton shimmer para widgets mientras cargan */
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+  .pw-skeleton {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.06) 25%,
+      rgba(255,255,255,0.14) 50%,
+      rgba(255,255,255,0.06) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+    height: 1em;
+    margin-bottom: 0.4rem;
+  }
+  .pw-skeleton.wide  { width: 80%; }
+  .pw-skeleton.medium{ width: 55%; }
+  .pw-skeleton.short { width: 35%; }
 
   /* ── ÁREA WRAPPER ── */
   .area { display: none; }
@@ -930,8 +1021,16 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     transform: translateY(80px); opacity: 0;
     transition: all 0.3s ease; z-index: 999;
+    display: flex; align-items: center; gap: 0.75rem;
   }
   .success-toast.show { transform: translateY(0); opacity: 1; }
+  .toast-undo-btn {
+    background: rgba(255,255,255,0.25); border: none; color: white;
+    border-radius: 6px; padding: 3px 10px; font-size: 0.78rem;
+    font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  .toast-undo-btn:hover { background: rgba(255,255,255,0.4); }
 
   footer { text-align: center; padding: 2rem; font-size: 0.78rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 1rem; }
 
@@ -1069,6 +1168,30 @@
     text-transform: uppercase;
   }
   .timer-series-counter span { color: var(--ocean-light); font-weight: 700; }
+
+  /* Indicador de timer activo visible desde portada */
+  #timer-active-pill {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 500;
+    background: var(--coral);
+    color: white;
+    border-radius: 20px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    box-shadow: 0 4px 14px rgba(192,57,43,0.4);
+    cursor: pointer;
+    animation: pulse-pill 1.2s ease-in-out infinite;
+  }
+  #timer-active-pill.show { display: flex; align-items: center; gap: 0.4rem; }
+  @keyframes pulse-pill {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.04); }
+  }
 
   /* ── PWA INSTALL BUTTON ── */
   #pwa-install-btn {
@@ -1280,15 +1403,15 @@
     <!-- Tiempo -->
     <div class="pw" onclick="goArea('tiempo')" id="pw-tiempo">
       <span class="pw-label">🌤 Tiempo</span>
-      <div class="pw-main" id="pw-temp">—°</div>
-      <div class="pw-sub" id="pw-desc">Cargando…</div>
+      <div class="pw-main" id="pw-temp"><div class="pw-skeleton short"></div></div>
+      <div class="pw-sub" id="pw-desc"><div class="pw-skeleton medium"></div></div>
       <div class="pw-icon">🌡️</div>
     </div>
     <!-- Próximo evento -->
     <div class="pw" onclick="goArea('calendario')" id="pw-cal">
       <span class="pw-label">📅 Próximo evento</span>
       <div id="pw-evento-content">
-        <div class="pw-empty">Sin eventos próximos</div>
+        <div class="pw-skeleton wide"></div><div class="pw-skeleton medium"></div>
       </div>
       <div class="pw-icon">📅</div>
     </div>
@@ -1296,7 +1419,7 @@
     <div class="pw" onclick="goArea('personal')" id="pw-tareas">
       <span class="pw-label">✅ Tareas hoy</span>
       <div id="pw-tareas-content">
-        <div class="pw-empty">Sin tareas pendientes</div>
+        <div class="pw-skeleton wide"></div><div class="pw-skeleton medium"></div>
       </div>
       <div class="pw-icon">📋</div>
     </div>
@@ -2145,11 +2268,21 @@ document.querySelectorAll('.pers-tab').forEach(tab => {
 });
 
 // ══════════════════════════════ TOAST ══════════════════════════════
-function mostrarToast(msg) {
+let _toastTimer = null;
+function mostrarToast(msg, undoCallback) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  if (_toastTimer) clearTimeout(_toastTimer);
+  if (undoCallback) {
+    t.innerHTML = `<span>${msg}</span><button class="toast-undo-btn" id="toast-undo-btn">Deshacer</button>`;
+    document.getElementById('toast-undo-btn').addEventListener('click', () => {
+      undoCallback();
+      t.classList.remove('show');
+    });
+  } else {
+    t.textContent = msg;
+  }
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); t.textContent = ''; }, 4000);
 }
 
 // ══════════════════════════════ DÍAS DE ENTRENAMIENTO ══════════════════════════════
@@ -2287,7 +2420,17 @@ function guardarRegistro() {
   document.getElementById('reg-pr').value = 'no';
   document.getElementById('reg-notas').value = '';
 }
-function eliminarRegistro(id) { registros = registros.filter(r => r.id !== id); guardarDatos(); _fbDeleteRegistro(id); renderTabla(); actualizarStats(); mostrarToast('🗑 Registro eliminado'); }
+function eliminarRegistro(id) {
+  const idx = registros.findIndex(r => r.id === id);
+  if (idx === -1) return;
+  const [removed] = registros.splice(idx, 1);
+  guardarDatos(); _fbDeleteRegistro(id); renderTabla(); actualizarStats();
+  mostrarToast('🗑 Registro eliminado', () => {
+    registros.splice(idx, 0, removed);
+    guardarDatos(); _fbSyncRegistro(removed); renderTabla(); actualizarStats();
+    mostrarToast('↩️ Registro restaurado');
+  });
+}
 function confirmarBorrarTodo() {
   if (!registros.length) return;
   if (confirm('¿Seguro que quieres borrar todos los registros?')) {
@@ -2379,7 +2522,18 @@ function toggleTarea(tipo, id) {
   if (t) t.done = !t.done;
   saveTareas(); renderTareas(tipo);
 }
-function deleteTarea(tipo, id) { if (tipo === 'diarias') cancelTaskNotification && cancelTaskNotification(id); tareasData[tipo] = tareasData[tipo].filter(x => x.id !== id); saveTareas(); renderTareas(tipo); }
+function deleteTarea(tipo, id) {
+  if (tipo === 'diarias') cancelTaskNotification && cancelTaskNotification(id);
+  const idx = tareasData[tipo].findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const [removed] = tareasData[tipo].splice(idx, 1);
+  saveTareas(); renderTareas(tipo);
+  mostrarToast('🗑 Tarea eliminada', () => {
+    tareasData[tipo].splice(idx, 0, removed);
+    saveTareas(); renderTareas(tipo);
+    mostrarToast('↩️ Tarea restaurada');
+  });
+}
 function clearDone(tipo) {
   if (tipo === 'diarias') tareasData.diarias.filter(x => x.done).forEach(t => cancelTaskNotification && cancelTaskNotification(t.id));
   tareasData[tipo] = tareasData[tipo].filter(x => !x.done); saveTareas(); renderTareas(tipo);
@@ -2915,9 +3069,19 @@ function deleteCalEvent(idx) {
   const ev = sorted[idx];
   if (ev._readOnly) { mostrarToast('ℹ️ Elimina el evento en su fecha original'); return; }
   const evId = ev.id;
+  // Guardar copia para deshacer
+  const evCopy = { ...ev };
+  const keyCopy = calSelectedKey;
   calEventsDB[calSelectedKey] = calEventsDB[calSelectedKey].filter(e => e.id !== evId);
   if (!calEventsDB[calSelectedKey].length) delete calEventsDB[calSelectedKey];
-  saveCal(); renderCal(); renderCalPanel(); mostrarToast('🗑 Evento eliminado');
+  saveCal(); renderCal(); renderCalPanel();
+  mostrarToast('🗑 Evento eliminado', () => {
+    // Restaurar el evento
+    if (!calEventsDB[keyCopy]) calEventsDB[keyCopy] = [];
+    calEventsDB[keyCopy].push(evCopy);
+    saveCal(); renderCal(); renderCalPanel();
+    mostrarToast('↩️ Evento restaurado');
+  });
 }
 
 document.getElementById('cal-ev-text').addEventListener('keydown', e => { if (e.key==='Enter') addCalEvent(); });
@@ -3145,8 +3309,15 @@ function toggleShopItem(id) {
 }
 
 function deleteShopItem(id) {
-  shopItems = shopItems.filter(i => i.id !== id);
-  saveShop(); renderShop(); mostrarToast('🗑 Eliminado');
+  const idx = shopItems.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const [removed] = shopItems.splice(idx, 1);
+  saveShop(); renderShop();
+  mostrarToast('🗑 Eliminado', () => {
+    shopItems.splice(idx, 0, removed);
+    saveShop(); renderShop();
+    mostrarToast('↩️ Artículo restaurado');
+  });
 }
 
 function clearShopDone() {
@@ -4119,6 +4290,9 @@ window.addEventListener('load', () => loadReminders());
 <!-- FAB -->
 <button id="timer-fab" title="Temporizador de series" onclick="timerTogglePanel()">⏱</button>
 
+<!-- Pastilla indicadora de timer activo (visible en portada) -->
+<div id="timer-active-pill" onclick="goArea('entrenamiento')">⏱ <span id="timer-pill-display">--:--</span></div>
+
 <!-- Panel -->
 <div id="timer-panel">
   <button class="timer-close-btn" onclick="timerTogglePanel()">✕</button>
@@ -4127,10 +4301,10 @@ window.addEventListener('load', () => loadReminders());
   <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar"></div></div>
   <div class="timer-series-counter">Serie completada: <span id="timer-series-count">0</span></div>
   <div class="timer-presets">
-    <button class="timer-preset-btn" onclick="timerSetPreset(60)">1'</button>
-    <button class="timer-preset-btn active" onclick="timerSetPreset(90)">1:30'</button>
-    <button class="timer-preset-btn" onclick="timerSetPreset(120)">2'</button>
-    <button class="timer-preset-btn" onclick="timerSetPreset(180)">3'</button>
+    <button class="timer-preset-btn" data-secs="60"  onclick="timerSetPreset(60)">1'</button>
+    <button class="timer-preset-btn active" data-secs="90"  onclick="timerSetPreset(90)">1:30'</button>
+    <button class="timer-preset-btn" data-secs="120" onclick="timerSetPreset(120)">2'</button>
+    <button class="timer-preset-btn" data-secs="180" onclick="timerSetPreset(180)">3'</button>
   </div>
   <div class="timer-custom-row">
     <input class="timer-custom-input" id="timer-custom-input" type="number" min="5" max="600" placeholder="seg." />
@@ -4179,6 +4353,18 @@ function timerUpdateUI() {
   const danger  = rem <= 5;
   timerDisplay().className = 'timer-display' + (danger ? ' danger' : warning ? ' warning' : '');
   timerBar().className     = 'timer-bar'     + (danger ? ' danger' : warning ? ' warning' : '');
+
+  // Actualizar pastilla de portada
+  const pill = document.getElementById('timer-active-pill');
+  const pillDisplay = document.getElementById('timer-pill-display');
+  if (pill && pillDisplay) {
+    if (timerRunning) {
+      pillDisplay.textContent = timerFmt(rem);
+      pill.classList.add('show');
+    } else {
+      pill.classList.remove('show');
+    }
+  }
 }
 
 function timerBeep(type) {
@@ -4304,7 +4490,7 @@ function timerSetPreset(secs) {
   timerDuration  = secs;
   timerRemaining = secs;
   document.querySelectorAll('.timer-preset-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.getAttribute('onclick').match(/\d+/)[0]) === secs);
+    b.classList.toggle('active', parseInt(b.dataset.secs) === secs);
   });
   timerUpdateUI();
 }
@@ -4374,101 +4560,8 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
   <button class="fcm-close" onclick="document.getElementById('fcm-banner').style.display='none'">✕</button>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
-  const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
-    authDomain: "organizacionml.firebaseapp.com",
-    projectId: "organizacionml",
-    storageBucket: "organizacionml.firebasestorage.app",
-    messagingSenderId: "217963164755",
-    appId: "1:217963164755:web:6504fc815010b7110242a6"
-  };
-
-  async function initFCM() {
-    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
-    try {
-      const app = initializeApp(firebaseConfig, 'fcm-app');
-      const messaging = getMessaging(app);
-      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-
-      // ✅ FIX #1: Registrar onMessage SIEMPRE, independientemente del estado del permiso.
-      // Antes estaba dentro del bloque "pending", por lo que nunca se registraba
-      // si el permiso ya había sido concedido en una sesión anterior.
-      onMessage(messaging, payload => {
-        const title = payload.notification?.title || '⏰ Recordatorio';
-        const body  = payload.notification?.body  || '';
-        if (typeof mostrarToast === 'function') mostrarToast('🔔 ' + body);
-        if (Notification.permission === 'granted') {
-          new Notification(title, { body, icon: '/icons/icon-192.png' });
-        }
-      });
-
-      // Si ya tiene permiso, registra el token directamente
-      if (Notification.permission === 'granted') {
-        await registerToken(messaging, swReg);
-        return;
-      }
-
-      // Si está denegado, no hacer nada
-      if (Notification.permission === 'denied') return;
-
-      // Si está pendiente, mostrar el banner para que el usuario pulse
-      const banner = document.getElementById('fcm-banner');
-      if (banner) banner.style.display = 'flex';
-
-      document.getElementById('fcm-allow-btn').addEventListener('click', async () => {
-        if (banner) banner.style.display = 'none';
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          await registerToken(messaging, swReg);
-        }
-      });
-
-    } catch(e) {
-      console.warn('[FCM] Error:', e);
-    }
-  }
-
-  async function registerToken(messaging, swReg) {
-    try {
-      const token = await getToken(messaging, {
-        vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: swReg
-      });
-      if (token) {
-        // ✅ FIX #2: Esperar a que _fbSet esté disponible antes de guardar el token.
-        // Antes se llamaba directamente y podía ser undefined si Firebase aún no había cargado,
-        // dejando el token sin guardar en Firestore y la Cloud Function sin destinatario.
-        const doSave = async () => {
-          if (window._fbSet) {
-            await window._fbSet('fcm_tokens', token.slice(-20), { token, ts: Date.now() });
-            console.log('[FCM] Token guardado ✓');
-          }
-        };
-        if (window._fbReady) {
-          await doSave();
-        } else {
-          window.addEventListener('firebase-ready', doSave, { once: true });
-        }
-      }
-    } catch(e) {
-      console.warn('[FCM] Error registrando token:', e);
-    }
-  }
-
-  window.addEventListener('load', () => {
-    const tryInit = () => {
-      if (window._fbReady) initFCM();
-      else window.addEventListener('firebase-ready', initFCM, { once: true });
-    };
-    setTimeout(tryInit, 1500);
-  });
-</script>
+<!-- FCM ya está integrado en el bloque Firebase de <head> -->
 
 </body>
 </html>
