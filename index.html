@@ -4732,10 +4732,7 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
             <label class="reg-label">Nota (0–10)</label>
             <input class="reg-input" id="asig-nota-nota" type="number" min="0" max="10" step="0.01" placeholder="7.5" />
           </div>
-          <div class="reg-field">
-            <label class="reg-label">Peso en la asig. (%)</label>
-            <input class="reg-input" id="asig-nota-peso" type="number" min="1" max="100" placeholder="30" />
-          </div>
+
         </div>
         <!-- Añadir al calendario -->
         <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;padding:0.6rem 0.9rem;background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;font-size:0.85rem">
@@ -4760,7 +4757,7 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
         <div id="asig-notas-wrap">
           <div class="reg-empty" id="asig-notas-empty"><div class="reg-empty-icon">📝</div><div>Aún no hay notas registradas.</div></div>
           <table class="reg-table" id="asig-notas-tabla" style="display:none">
-            <thead><tr><th>Fecha</th><th>Asignatura</th><th>Tipo</th><th>Descripción</th><th>Nota</th><th>Peso</th><th></th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Asignatura</th><th>Tipo</th><th>Descripción</th><th>Nota</th><th></th></tr></thead>
             <tbody id="asig-notas-tbody"></tbody>
           </table>
         </div>
@@ -4969,7 +4966,7 @@ function asigAddNota() {
   const desc   = document.getElementById('asig-nota-desc').value.trim();
   const fecha  = document.getElementById('asig-nota-fecha').value;
   const nota   = parseFloat(document.getElementById('asig-nota-nota').value);
-  const peso   = parseFloat(document.getElementById('asig-nota-peso').value) || 100;
+  const peso   = 100;
   const addCal = document.getElementById('asig-nota-addcal').checked;
 
   // Categoría del árbol (si la asig la tiene)
@@ -5012,7 +5009,6 @@ function asigAddNota() {
 
   document.getElementById('asig-nota-nota').value = '';
   document.getElementById('asig-nota-desc').value = '';
-  document.getElementById('asig-nota-peso').value = '';
 }
 
 // Buscar nodo por id en el árbol
