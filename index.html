@@ -5227,12 +5227,19 @@ function asigMediaNivel(nodos, notas, minimo) {
   return sumaTotal / sumaPctUsado;
 }
 
-// Devuelve true si alguna subcategoría hoja con nota mínima configurada NO la supera
+// Devuelve true si algún nodo (con o sin hijos) con nota mínima configurada NO la supera
 function asigHayMinimoSubIncumplido(nodos, notas) {
   for (const nodo of nodos) {
     if (nodo.sub && nodo.sub.length > 0) {
+      // Nodo con hijos: calcular su media ponderada y comparar con su mínimo
+      if (nodo.min != null) {
+        const mediaNodo = asigMediaNivel([nodo], notas, 0);
+        if (mediaNodo !== null && mediaNodo < nodo.min) return true;
+      }
+      // Seguir revisando en profundidad
       if (asigHayMinimoSubIncumplido(nodo.sub, notas)) return true;
     } else {
+      // Nodo hoja
       if (nodo.min != null) {
         const ns = notas.filter(n => n.catId === nodo.id);
         if (ns.length > 0) {
@@ -5494,7 +5501,7 @@ function asigRenderResumen() {
               const bg   = depth===0 ? '#e0f2fe' : depth===1 ? '#ede9fe' : '#fce7f3';
               const col  = depth===0 ? '#0369a1' : depth===1 ? '#4c1d95' : '#9d174d';
               const sub  = n.sub && n.sub.length > 0 ? ' ▸' : '';
-              const minTag = (n.sub.length === 0 && n.min != null) ? ` · mín ${n.min}` : '';
+              const minTag = n.min != null ? ` · mín ${n.min}` : '';
               return `<span style="font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:10px;background:${bg};color:${col}">${n.nombre||'?'}${sub}: ${n.pct}%${minTag}</span>${n.sub&&n.sub.length?renderPills(n.sub,depth+1):''}`;
             }).join('');
           })(a.pcts, 0)
@@ -5631,8 +5638,7 @@ function asigPctRenderBuilder() {
            </div>`
         : '';
 
-      const esHoja = n.sub.length === 0;
-      const minHtml = esHoja ? `
+      const minHtml = `
           <div style="display:flex;align-items:center;gap:0.2rem;flex-shrink:0" title="Nota mínima para aprobar esta parte">
             <input
               id="asig-pct-m-${n.id}"
@@ -5645,7 +5651,7 @@ function asigPctRenderBuilder() {
               oninput="asigPctActualizarTotal()"
             />
             <span style="font-size:0.7rem;color:#d97706;font-weight:600">mín</span>
-          </div>` : '';
+          </div>`;
 
       return `
       <div class="asig-pct-nodo" data-id="${n.id}" style="margin-left:${indent}px;background:${bgColor};border:1.5px solid ${borderColor};border-radius:10px;padding:0.55rem 0.7rem">
@@ -6163,7 +6169,6 @@ function editAsigPctRenderBuilder() {
             />
             <span style="font-size:0.75rem;color:var(--muted);font-weight:600">%</span>
           </div>
-          ${n.sub.length === 0 ? `
           <div style="display:flex;align-items:center;gap:0.2rem;flex-shrink:0" title="Nota mínima para aprobar esta parte">
             <input
               id="edit-pct-m-${n.id}"
@@ -6176,7 +6181,7 @@ function editAsigPctRenderBuilder() {
               oninput="editAsigPctActualizarTotal()"
             />
             <span style="font-size:0.7rem;color:#d97706;font-weight:600">mín</span>
-          </div>` : ''}
+          </div>
           ${nivel < 2 ? `<button type="button" class="asig-pct-sub-btn" onclick="editAsigPctSyncDesdeDOM();editAsigPctAddSub([${path.join(',')}])">＋ sub</button>` : ''}
           <button type="button" class="asig-pct-del-btn" onclick="editAsigPctSyncDesdeDOM();editAsigPctDelNodo([${path.join(',')}])">✕</button>
         </div>
