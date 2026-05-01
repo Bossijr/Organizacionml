@@ -4879,6 +4879,97 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
 .asig-pct-del-btn:hover { background:#fff0f0;color:var(--coral);border-color:#fca5a5; }
 </style>
 
+<!-- ══ MODAL EDITAR ASIGNATURA ══ -->
+<div id="modal-edit-asig" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(10,37,64,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:20px;padding:1.8rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.05em;color:var(--navy)">✏️ Editar Asignatura</span>
+      <button onclick="asigCerrarEditAsig()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="reg-grid">
+      <div class="reg-field">
+        <label class="reg-label">Nombre</label>
+        <input class="reg-input" id="edit-asig-nombre" type="text" maxlength="60" />
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Abreviatura</label>
+        <input class="reg-input" id="edit-asig-abrev" type="text" maxlength="6" />
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Créditos / Peso</label>
+        <input class="reg-input" id="edit-asig-creditos" type="number" min="1" max="12" />
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Color</label>
+        <select class="reg-select" id="edit-asig-color">
+          <option value="ocean">🔵 Azul</option>
+          <option value="grass">🟢 Verde</option>
+          <option value="coral">🔴 Rojo</option>
+          <option value="amber">🟠 Naranja</option>
+          <option value="purple">🟣 Morado</option>
+          <option value="pink">🩷 Rosa</option>
+        </select>
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Nota mínima para aprobar</label>
+        <input class="reg-input" id="edit-asig-minimo" type="number" min="0" max="10" step="0.1" />
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Profesor/a (opcional)</label>
+        <input class="reg-input" id="edit-asig-profe" type="text" maxlength="60" />
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.2rem;justify-content:flex-end">
+      <button class="reg-btn-danger" onclick="asigCerrarEditAsig()">Cancelar</button>
+      <button class="reg-btn" onclick="asigGuardarEditAsig()">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR NOTA ══ -->
+<div id="modal-edit-nota" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(10,37,64,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:20px;padding:1.8rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.05em;color:var(--navy)">✏️ Editar Nota</span>
+      <button onclick="asigCerrarEditNota()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="reg-grid">
+      <div class="reg-field">
+        <label class="reg-label">Asignatura</label>
+        <select class="reg-select" id="edit-nota-asig"></select>
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Tipo de evaluación</label>
+        <select class="reg-select" id="edit-nota-tipo">
+          <option value="examen">Examen</option>
+          <option value="parcial">Parcial</option>
+          <option value="practica">Práctica</option>
+          <option value="trabajo">Trabajo</option>
+          <option value="oral">Oral</option>
+          <option value="test">Test</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="reg-field full">
+        <label class="reg-label">Descripción</label>
+        <input class="reg-input" id="edit-nota-desc" type="text" maxlength="80" />
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Fecha</label>
+        <input class="reg-input" id="edit-nota-fecha" type="date" />
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Nota (0–10)</label>
+        <input class="reg-input" id="edit-nota-nota" type="number" min="0" max="10" step="0.01" />
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.2rem;justify-content:flex-end">
+      <button class="reg-btn-danger" onclick="asigCerrarEditNota()">Cancelar</button>
+      <button class="reg-btn" onclick="asigGuardarEditNota()">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════ ASIGNATURAS Y NOTAS ══════════════════════════════
 
@@ -5154,6 +5245,7 @@ function asigRenderLista() {
           <div class="asig-card-creditos">${a.creditos || 6} créditos · mín. ${minimo}</div>
         </div>
         <button class="reg-btn-danger" onclick="asigDelAsignatura('${a.id}')" title="Eliminar">✕</button>
+        <button class="reg-btn-danger" style="color:var(--ocean);border-color:var(--ocean);background:transparent" onclick="asigAbrirEditAsig('${a.id}')" title="Editar">✏️</button>
       </div>
       <div class="asig-card-body">
         ${a.profe ? `<div class="asig-card-profe">👤 ${a.profe}</div>` : ''}
@@ -5250,8 +5342,10 @@ function asigRenderNotas() {
       <td><span class="asig-nota-badge ${n.tipo}">${n.catNombre || n.tipo}</span></td>
       <td style="font-size:0.83rem;color:var(--ink)">${n.desc || '—'}</td>
       <td style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.03em;color:${estado}">${n.nota.toFixed(2)}</td>
-      <td style="font-size:0.8rem;color:var(--muted)">${n.peso || 100}%</td>
-      <td><button class="reg-btn-danger" onclick="asigDelNota('${n.id}')">✕</button></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="reg-btn-danger" style="margin-right:4px;background:transparent;color:var(--ocean);border-color:var(--ocean)" onclick="asigAbrirEditNota('${n.id}')">✏️</button>
+        <button class="reg-btn-danger" onclick="asigDelNota('${n.id}')">✕</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -5514,6 +5608,98 @@ if (window._fbReady) {
 } else {
   window.addEventListener('firebase-ready', () => asigLoadFromFirebase(), { once: true });
 }
+
+// ══════════ EDITAR ASIGNATURA ══════════
+let _editAsigId = null;
+
+function asigAbrirEditAsig(id) {
+  const a = asigDB.find(x => x.id === id);
+  if (!a) return;
+  _editAsigId = id;
+  document.getElementById('edit-asig-nombre').value   = a.nombre   || '';
+  document.getElementById('edit-asig-abrev').value    = a.abrev    || '';
+  document.getElementById('edit-asig-creditos').value = a.creditos || 6;
+  document.getElementById('edit-asig-color').value    = a.color    || 'ocean';
+  document.getElementById('edit-asig-minimo').value   = a.minimo   || 5;
+  document.getElementById('edit-asig-profe').value    = a.profe    || '';
+  const modal = document.getElementById('modal-edit-asig');
+  modal.style.display = 'flex';
+}
+
+function asigCerrarEditAsig() {
+  document.getElementById('modal-edit-asig').style.display = 'none';
+  _editAsigId = null;
+}
+
+function asigGuardarEditAsig() {
+  if (!_editAsigId) return;
+  const nombre   = document.getElementById('edit-asig-nombre').value.trim();
+  const abrev    = document.getElementById('edit-asig-abrev').value.trim().toUpperCase() || nombre.slice(0,3).toUpperCase();
+  const creditos = parseFloat(document.getElementById('edit-asig-creditos').value) || 6;
+  const color    = document.getElementById('edit-asig-color').value;
+  const minimo   = parseFloat(document.getElementById('edit-asig-minimo').value) || 5;
+  const profe    = document.getElementById('edit-asig-profe').value.trim();
+  if (!nombre) { mostrarToast('⚠️ El nombre no puede estar vacío'); return; }
+  const idx = asigDB.findIndex(x => x.id === _editAsigId);
+  if (idx === -1) return;
+  asigDB[idx] = { ...asigDB[idx], nombre, abrev, creditos, color, minimo, profe };
+  asigSyncAll();
+  asigRender();
+  mostrarToast('✅ Asignatura actualizada');
+  asigCerrarEditAsig();
+}
+
+// ══════════ EDITAR NOTA ══════════
+let _editNotaId = null;
+
+function asigAbrirEditNota(id) {
+  const n = notasDB.find(x => x.id === id);
+  if (!n) return;
+  _editNotaId = id;
+  // Poblar selector de asignaturas
+  const sel = document.getElementById('edit-nota-asig');
+  sel.innerHTML = asigDB.map(a => `<option value="${a.id}" ${a.id === n.asigId ? 'selected' : ''}>${a.nombre}</option>`).join('');
+  // Tipo
+  document.getElementById('edit-nota-tipo').value  = n.tipo  || 'examen';
+  document.getElementById('edit-nota-desc').value  = n.desc  || '';
+  document.getElementById('edit-nota-fecha').value = n.fecha || '';
+  document.getElementById('edit-nota-nota').value  = n.nota  != null ? n.nota : '';
+  const modal = document.getElementById('modal-edit-nota');
+  modal.style.display = 'flex';
+}
+
+function asigCerrarEditNota() {
+  document.getElementById('modal-edit-nota').style.display = 'none';
+  _editNotaId = null;
+}
+
+function asigGuardarEditNota() {
+  if (!_editNotaId) return;
+  const asigId = document.getElementById('edit-nota-asig').value;
+  const tipo   = document.getElementById('edit-nota-tipo').value;
+  const desc   = document.getElementById('edit-nota-desc').value.trim();
+  const fecha  = document.getElementById('edit-nota-fecha').value;
+  const nota   = parseFloat(document.getElementById('edit-nota-nota').value);
+  if (!asigId) { mostrarToast('⚠️ Selecciona una asignatura'); return; }
+  if (isNaN(nota) || nota < 0 || nota > 10) { mostrarToast('⚠️ La nota debe ser entre 0 y 10'); return; }
+  const asig = asigDB.find(a => a.id === asigId);
+  const catNombre = tipo;
+  const idx = notasDB.findIndex(x => x.id === _editNotaId);
+  if (idx === -1) return;
+  notasDB[idx] = { ...notasDB[idx], asigId, tipo, catNombre, desc, fecha, nota };
+  asigSyncAll();
+  asigRender();
+  mostrarToast('✅ Nota actualizada');
+  asigCerrarEditNota();
+}
+
+// Cerrar modales al pulsar fuera
+document.getElementById('modal-edit-asig').addEventListener('click', function(e) {
+  if (e.target === this) asigCerrarEditAsig();
+});
+document.getElementById('modal-edit-nota').addEventListener('click', function(e) {
+  if (e.target === this) asigCerrarEditNota();
+});
 </script>
 
 </body>
