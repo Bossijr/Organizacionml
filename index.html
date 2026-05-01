@@ -4659,6 +4659,51 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
             <input class="reg-input" id="asig-input-profe" type="text" placeholder="Nombre del profesor" maxlength="60" />
           </div>
         </div>
+
+        <!-- Porcentajes por tipo de evaluación -->
+        <div style="margin-top:1rem;margin-bottom:0.5rem">
+          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">
+            📊 Porcentajes por tipo de evaluación
+            <span style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:0.5rem;font-size:0.68rem">(deja en 0 los que no apliquen — deben sumar 100%)</span>
+          </div>
+          <div class="reg-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.5rem">
+            <div class="reg-field">
+              <label class="reg-label">🎓 Examen %</label>
+              <input class="reg-input" id="asig-pct-examen" type="number" min="0" max="100" placeholder="0" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">📋 Parcial %</label>
+              <input class="reg-input" id="asig-pct-parcial" type="number" min="0" max="100" placeholder="0" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">🔬 Práctica %</label>
+              <input class="reg-input" id="asig-pct-practica" type="number" min="0" max="100" placeholder="0" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">📄 Trabajo %</label>
+              <input class="reg-input" id="asig-pct-trabajo" type="number" min="0" max="100" placeholder="0" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">🗣️ Oral %</label>
+              <input class="reg-input" id="asig-pct-oral" type="number" min="0" max="100" placeholder="0" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">✅ Test %</label>
+              <input class="reg-input" id="asig-pct-test" type="number" min="0" max="100" placeholder="0" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">📌 Otro %</label>
+              <input class="reg-input" id="asig-pct-otro" type="number" min="0" max="100" placeholder="0" />
+            </div>
+          </div>
+          <div id="asig-pct-aviso" style="font-size:0.75rem;color:var(--coral);font-weight:600;margin-top:0.4rem;display:none">
+            ⚠️ Los porcentajes deben sumar 100% (actualmente: <span id="asig-pct-suma">0</span>%)
+          </div>
+          <div id="asig-pct-ok" style="font-size:0.75rem;color:var(--grass);font-weight:600;margin-top:0.4rem;display:none">
+            ✓ Los porcentajes suman 100% — se usarán para calcular la media
+          </div>
+        </div>
+
         <button class="reg-btn" onclick="asigAddAsignatura()">＋ Añadir asignatura</button>
       </div>
 
@@ -4713,7 +4758,13 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
             <input class="reg-input" id="asig-nota-peso" type="number" min="1" max="100" placeholder="30" />
           </div>
         </div>
-        <button class="reg-btn" onclick="asigAddNota()">＋ Registrar nota</button>
+        <!-- Añadir al calendario -->
+        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;padding:0.6rem 0.9rem;background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;font-size:0.85rem">
+          <input type="checkbox" id="asig-nota-addcal" style="width:16px;height:16px;cursor:pointer" checked />
+          <label for="asig-nota-addcal" style="cursor:pointer;color:var(--navy);font-weight:600">📅 Añadir automáticamente al Calendario</label>
+          <span style="font-size:0.75rem;color:var(--muted);font-weight:400">(tipo Examen, con la fecha y descripción)</span>
+        </div>
+        <button class="reg-btn" onclick="asigAddNota()">＋ Registrar nota / examen</button>
       </div>
 
       <!-- Filtro por asignatura -->
@@ -4879,7 +4930,19 @@ function asigAddAsignatura() {
 
   if (!nombre) { mostrarToast('⚠️ Escribe el nombre de la asignatura'); return; }
 
-  asigDB.push({ id: asigUID(), nombre, abrev, creditos, color, minimo, profe });
+  // Leer porcentajes por tipo
+  const tipos = ['examen','parcial','practica','trabajo','oral','test','otro'];
+  const pcts = {};
+  let sumaPct = 0;
+  tipos.forEach(t => {
+    const v = parseFloat(document.getElementById('asig-pct-' + t).value) || 0;
+    pcts[t] = v;
+    sumaPct += v;
+  });
+  // Solo guardar los porcentajes si suman exactamente 100, si no dejarlo vacío (usa peso manual)
+  const usaPcts = Math.abs(sumaPct - 100) < 0.01;
+
+  asigDB.push({ id: asigUID(), nombre, abrev, creditos, color, minimo, profe, pcts: usaPcts ? pcts : null });
   asigSyncAll();
   asigRender();
   mostrarToast('✅ Asignatura añadida: ' + nombre);
@@ -4888,6 +4951,9 @@ function asigAddAsignatura() {
   document.getElementById('asig-input-abrev').value = '';
   document.getElementById('asig-input-creditos').value = '';
   document.getElementById('asig-input-profe').value = '';
+  tipos.forEach(t => { document.getElementById('asig-pct-' + t).value = ''; });
+  document.getElementById('asig-pct-aviso').style.display = 'none';
+  document.getElementById('asig-pct-ok').style.display = 'none';
 }
 
 // ── Eliminar asignatura ──
@@ -4908,6 +4974,7 @@ function asigAddNota() {
   const fecha  = document.getElementById('asig-nota-fecha').value;
   const nota   = parseFloat(document.getElementById('asig-nota-nota').value);
   const peso   = parseFloat(document.getElementById('asig-nota-peso').value) || 100;
+  const addCal = document.getElementById('asig-nota-addcal').checked;
 
   if (!asigId) { mostrarToast('⚠️ Selecciona una asignatura'); return; }
   if (isNaN(nota) || nota < 0 || nota > 10) { mostrarToast('⚠️ La nota debe ser entre 0 y 10'); return; }
@@ -4916,6 +4983,25 @@ function asigAddNota() {
   asigSyncAll();
   asigRender();
   mostrarToast('✅ Nota registrada: ' + nota.toFixed(2));
+
+  // Añadir al calendario si está marcado y hay fecha
+  if (addCal && fecha) {
+    const asig = asigDB.find(a => a.id === asigId);
+    const nombre = asig ? asig.nombre : 'Asignatura';
+    const tipoLabel = {'examen':'Examen','parcial':'Parcial','practica':'Práctica','trabajo':'Trabajo','oral':'Oral','test':'Test','otro':'Evaluación'}[tipo] || tipo;
+    const textoEv = `${tipoLabel}: ${nombre}${desc ? ' — ' + desc : ''}`;
+
+    if (!calEventsDB[fecha]) calEventsDB[fecha] = [];
+    const newEv = {
+      id: Date.now() + '_asig',
+      text: textoEv,
+      pri: 'examen',
+      allDay: true
+    };
+    calEventsDB[fecha].push(newEv);
+    saveCal();
+    mostrarToast('📅 Añadido al Calendario como examen');
+  }
 
   document.getElementById('asig-nota-nota').value = '';
   document.getElementById('asig-nota-desc').value = '';
@@ -4951,6 +5037,41 @@ function asigSetFiltroNota(val, btn) {
 function asigMedia(asigId) {
   const notas = notasDB.filter(n => n.asigId === asigId);
   if (!notas.length) return null;
+
+  const asig = asigDB.find(a => a.id === asigId);
+
+  // Si la asignatura tiene porcentajes configurados, calcular por categoría
+  if (asig && asig.pcts) {
+    const pcts = asig.pcts;
+    // Agrupar notas por tipo
+    const porTipo = {};
+    notas.forEach(n => {
+      const t = n.tipo || 'otro';
+      if (!porTipo[t]) porTipo[t] = [];
+      porTipo[t].push(n);
+    });
+    // Para cada tipo con notas y porcentaje > 0, calcular media del tipo
+    let sumaTotal = 0, sumaPctUsado = 0;
+    Object.entries(porTipo).forEach(([tipo, ns]) => {
+      const pct = pcts[tipo] || 0;
+      if (pct > 0 && ns.length > 0) {
+        // Media simple de las notas de ese tipo (o ponderada por peso individual si se quiere)
+        const sumP = ns.reduce((s, n) => s + (n.peso || 100), 0);
+        const mediaTipo = ns.reduce((s, n) => s + n.nota * (n.peso || 100), 0) / sumP;
+        sumaTotal += mediaTipo * pct;
+        sumaPctUsado += pct;
+      }
+    });
+    if (sumaPctUsado === 0) {
+      // Ningún tipo configurado tiene notas aún → fallback a media ponderada simple
+      const sumaPeso = notas.reduce((s, n) => s + (n.peso || 100), 0);
+      const sumaNota = notas.reduce((s, n) => s + n.nota * (n.peso || 100), 0);
+      return sumaPeso ? sumaNota / sumaPeso : null;
+    }
+    return sumaTotal / sumaPctUsado;
+  }
+
+  // Sin porcentajes configurados: media ponderada por peso individual
   const sumaPeso = notas.reduce((s, n) => s + (n.peso || 100), 0);
   const sumaNota = notas.reduce((s, n) => s + n.nota * (n.peso || 100), 0);
   return sumaPeso ? sumaNota / sumaPeso : null;
@@ -5028,7 +5149,7 @@ function asigRenderLista() {
       </div>
       <div class="asig-card-footer">
         <span>${notasTxt} nota${notasTxt !== 1 ? 's' : ''} registrada${notasTxt !== 1 ? 's' : ''}</span>
-        <span style="color:var(--ocean);font-weight:600">Peso: ${a.creditos || 6} ECTS</span>
+        <span style="color:var(--ocean);font-weight:600">${a.pcts ? '📊 Con porcentajes' : 'Peso: ' + (a.creditos || 6) + ' ECTS'}</span>
       </div>
     </div>`;
   }).join('');
@@ -5117,7 +5238,7 @@ function asigRenderResumen() {
         <div class="asig-badge ${a.color}" style="width:40px;height:40px;border-radius:12px;font-size:0.9rem">${a.abrev || a.nombre.slice(0,3).toUpperCase()}</div>
         <div style="flex:1">
           <div style="font-weight:700;font-size:0.95rem;color:var(--navy)">${a.nombre}</div>
-          <div style="font-size:0.72rem;color:var(--muted)">${a.creditos||6} créditos · Mínimo: ${minimo}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">${a.creditos||6} créditos · Mínimo: ${minimo}${a.pcts ? ' · <span style="color:var(--ocean);font-weight:700">📊 Porcentajes configurados</span>' : ''}</div>
         </div>
         <div style="text-align:right">
           <div class="asig-resumen-media-big ${estado}">${m !== null ? m.toFixed(2) : '—'}</div>
@@ -5129,6 +5250,12 @@ function asigRenderResumen() {
         <div class="asig-card-bar-wrap" style="margin-bottom:0.75rem">
           <div class="asig-card-bar ${estado}" style="width:${pct}%"></div>
         </div>
+        ${a.pcts ? `<div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.6rem">${
+          Object.entries(a.pcts).filter(([,v])=>v>0).map(([tipo,pct])=>{
+            const labels={examen:'Examen',parcial:'Parcial',practica:'Práctica',trabajo:'Trabajo',oral:'Oral',test:'Test',otro:'Otro'};
+            return `<span style="font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#e0f2fe;color:#0369a1">${labels[tipo]||tipo}: ${pct}%</span>`;
+          }).join('')
+        }</div>` : ''}
       </div>
       <div class="asig-resumen-body">${notasHtml}</div>
     </div>`;
@@ -5150,6 +5277,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const hoy = new Date().toISOString().slice(0,10);
   const f = document.getElementById('asig-nota-fecha');
   if (f) f.value = hoy;
+});
+
+// ── Validación en tiempo real de porcentajes ──
+function asigValidarPcts() {
+  const tipos = ['examen','parcial','practica','trabajo','oral','test','otro'];
+  let suma = 0;
+  tipos.forEach(t => {
+    const v = parseFloat(document.getElementById('asig-pct-' + t)?.value) || 0;
+    suma += v;
+  });
+  const aviso = document.getElementById('asig-pct-aviso');
+  const ok    = document.getElementById('asig-pct-ok');
+  const sumaEl = document.getElementById('asig-pct-suma');
+  if (suma === 0) {
+    aviso.style.display = 'none';
+    ok.style.display = 'none';
+  } else if (Math.abs(suma - 100) < 0.01) {
+    aviso.style.display = 'none';
+    ok.style.display = 'block';
+  } else {
+    if (sumaEl) sumaEl.textContent = suma;
+    aviso.style.display = 'block';
+    ok.style.display = 'none';
+  }
+}
+
+// Attach listeners after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  const tipos = ['examen','parcial','practica','trabajo','oral','test','otro'];
+  tipos.forEach(t => {
+    const el = document.getElementById('asig-pct-' + t);
+    if (el) el.addEventListener('input', asigValidarPcts);
+  });
 });
 
 // ── Init: cargar datos ──
