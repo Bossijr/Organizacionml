@@ -5151,10 +5151,8 @@ function asigMedia(asigId) {
     return asigMediaNivel(asig.pcts, notas, asig.minimo || 5);
   }
 
-  // Sin porcentajes: media ponderada por peso individual de cada nota
-  const sumaPeso = notas.reduce((s, n) => s + (n.peso || 100), 0);
-  const sumaNota = notas.reduce((s, n) => s + n.nota * (n.peso || 100), 0);
-  return sumaPeso ? sumaNota / sumaPeso : null;
+  // Sin porcentajes: media aritmética simple
+  return notas.reduce((s, n) => s + n.nota, 0) / notas.length;
 }
 
 // Calcula la media ponderada de un nivel del árbol
@@ -5174,8 +5172,8 @@ function asigMediaNivel(nodos, notas, minimo) {
       // Hoja: buscar notas asignadas a esta categoría
       const ns = notas.filter(n => n.catId === nodo.id);
       if (ns.length > 0) {
-        const sumP = ns.reduce((s, n) => s + (n.peso || 100), 0);
-        mediaNodo = ns.reduce((s, n) => s + n.nota * (n.peso || 100), 0) / sumP;
+        // Media aritmética simple: el peso ya está definido en el árbol (pct del nodo)
+        mediaNodo = ns.reduce((s, n) => s + n.nota, 0) / ns.length;
       }
     }
     if (mediaNodo !== null) {
@@ -5336,10 +5334,16 @@ function asigRenderNotas() {
     const color  = asig ? ASIG_COLORS[asig.color] || '#0e6ba8' : '#0e6ba8';
     const minimo = asig ? (asig.minimo || 5) : 5;
     const estado = n.nota >= minimo ? 'var(--grass)' : 'var(--coral)';
+    // Obtener % de la categoría del árbol
+    let pctLabel = '';
+    if (n.catId && asig && asig.pcts && asig.pcts.length > 0) {
+      const nodo = asigPctBuscarNodo(asig.pcts, n.catId);
+      if (nodo) pctLabel = `<span style="font-size:0.7rem;font-weight:700;padding:1px 7px;border-radius:10px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
+    }
     return `<tr>
       <td style="color:var(--muted);font-size:0.8rem">${n.fecha || '—'}</td>
       <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>${nombre}</span></td>
-      <td><span class="asig-nota-badge ${n.tipo}">${n.catNombre || n.tipo}</span></td>
+      <td><span class="asig-nota-badge ${n.tipo}">${n.catNombre || n.tipo}</span> ${pctLabel}</td>
       <td style="font-size:0.83rem;color:var(--ink)">${n.desc || '—'}</td>
       <td style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.03em;color:${estado}">${n.nota.toFixed(2)}</td>
       <td style="text-align:right;white-space:nowrap">
@@ -5368,14 +5372,20 @@ function asigRenderResumen() {
     const minimo = a.minimo || 5;
     const estado = m === null ? 'sin-nota' : m >= minimo ? 'aprobado' : 'suspenso';
     const pct    = m !== null ? Math.min(100, (m/10)*100) : 0;
-    const notasHtml = notas.length ? notas.map(n =>
-      `<div class="asig-nota-item">
+    const notasHtml = notas.length ? notas.map(n => {
+      // Obtener % real de la categoría del árbol
+      let pctTag = '';
+      if (n.catId && a.pcts && a.pcts.length > 0) {
+        const nodo = asigPctBuscarNodo(a.pcts, n.catId);
+        if (nodo) pctTag = `<span style="font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:8px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
+      }
+      return `<div class="asig-nota-item">
         <span class="asig-nota-badge ${n.tipo}">${n.catNombre || n.tipo}</span>
         <span style="flex:1;font-size:0.83rem;color:var(--ink)">${n.desc || '—'} ${n.fecha ? '<span style="color:var(--muted);font-size:0.75rem">· ' + n.fecha + '</span>' : ''}</span>
+        ${pctTag}
         <span style="font-weight:700;color:${n.nota >= minimo ? 'var(--grass)' : 'var(--coral)'};min-width:36px;text-align:right">${n.nota.toFixed(2)}</span>
-        <span style="font-size:0.72rem;color:var(--muted);min-width:30px;text-align:right">${n.peso||100}%</span>
-      </div>`
-    ).join('') : '<div style="text-align:center;padding:0.75rem;color:var(--muted);font-size:0.82rem">Sin notas aún</div>';
+      </div>`;
+    }).join('') : '<div style="text-align:center;padding:0.75rem;color:var(--muted);font-size:0.82rem">Sin notas aún</div>';
 
     return `
     <div class="asig-resumen-card">
