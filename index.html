@@ -4615,6 +4615,7 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
         <div class="pers-tab active" data-asig-tab="asignaturas">📚 Asignaturas</div>
         <div class="pers-tab" data-asig-tab="notas">📝 Notas / Exámenes</div>
         <div class="pers-tab" data-asig-tab="resumen">📊 Resumen</div>
+        <div class="pers-tab" data-asig-tab="calculadora">🧮 Calculadora</div>
       </div>
     </div>
 
@@ -4770,6 +4771,29 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
       <p class="section-sub">Media ponderada por asignatura, calculada en tiempo real a partir de tus notas.</p>
       <div id="asig-resumen-lista" style="display:flex;flex-direction:column;gap:1rem"></div>
       <div class="reg-empty" id="asig-resumen-empty" style="display:none"><div class="reg-empty-icon">📊</div><div>Añade asignaturas y notas para ver el resumen.</div></div>
+    </div>
+
+    <!-- TAB: CALCULADORA -->
+    <div class="asig-section" id="asig-tab-calculadora">
+      <div class="section-heading">Calculadora de Notas</div>
+      <p class="section-sub">Calcula qué nota necesitas en los exámenes pendientes, o simula tu nota final.</p>
+
+      <div class="reg-form-card" style="margin-bottom:1.2rem">
+        <div style="display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap">
+          <div class="reg-field" style="flex:1;min-width:200px">
+            <label class="reg-label">Asignatura</label>
+            <select class="reg-select" id="calc-asig" onchange="calcRender()">
+              <option value="">— Selecciona asignatura —</option>
+            </select>
+          </div>
+          <div class="reg-field" style="min-width:150px">
+            <label class="reg-label">Nota objetivo</label>
+            <input class="reg-input" id="calc-objetivo" type="number" min="0" max="10" step="0.01" placeholder="5" value="5" oninput="calcRender()" />
+          </div>
+        </div>
+      </div>
+
+      <div id="calc-resultado"></div>
     </div>
 
   </div>
@@ -5221,6 +5245,9 @@ function asigRender() {
   asigRenderFiltros();
   asigRenderNotas();
   asigRenderResumen();
+  calcRenderSelectAsig();
+  // Si el tab de calculadora está activo, re-renderizar
+  if (document.getElementById('asig-tab-calculadora')?.classList.contains('active')) calcRender();
 }
 
 function asigRenderStats() {
@@ -5445,6 +5472,7 @@ document.querySelectorAll('[data-asig-tab]').forEach(tab => {
     document.querySelectorAll('.asig-section').forEach(s => s.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('asig-tab-' + tab.dataset.asigTab).classList.add('active');
+    if (tab.dataset.asigTab === 'calculadora') calcRender();
   });
 });
 
@@ -5635,6 +5663,322 @@ if (window._fbReady) {
   asigLoadFromFirebase();
 } else {
   window.addEventListener('firebase-ready', () => asigLoadFromFirebase(), { once: true });
+}
+
+// ══════════════════════════════ CALCULADORA DE NOTAS ══════════════════════════════
+
+function calcRenderSelectAsig() {
+  const sel = document.getElementById('calc-asig');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona asignatura —</option>' +
+    asigDB.map(a => `<option value="${a.id}" ${a.id === cur ? 'selected' : ''}>${a.nombre}</option>`).join('');
+  if (!sel.value && asigDB.length) sel.value = asigDB[0].id;
+}
+
+function calcRender() {
+  const el = document.getElementById('calc-resultado');
+  if (!el) return;
+
+  const asigId   = document.getElementById('calc-asig').value;
+  const objetivo = parseFloat(document.getElementById('calc-objetivo').value);
+
+  if (!asigId) {
+    el.innerHTML = `<div class="reg-empty"><div class="reg-empty-icon">🧮</div><div>Selecciona una asignatura para empezar.</div></div>`;
+    return;
+  }
+  if (isNaN(objetivo) || objetivo < 0 || objetivo > 10) {
+    el.innerHTML = `<div class="reg-empty"><div class="reg-empty-icon">⚠️</div><div>Introduce una nota objetivo válida (0–10).</div></div>`;
+    return;
+  }
+
+  const asig   = asigDB.find(a => a.id === asigId);
+  const notas  = notasDB.filter(n => n.asigId === asigId);
+  const minimo = asig.minimo || 5;
+
+  // ── Caso A: asig con árbol de porcentajes ──
+  if (asig.pcts && asig.pcts.length > 0) {
+    calcRenderConPcts(el, asig, notas, objetivo, minimo);
+  } else {
+    // ── Caso B: sin árbol — media aritmética simple ──
+    calcRenderSinPcts(el, asig, notas, objetivo, minimo);
+  }
+}
+
+// Recorre el árbol y devuelve todos los nodos hoja con su pct acumulado
+function calcHojas(nodos, pctPadre) {
+  const res = [];
+  nodos.forEach(n => {
+    const pctEfectivo = (n.pct / 100) * pctPadre;
+    if (n.sub && n.sub.length > 0) {
+      res.push(...calcHojas(n.sub, pctEfectivo));
+    } else {
+      res.push({ id: n.id, nombre: n.nombre, pct: pctEfectivo });
+    }
+  });
+  return res;
+}
+
+function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
+  const hojas = calcHojas(asig.pcts, 100); // pct en % absoluto (0-100)
+
+  // Para cada hoja: media de notas ya registradas (o null)
+  const filas = hojas.map(h => {
+    const ns = notas.filter(n => n.catId === h.id);
+    const mediaActual = ns.length ? ns.reduce((s, n) => s + n.nota, 0) / ns.length : null;
+    return { ...h, ns, mediaActual };
+  });
+
+  // Calcular puntos ya garantizados y peso pendiente
+  const puntosHechos   = filas.filter(f => f.mediaActual !== null).reduce((s, f) => s + f.mediaActual * (f.pct / 100), 0);
+  const pesoPendiente  = filas.filter(f => f.mediaActual === null).reduce((s, f) => s + f.pct, 0) / 100;
+  const mediaActualTot = filas.every(f => f.mediaActual !== null)
+    ? filas.reduce((s, f) => s + f.mediaActual * (f.pct / 100), 0)
+    : null;
+
+  // Nota necesaria homogénea en todas las pendientes para llegar al objetivo
+  const notaNecesaria = pesoPendiente > 0 ? (objetivo - puntosHechos) / pesoPendiente : null;
+
+  // Estado global
+  const estadoActual = mediaActualTot !== null
+    ? (mediaActualTot >= minimo ? 'aprobado' : 'suspenso')
+    : 'pendiente';
+
+  let html = '';
+
+  // ── Cabecera resultado ──
+  if (mediaActualTot !== null) {
+    const c = mediaActualTot >= minimo ? 'var(--grass)' : 'var(--coral)';
+    html += `<div class="reg-form-card" style="margin-bottom:1rem;border-left:4px solid ${c}">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div>
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Nota actual</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;line-height:1;color:${c}">${mediaActualTot.toFixed(2)}</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:${c};font-size:0.95rem">${mediaActualTot >= minimo ? '✓ Ya aprobada' : '✗ Suspensa de momento'}</div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-top:2px">Todas las categorías tienen nota. Objetivo: ${objetivo.toFixed(2)} — mín. ${minimo}</div>
+        </div>
+      </div>
+    </div>`;
+  } else if (notaNecesaria !== null) {
+    const imposible = notaNecesaria > 10;
+    const yaAprobado = notaNecesaria <= 0;
+    const c = imposible ? 'var(--coral)' : yaAprobado ? 'var(--grass)' : 'var(--ocean)';
+    const txt = imposible
+      ? '❌ Imposible — incluso con 10 en todo no llegas'
+      : yaAprobado
+        ? '✓ Ya tienes suficiente con las notas actuales'
+        : `Necesitas al menos <strong>${notaNecesaria.toFixed(2)}</strong> de media en las categorías pendientes`;
+    html += `<div class="reg-form-card" style="margin-bottom:1rem;border-left:4px solid ${c}">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div>
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Nota necesaria</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;line-height:1;color:${c}">${imposible ? '—' : yaAprobado ? '✓' : notaNecesaria.toFixed(2)}</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:0.88rem;color:var(--ink)">${txt}</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Para llegar a <strong>${objetivo.toFixed(2)}</strong> · Puntos ya asegurados: <strong>${puntosHechos.toFixed(2)}</strong> / ${(1 - pesoPendiente) * 10 > 0 ? ((1 - pesoPendiente) * 10).toFixed(1) : '0'} del peso evaluado</div>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    html += `<div class="reg-form-card" style="margin-bottom:1rem">
+      <div style="font-size:0.88rem;color:var(--muted)">Aún no tienes ninguna nota registrada en esta asignatura.</div>
+    </div>`;
+  }
+
+  // ── Tabla de categorías ──
+  html += `<div class="reg-history-wrap">
+    <div class="reg-history-header"><div class="reg-history-title">Desglose por categoría</div></div>
+    <table class="reg-table" style="table-layout:fixed">
+      <thead><tr>
+        <th style="width:35%">Categoría</th>
+        <th style="width:12%;text-align:center">Peso</th>
+        <th style="width:18%;text-align:center">Nota actual</th>
+        <th style="width:18%;text-align:center">Necesitas</th>
+        <th style="width:17%;text-align:center">Simulación</th>
+      </tr></thead>
+      <tbody>`;
+
+  filas.forEach(f => {
+    const mediaStr = f.mediaActual !== null
+      ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${f.mediaActual >= minimo ? 'var(--grass)' : 'var(--coral)'}">${f.mediaActual.toFixed(2)}</span>`
+      : `<span style="color:var(--muted);font-size:0.8rem">—</span>`;
+
+    // Nota mínima necesaria en esta categoría concreta para el objetivo global,
+    // asumiendo 10 en el resto de pendientes
+    let necStr = '—';
+    if (f.mediaActual === null) {
+      // Puntos de otras hojas: ya hechas + resto pendientes con 10
+      const puntosOtras = filas
+        .filter(x => x.id !== f.id)
+        .reduce((s, x) => s + (x.mediaActual !== null ? x.mediaActual : 10) * (x.pct / 100), 0);
+      const necEsta = (objetivo - puntosOtras) / (f.pct / 100);
+      if (necEsta <= 0) necStr = `<span style="color:var(--grass);font-weight:700">No necesitas</span>`;
+      else if (necEsta > 10) necStr = `<span style="color:var(--coral);font-weight:700">&gt;10</span>`;
+      else necStr = `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${necEsta.toFixed(2)}</span>`;
+    }
+
+    const simInput = f.mediaActual === null
+      ? `<input type="number" min="0" max="10" step="0.01" placeholder="Simular"
+           style="width:72px;padding:0.3rem 0.4rem;font-size:0.82rem;border:1.5px solid var(--border);border-radius:6px;text-align:center;background:var(--sand)"
+           oninput="calcSimular()" data-cat-id="${f.id}" class="calc-sim-input" />`
+      : `<span style="font-size:0.75rem;color:var(--muted)">Ya registrada</span>`;
+
+    html += `<tr>
+      <td style="font-size:0.85rem;font-weight:600">${f.nombre || '—'}</td>
+      <td style="text-align:center"><span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#e0f2fe;color:#0369a1">${f.pct.toFixed(f.pct % 1 === 0 ? 0 : 1)}%</span></td>
+      <td style="text-align:center">${mediaStr}</td>
+      <td style="text-align:center">${necStr}</td>
+      <td style="text-align:center">${simInput}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>
+    <div id="calc-sim-resultado" style="padding:0.9rem 1.3rem;background:var(--sand);border-top:1px solid var(--border);font-size:0.85rem;color:var(--muted);display:none"></div>
+  </div>`;
+
+  el.innerHTML = html;
+  calcSimular(); // por si hay inputs pre-rellenados
+}
+
+function calcSimular() {
+  const el = document.getElementById('calc-sim-resultado');
+  if (!el) return;
+  const asigId  = document.getElementById('calc-asig').value;
+  const objetivo = parseFloat(document.getElementById('calc-objetivo').value);
+  if (!asigId) return;
+  const asig  = asigDB.find(a => a.id === asigId);
+  const notas = notasDB.filter(n => n.asigId === asigId);
+  const hojas = calcHojas(asig.pcts, 100);
+
+  let total = 0, pesoUsado = 0;
+  let todasTienen = true;
+
+  hojas.forEach(h => {
+    const inputs = document.querySelectorAll(`.calc-sim-input[data-cat-id="${h.id}"]`);
+    const nsReal = notas.filter(n => n.catId === h.id);
+    let mediaH = null;
+
+    if (nsReal.length) {
+      mediaH = nsReal.reduce((s, n) => s + n.nota, 0) / nsReal.length;
+    } else if (inputs.length && inputs[0].value !== '') {
+      mediaH = Math.min(10, Math.max(0, parseFloat(inputs[0].value) || 0));
+    }
+
+    if (mediaH !== null) {
+      total     += mediaH * (h.pct / 100);
+      pesoUsado += h.pct;
+    } else {
+      todasTienen = false;
+    }
+  });
+
+  if (pesoUsado === 0) { el.style.display = 'none'; return; }
+
+  const mediaProyectada = total / (pesoUsado / 100);
+  const minimo = asig.minimo || 5;
+  const c = mediaProyectada >= minimo ? 'var(--grass)' : 'var(--coral)';
+  const sufijo = !todasTienen ? ' <span style="font-size:0.72rem;color:var(--muted)">(parcial — faltan categorías)</span>' : '';
+
+  el.style.display = 'block';
+  el.innerHTML = `🎯 Nota proyectada: <strong style="font-family:\'Bebas Neue\',sans-serif;font-size:1.3rem;color:${c}">${mediaProyectada.toFixed(2)}</strong>${sufijo}
+    — Objetivo ${objetivo.toFixed(2)}: <strong style="color:${mediaProyectada >= objetivo ? 'var(--grass)' : 'var(--coral)'}">${mediaProyectada >= objetivo ? '✓ Alcanzado' : `faltan ${(objetivo - mediaProyectada).toFixed(2)} puntos`}</strong>`;
+}
+
+function calcRenderSinPcts(el, asig, notas, objetivo, minimo) {
+  const n      = notas.length;
+  const mediaA = n ? notas.reduce((s, x) => s + x.nota, 0) / n : null;
+
+  // Cuántos exámenes más y con qué nota necesita para llegar al objetivo
+  let html = '';
+
+  if (mediaA !== null) {
+    const c = mediaA >= minimo ? 'var(--grass)' : 'var(--coral)';
+    html += `<div class="reg-form-card" style="margin-bottom:1rem;border-left:4px solid ${c}">
+      <div style="display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap">
+        <div>
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Media actual</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;line-height:1;color:${c}">${mediaA.toFixed(2)}</div>
+        </div>
+        <div style="flex:1;font-size:0.85rem;color:var(--muted)">${n} nota${n !== 1 ? 's' : ''} registrada${n !== 1 ? 's' : ''} · sin sistema de porcentajes</div>
+      </div>
+    </div>`;
+  } else {
+    html += `<div class="reg-form-card" style="margin-bottom:1rem"><div style="font-size:0.88rem;color:var(--muted)">Aún no tienes ninguna nota en esta asignatura.</div></div>`;
+  }
+
+  // Simulador: añadir exámenes extra y calcular
+  html += `<div class="reg-form-card">
+    <div class="reg-form-title">🎲 Simulador</div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.9rem">Añade notas simuladas para ver qué media tendrías.</p>
+    <div id="calc-sim-filas" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem">
+      <div class="calc-sim-fila" style="display:flex;gap:0.5rem;align-items:center">
+        <input type="number" min="0" max="10" step="0.01" placeholder="Nota" class="reg-input calc-sim-nota-input" oninput="calcSimularSinPcts()" style="max-width:100px" />
+        <button type="button" class="asig-pct-del-btn" onclick="this.closest('.calc-sim-fila').remove();calcSimularSinPcts()">✕</button>
+      </div>
+    </div>
+    <button type="button" class="asig-pct-sub-btn" onclick="calcSinPctsAddFila()">＋ Añadir nota simulada</button>
+    <div id="calc-sinpcts-resultado" style="margin-top:0.85rem;padding:0.75rem 1rem;border-radius:10px;background:var(--sand);border:1.5px solid var(--border);font-size:0.88rem;display:none"></div>
+  </div>`;
+
+  // Tabla de notas existentes
+  if (notas.length) {
+    html += `<div class="reg-history-wrap" style="margin-top:1rem">
+      <div class="reg-history-header"><div class="reg-history-title">Notas registradas</div></div>
+      <table class="reg-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Nota</th></tr></thead><tbody>`;
+    notas.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '')).forEach(n => {
+      const c = n.nota >= minimo ? 'var(--grass)' : 'var(--coral)';
+      html += `<tr>
+        <td style="color:var(--muted);font-size:0.8rem">${n.fecha || '—'}</td>
+        <td><span class="asig-nota-badge ${n.tipo}">${n.tipo}</span></td>
+        <td style="font-size:0.83rem">${n.desc || '—'}</td>
+        <td style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${c}">${n.nota.toFixed(2)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  el.innerHTML = html;
+  calcSimularSinPcts();
+}
+
+function calcSinPctsAddFila() {
+  const cont = document.getElementById('calc-sim-filas');
+  if (!cont) return;
+  const div = document.createElement('div');
+  div.className = 'calc-sim-fila';
+  div.style.cssText = 'display:flex;gap:0.5rem;align-items:center';
+  div.innerHTML = `<input type="number" min="0" max="10" step="0.01" placeholder="Nota" class="reg-input calc-sim-nota-input" oninput="calcSimularSinPcts()" style="max-width:100px" />
+    <button type="button" class="asig-pct-del-btn" onclick="this.closest('.calc-sim-fila').remove();calcSimularSinPcts()">✕</button>`;
+  cont.appendChild(div);
+  div.querySelector('input').focus();
+}
+
+function calcSimularSinPcts() {
+  const el = document.getElementById('calc-sinpcts-resultado');
+  if (!el) return;
+  const asigId  = document.getElementById('calc-asig').value;
+  const objetivo = parseFloat(document.getElementById('calc-objetivo').value);
+  if (!asigId) return;
+  const notas   = notasDB.filter(n => n.asigId === asigId);
+  const simVals = [...document.querySelectorAll('.calc-sim-nota-input')]
+    .map(i => parseFloat(i.value))
+    .filter(v => !isNaN(v) && v >= 0 && v <= 10);
+
+  const todas  = [...notas.map(n => n.nota), ...simVals];
+  if (!todas.length) { el.style.display = 'none'; return; }
+
+  const media  = todas.reduce((s, v) => s + v, 0) / todas.length;
+  const asig   = asigDB.find(a => a.id === asigId);
+  const minimo = asig ? asig.minimo || 5 : 5;
+  const c      = media >= minimo ? 'var(--grass)' : 'var(--coral)';
+
+  el.style.display = 'block';
+  el.innerHTML = `🎯 Media proyectada (${todas.length} nota${todas.length !== 1 ? 's' : ''}):
+    <strong style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:${c}">${media.toFixed(2)}</strong>
+    — Objetivo ${objetivo.toFixed(2)}: <strong style="color:${media >= objetivo ? 'var(--grass)' : 'var(--coral)'}">${media >= objetivo ? '✓ Alcanzado' : `faltan ${(objetivo - media).toFixed(2)} puntos`}</strong>`;
 }
 
 // ══════════ EDITAR ASIGNATURA ══════════
