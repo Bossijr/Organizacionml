@@ -5428,16 +5428,23 @@ function asigPctRenderBuilder() {
   function renderNivel(nodos, nivel, pathArr) {
     return nodos.map((n, i) => {
       const path = [...pathArr, i];
-      const pathStr = path.join('-');
       const indent = nivel * 18;
-      const esHoja = n.sub.length === 0;
       const sumaSub = asigPctSumarNivel(n.sub);
       const subOk   = n.sub.length === 0 || Math.abs(sumaSub - 100) < 0.01;
-      const bgColor = nivel === 0 ? '#f8fafc' : nivel === 1 ? '#f0f7ff' : '#fdf4ff';
+      const bgColor     = nivel === 0 ? '#f8fafc' : nivel === 1 ? '#f0f7ff' : '#fdf4ff';
       const borderColor = nivel === 0 ? '#e2e8f0' : nivel === 1 ? '#bfdbfe' : '#e9d5ff';
 
+      const subHtml = n.sub.length > 0
+        ? `<div style="margin-top:0.4rem;font-size:0.7rem;color:${subOk ? 'var(--grass)' : 'var(--coral)'};font-weight:600">
+             ${subOk ? '✓ Subcategorías: ' + sumaSub + '%' : '⚠️ Subcategorías suman ' + sumaSub.toFixed(1) + '% (deben ser 100%)'}
+           </div>
+           <div style="margin-top:0.4rem;display:flex;flex-direction:column;gap:0.35rem">
+             ${renderNivel(n.sub, nivel + 1, path).join('')}
+           </div>`
+        : '';
+
       return `
-      <div class="asig-pct-nodo" data-id="${n.id}" style="margin-left:${indent}px;background:${bgColor};border:1.5px solid ${borderColor};border-radius:10px;padding:0.55rem 0.7rem;position:relative">
+      <div class="asig-pct-nodo" data-id="${n.id}" style="margin-left:${indent}px;background:${bgColor};border:1.5px solid ${borderColor};border-radius:10px;padding:0.55rem 0.7rem">
         <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
           ${nivel > 0 ? `<span style="font-size:0.7rem;color:#94a3b8;flex-shrink:0">└</span>` : ''}
           <input
@@ -5455,9 +5462,7 @@ function asigPctRenderBuilder() {
               id="asig-pct-p-${n.id}"
               class="reg-input"
               type="number"
-              min="0"
-              max="100"
-              step="0.1"
+              min="0" max="100" step="0.1"
               placeholder="%"
               value="${n.pct !== '' ? n.pct : ''}"
               style="width:62px;padding:0.35rem 0.5rem;font-size:0.82rem;text-align:center"
@@ -5465,19 +5470,12 @@ function asigPctRenderBuilder() {
             />
             <span style="font-size:0.75rem;color:var(--muted);font-weight:600">%</span>
           </div>
-          ${nivel < 2 ? `<button type="button" class="asig-pct-sub-btn" title="Añadir subcategoría" onclick="asigPctSyncDesdeDOM();asigPctAddSub([${path.join(',')}])">＋ sub</button>` : ''}
-          <button type="button" class="asig-pct-del-btn" title="Eliminar" onclick="asigPctSyncDesdeDOM();asigPctDelNodo([${path.join(',')}])">✕</button>
+          ${nivel < 2 ? `<button type="button" class="asig-pct-sub-btn" onclick="asigPctSyncDesdeDOM();asigPctAddSub([${path.join(',')}])">＋ sub</button>` : ''}
+          <button type="button" class="asig-pct-del-btn" onclick="asigPctSyncDesdeDOM();asigPctDelNodo([${path.join(',')}])">✕</button>
         </div>
-        ${n.sub.length > 0 ? `
-          <div style="margin-top:0.4rem;font-size:0.7rem;color:${subOk ? 'var(--grass)' : 'var(--coral)'};font-weight:600;padding-left:${nivel > 0 ? 12 : 0}px">
-            ${subOk ? '✓ Subcategorías: ' + sumaSub + '%' : '⚠️ Subcategorías suman ' + sumaSub.toFixed(1) + '% (deben ser 100%)'}
-          </div>
-          <div style="margin-top:0.4rem;display:flex;flex-direction:column;gap:0.35rem">
-            ${renderNivel(n.sub, nivel + 1, path).join('')}
-          </div>
-        ` : ''}
+        ${subHtml}
       </div>`;
-    }).join('');
+    });
   }
 
   if (asigPctArbol.length === 0) {
@@ -5486,7 +5484,7 @@ function asigPctRenderBuilder() {
     return;
   }
 
-  container.innerHTML = renderNivel(asigPctArbol, 0, []);
+  container.innerHTML = renderNivel(asigPctArbol, 0, []).join('');
   asigPctActualizarTotal();
 }
 
