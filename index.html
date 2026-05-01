@@ -5770,7 +5770,7 @@ function calcRender() {
   }
 }
 
-// Recorre el árbol y devuelve todos los nodos hoja con su pct acumulado
+// Recorre el árbol y devuelve todos los nodos hoja con su pct acumulado (% absoluto 0-100)
 function calcHojas(nodos, pctPadre) {
   const res = [];
   nodos.forEach(n => {
@@ -5778,42 +5778,102 @@ function calcHojas(nodos, pctPadre) {
     if (n.sub && n.sub.length > 0) {
       res.push(...calcHojas(n.sub, pctEfectivo));
     } else {
-      res.push({ id: n.id, nombre: n.nombre, pct: pctEfectivo });
+      res.push({ id: n.id, nombre: n.nombre, pct: pctEfectivo, min: n.min ?? null });
+    }
+  });
+  return res;
+}
+
+// Recorre el árbol y devuelve TODOS los nodos (con y sin hijos) con pct acumulado y jerarquía
+function calcTodosNodos(nodos, pctPadre, depth, prefijo) {
+  const res = [];
+  nodos.forEach(n => {
+    const pctEfectivo = (n.pct / 100) * pctPadre;
+    const esHoja = !n.sub || n.sub.length === 0;
+    res.push({ id: n.id, nombre: n.nombre, pct: pctEfectivo, pctLocal: n.pct, min: n.min ?? null, depth, prefijo, esHoja, sub: n.sub || [] });
+    if (!esHoja) {
+      res.push(...calcTodosNodos(n.sub, pctEfectivo, depth + 1, prefijo + (n.nombre || '?') + ' › '));
     }
   });
   return res;
 }
 
 function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
-  const hojas = calcHojas(asig.pcts, 100); // pct en % absoluto (0-100)
+  const hojas = calcHojas(asig.pcts, 100);
+  const todos  = calcTodosNodos(asig.pcts, 100, 0, '');
 
-  // Para cada hoja: media de notas ya registradas (o null)
-  const filas = hojas.map(h => {
+  // Para cada hoja: media de notas registradas
+  const filasHojas = hojas.map(h => {
     const ns = notas.filter(n => n.catId === h.id);
     const mediaActual = ns.length ? ns.reduce((s, n) => s + n.nota, 0) / ns.length : null;
     return { ...h, ns, mediaActual };
   });
 
-  // Calcular puntos ya garantizados y peso pendiente
-  const puntosHechos   = filas.filter(f => f.mediaActual !== null).reduce((s, f) => s + f.mediaActual * (f.pct / 100), 0);
-  const pesoPendiente  = filas.filter(f => f.mediaActual === null).reduce((s, f) => s + f.pct, 0) / 100;
-  const mediaActualTot = filas.every(f => f.mediaActual !== null)
-    ? filas.reduce((s, f) => s + f.mediaActual * (f.pct / 100), 0)
+  // Helper: media ponderada de un conjunto de hojas (solo las que tienen nota o simulación)
+  function mediaPonderadaHojas(filasSubset, simValues) {
+    let total = 0, pesoUsado = 0;
+    filasSubset.forEach(f => {
+      const v = f.mediaActual !== null ? f.mediaActual : (simValues && simValues[f.id] != null ? simValues[f.id] : null);
+      if (v !== null) { total += v * (f.pct / 100); pesoUsado += f.pct; }
+    });
+    return pesoUsado > 0 ? total / (pesoUsado / 100) : null;
+  }
+
+  // Calcular puntos ya garantizados y peso pendiente (hojas)
+  const puntosHechos  = filasHojas.filter(f => f.mediaActual !== null).reduce((s, f) => s + f.mediaActual * (f.pct / 100), 0);
+  const pesoPendiente = filasHojas.filter(f => f.mediaActual === null).reduce((s, f) => s + f.pct, 0) / 100;
+  const mediaActualTot = filasHojas.every(f => f.mediaActual !== null)
+    ? filasHojas.reduce((s, f) => s + f.mediaActual * (f.pct / 100), 0)
     : null;
 
-  // Nota necesaria homogénea en todas las pendientes para llegar al objetivo
   const notaNecesaria = pesoPendiente > 0 ? (objetivo - puntosHechos) / pesoPendiente : null;
 
-  // Estado global
-  const estadoActual = mediaActualTot !== null
-    ? (mediaActualTot >= minimo ? 'aprobado' : 'suspenso')
-    : 'pendiente';
+  // Detectar mínimos de categorías incumplidos o en riesgo
+  const alertasMin = [];
+  todos.forEach(nodo => {
+    if (nodo.min == null) return;
+    // Hojas del nodo (si es hoja, solo él mismo)
+    const hojasNodo = nodo.esHoja
+      ? filasHojas.filter(f => f.id === nodo.id)
+      : filasHojas.filter(f => {
+          // Verificar si la hoja es descendiente de este nodo
+          function esDescendiente(subNodos, id) {
+            for (const s of subNodos) {
+              if (s.id === id) return true;
+              if (s.sub && esDescendiente(s.sub, id)) return true;
+            }
+            return false;
+          }
+          return esDescendiente(nodo.sub, f.id);
+        });
+    const mediaHojasConNota = mediaPonderadaHojas(hojasNodo, null);
+    const todasHojasConNota = hojasNodo.every(f => f.mediaActual !== null);
+    if (mediaHojasConNota !== null) {
+      // Normalizar media al peso del nodo
+      const mediaNodo = hojasNodo.reduce((s, f) => s + (f.mediaActual ?? 0) * (f.pct / nodo.pct), 0);
+      if (todasHojasConNota && mediaNodo < nodo.min) {
+        alertasMin.push({ nombre: nodo.nombre, min: nodo.min, media: mediaNodo, estado: 'incumplido' });
+      } else if (!todasHojasConNota) {
+        // Calcular nota necesaria en pendientes para llegar al mínimo de la categoría
+        const puntosYa = hojasNodo.filter(f => f.mediaActual !== null).reduce((s, f) => s + f.mediaActual * (f.pct / nodo.pct), 0);
+        const pesoPend = hojasNodo.filter(f => f.mediaActual === null).reduce((s, f) => s + (f.pct / nodo.pct), 0);
+        if (pesoPend > 0) {
+          const necMin = (nodo.min - puntosYa) / pesoPend;
+          if (necMin > 0 && necMin <= 10) alertasMin.push({ nombre: nodo.nombre, min: nodo.min, necMin, estado: 'en_riesgo' });
+          else if (necMin > 10) alertasMin.push({ nombre: nodo.nombre, min: nodo.min, necMin, estado: 'imposible_min' });
+        }
+      }
+    }
+  });
 
   let html = '';
 
-  // ── Cabecera resultado ──
+  // ── Cabecera resultado global ──
   if (mediaActualTot !== null) {
-    const c = mediaActualTot >= minimo ? 'var(--grass)' : 'var(--coral)';
+    const subMinBad = asigHayMinimoSubIncumplido(asig.pcts, notas);
+    const aprobada = mediaActualTot >= minimo && !subMinBad;
+    const c = aprobada ? 'var(--grass)' : 'var(--coral)';
+    const txt = aprobada ? '✓ Ya aprobada' : subMinBad ? '✗ Suspensa por mínimo parcial' : '✗ Suspensa de momento';
     html += `<div class="reg-form-card" style="margin-bottom:1rem;border-left:4px solid ${c}">
       <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
         <div>
@@ -5821,8 +5881,8 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
           <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;line-height:1;color:${c}">${mediaActualTot.toFixed(2)}</div>
         </div>
         <div style="flex:1">
-          <div style="font-weight:700;color:${c};font-size:0.95rem">${mediaActualTot >= minimo ? '✓ Ya aprobada' : '✗ Suspensa de momento'}</div>
-          <div style="font-size:0.82rem;color:var(--muted);margin-top:2px">Todas las categorías tienen nota. Objetivo: ${objetivo.toFixed(2)} — mín. ${minimo}</div>
+          <div style="font-weight:700;color:${c};font-size:0.95rem">${txt}</div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-top:2px">Todas las categorías tienen nota. Objetivo: ${objetivo.toFixed(2)} — mín. global: ${minimo}</div>
         </div>
       </div>
     </div>`;
@@ -5831,7 +5891,7 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
     const yaAprobado = notaNecesaria <= 0;
     const c = imposible ? 'var(--coral)' : yaAprobado ? 'var(--grass)' : 'var(--ocean)';
     const txt = imposible
-      ? '❌ Imposible — incluso con 10 en todo no llegas'
+      ? '❌ Imposible — incluso con 10 en todo no llegas al objetivo global'
       : yaAprobado
         ? '✓ Ya tienes suficiente con las notas actuales'
         : `Necesitas al menos <strong>${notaNecesaria.toFixed(2)}</strong> de media en las categorías pendientes`;
@@ -5843,7 +5903,7 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
         </div>
         <div style="flex:1">
           <div style="font-size:0.88rem;color:var(--ink)">${txt}</div>
-          <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Para llegar a <strong>${objetivo.toFixed(2)}</strong> · Puntos ya asegurados: <strong>${puntosHechos.toFixed(2)}</strong> / ${(1 - pesoPendiente) * 10 > 0 ? ((1 - pesoPendiente) * 10).toFixed(1) : '0'} del peso evaluado</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Para llegar a <strong>${objetivo.toFixed(2)}</strong> · Puntos ya asegurados: <strong>${puntosHechos.toFixed(2)}</strong></div>
         </div>
       </div>
     </div>`;
@@ -5853,47 +5913,89 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
     </div>`;
   }
 
-  // ── Tabla de categorías ──
+  // ── Alertas de mínimos por categoría ──
+  if (alertasMin.length) {
+    html += `<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem">`;
+    alertasMin.forEach(a => {
+      if (a.estado === 'incumplido') {
+        html += `<div style="padding:0.65rem 1rem;border-radius:10px;background:#fee2e2;border:1.5px solid #fca5a5;font-size:0.83rem;color:#991b1b">
+          <strong>✗ Mínimo no alcanzado · ${a.nombre}</strong> — media actual <strong>${a.media.toFixed(2)}</strong>, necesitas <strong>${a.min}</strong>
+        </div>`;
+      } else if (a.estado === 'en_riesgo') {
+        html += `<div style="padding:0.65rem 1rem;border-radius:10px;background:#fff7ed;border:1.5px solid #fed7aa;font-size:0.83rem;color:#92400e">
+          <strong>⚠️ Mínimo en riesgo · ${a.nombre}</strong> — necesitas al menos <strong>${a.necMin.toFixed(2)}</strong> en las pendientes para superar el mínimo de <strong>${a.min}</strong>
+        </div>`;
+      } else if (a.estado === 'imposible_min') {
+        html += `<div style="padding:0.65rem 1rem;border-radius:10px;background:#fee2e2;border:1.5px solid #fca5a5;font-size:0.83rem;color:#991b1b">
+          <strong>❌ Mínimo inalcanzable · ${a.nombre}</strong> — necesitarías más de 10 para superar el mínimo de <strong>${a.min}</strong>
+        </div>`;
+      }
+    });
+    html += `</div>`;
+  }
+
+  // ── Tabla de categorías (hojas) ──
   html += `<div class="reg-history-wrap">
     <div class="reg-history-header"><div class="reg-history-title">Desglose por categoría</div></div>
     <table class="reg-table" style="table-layout:fixed">
       <thead><tr>
-        <th style="width:35%">Categoría</th>
-        <th style="width:12%;text-align:center">Peso</th>
-        <th style="width:18%;text-align:center">Nota actual</th>
-        <th style="width:18%;text-align:center">Necesitas</th>
-        <th style="width:17%;text-align:center">Simulación</th>
+        <th style="width:32%">Categoría</th>
+        <th style="width:10%;text-align:center">Peso</th>
+        <th style="width:10%;text-align:center">Mín.</th>
+        <th style="width:16%;text-align:center">Nota actual</th>
+        <th style="width:16%;text-align:center">Necesitas</th>
+        <th style="width:16%;text-align:center">Simulación</th>
       </tr></thead>
       <tbody>`;
 
-  filas.forEach(f => {
+  filasHojas.forEach(f => {
+    // Color nota actual: comparar contra mínimo de la categoría (si existe) y global
+    const minEfectivo = f.min != null ? f.min : minimo;
     const mediaStr = f.mediaActual !== null
-      ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${f.mediaActual >= minimo ? 'var(--grass)' : 'var(--coral)'}">${f.mediaActual.toFixed(2)}</span>`
+      ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${f.mediaActual >= minEfectivo ? 'var(--grass)' : 'var(--coral)'}">${f.mediaActual.toFixed(2)}</span>`
       : `<span style="color:var(--muted);font-size:0.8rem">—</span>`;
 
-    // Nota mínima necesaria en esta categoría concreta para el objetivo global,
-    // asumiendo 10 en el resto de pendientes
+    const minBadge = f.min != null
+      ? `<span style="font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:8px;background:#fef3c7;color:#b45309">${f.min}</span>`
+      : `<span style="color:var(--muted);font-size:0.75rem">—</span>`;
+
+    // Nota necesaria para el objetivo global (asumiendo 10 en el resto de pendientes)
+    let necGlobal = null;
+    if (f.mediaActual === null) {
+      const puntosOtras = filasHojas.filter(x => x.id !== f.id)
+        .reduce((s, x) => s + (x.mediaActual !== null ? x.mediaActual : 10) * (x.pct / 100), 0);
+      necGlobal = (objetivo - puntosOtras) / (f.pct / 100);
+    }
+
+    // Nota necesaria para el mínimo de la categoría
+    let necMin = null;
+    if (f.mediaActual === null && f.min != null) necMin = f.min;
+
+    // La nota que realmente necesita es el máximo entre necGlobal y necMin
     let necStr = '—';
     if (f.mediaActual === null) {
-      // Puntos de otras hojas: ya hechas + resto pendientes con 10
-      const puntosOtras = filas
-        .filter(x => x.id !== f.id)
-        .reduce((s, x) => s + (x.mediaActual !== null ? x.mediaActual : 10) * (x.pct / 100), 0);
-      const necEsta = (objetivo - puntosOtras) / (f.pct / 100);
-      if (necEsta <= 0) necStr = `<span style="color:var(--grass);font-weight:700">No necesitas</span>`;
-      else if (necEsta > 10) necStr = `<span style="color:var(--coral);font-weight:700">&gt;10</span>`;
-      else necStr = `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${necEsta.toFixed(2)}</span>`;
+      let nec = necGlobal;
+      let porMin = false;
+      if (necMin != null && (nec === null || necMin > nec)) { nec = necMin; porMin = true; }
+      if (nec === null) necStr = '—';
+      else if (nec <= 0) necStr = `<span style="color:var(--grass);font-weight:700">No necesitas</span>`;
+      else if (nec > 10) necStr = `<span style="color:var(--coral);font-weight:700">&gt;10</span>`;
+      else {
+        const etiqueta = porMin ? `<div style="font-size:0.62rem;color:#b45309">por mínimo</div>` : '';
+        necStr = `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${nec.toFixed(2)}</span>${etiqueta}`;
+      }
     }
 
     const simInput = f.mediaActual === null
       ? `<input type="number" min="0" max="10" step="0.01" placeholder="Simular"
-           style="width:72px;padding:0.3rem 0.4rem;font-size:0.82rem;border:1.5px solid var(--border);border-radius:6px;text-align:center;background:var(--sand)"
+           style="width:68px;padding:0.3rem 0.4rem;font-size:0.82rem;border:1.5px solid var(--border);border-radius:6px;text-align:center;background:var(--sand)"
            oninput="calcSimular()" data-cat-id="${f.id}" class="calc-sim-input" />`
       : `<span style="font-size:0.75rem;color:var(--muted)">Ya registrada</span>`;
 
     html += `<tr>
       <td style="font-size:0.85rem;font-weight:600">${f.nombre || '—'}</td>
       <td style="text-align:center"><span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#e0f2fe;color:#0369a1">${f.pct.toFixed(f.pct % 1 === 0 ? 0 : 1)}%</span></td>
+      <td style="text-align:center">${minBadge}</td>
       <td style="text-align:center">${mediaStr}</td>
       <td style="text-align:center">${necStr}</td>
       <td style="text-align:center">${simInput}</td>
@@ -5905,13 +6007,13 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
   </div>`;
 
   el.innerHTML = html;
-  calcSimular(); // por si hay inputs pre-rellenados
+  calcSimular();
 }
 
 function calcSimular() {
   const el = document.getElementById('calc-sim-resultado');
   if (!el) return;
-  const asigId  = document.getElementById('calc-asig').value;
+  const asigId   = document.getElementById('calc-asig').value;
   const objetivo = parseFloat(document.getElementById('calc-objetivo').value);
   if (!asigId) return;
   const asig  = asigDB.find(a => a.id === asigId);
@@ -5920,10 +6022,11 @@ function calcSimular() {
 
   let total = 0, pesoUsado = 0;
   let todasTienen = true;
+  const simValues = {};
 
   hojas.forEach(h => {
-    const inputs = document.querySelectorAll(`.calc-sim-input[data-cat-id="${h.id}"]`);
-    const nsReal = notas.filter(n => n.catId === h.id);
+    const inputs  = document.querySelectorAll(`.calc-sim-input[data-cat-id="${h.id}"]`);
+    const nsReal  = notas.filter(n => n.catId === h.id);
     let mediaH = null;
 
     if (nsReal.length) {
@@ -5933,6 +6036,7 @@ function calcSimular() {
     }
 
     if (mediaH !== null) {
+      simValues[h.id] = mediaH;
       total     += mediaH * (h.pct / 100);
       pesoUsado += h.pct;
     } else {
@@ -5944,12 +6048,22 @@ function calcSimular() {
 
   const mediaProyectada = total / (pesoUsado / 100);
   const minimo = asig.minimo || 5;
-  const c = mediaProyectada >= minimo ? 'var(--grass)' : 'var(--coral)';
-  const sufijo = !todasTienen ? ' <span style="font-size:0.72rem;color:var(--muted)">(parcial — faltan categorías)</span>' : '';
+
+  // Comprobar mínimos de categorías con los valores simulados
+  const notasSimuladas = notas.concat(
+    hojas.filter(h => simValues[h.id] != null && !notas.find(n => n.catId === h.id))
+         .map(h => ({ catId: h.id, nota: simValues[h.id], asigId }))
+  );
+  const subMinBad = asigHayMinimoSubIncumplido(asig.pcts, notasSimuladas);
+  const aprobada  = mediaProyectada >= minimo && !subMinBad;
+  const c = aprobada ? 'var(--grass)' : 'var(--coral)';
+  const sufijo = !todasTienen ? ' <span style="font-size:0.72rem;color:var(--muted)">(parcial)</span>' : '';
+  const estadoTxt = aprobada ? '✓ Aprobada' : subMinBad ? '✗ Mínimo parcial no alcanzado' : '✗ Suspensa';
 
   el.style.display = 'block';
-  el.innerHTML = `🎯 Nota proyectada: <strong style="font-family:\'Bebas Neue\',sans-serif;font-size:1.3rem;color:${c}">${mediaProyectada.toFixed(2)}</strong>${sufijo}
-    — Objetivo ${objetivo.toFixed(2)}: <strong style="color:${mediaProyectada >= objetivo ? 'var(--grass)' : 'var(--coral)'}">${mediaProyectada >= objetivo ? '✓ Alcanzado' : `faltan ${(objetivo - mediaProyectada).toFixed(2)} puntos`}</strong>`;
+  el.innerHTML = `🎯 Nota proyectada: <strong style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:${c}">${mediaProyectada.toFixed(2)}</strong>${sufijo}
+    &nbsp;·&nbsp; <strong style="color:${c}">${estadoTxt}</strong>
+    &nbsp;·&nbsp; Objetivo ${objetivo.toFixed(2)}: <strong style="color:${mediaProyectada >= objetivo ? 'var(--grass)' : 'var(--coral)'}">${mediaProyectada >= objetivo ? '✓ Alcanzado' : `faltan ${(objetivo - mediaProyectada).toFixed(2)} pts`}</strong>`;
 }
 
 function calcRenderSinPcts(el, asig, notas, objetivo, minimo) {
