@@ -1461,6 +1461,11 @@
       <div class="portada-card-title">TIEMPO</div>
       <div class="portada-card-desc">Meteorología · Previsión 7 días</div>
     </div>
+    <div class="portada-card" onclick="goArea('asignaturas')">
+      <div class="portada-card-icon">📚</div>
+      <div class="portada-card-title">ASIGNATURAS</div>
+      <div class="portada-card-desc">Notas · Exámenes · Media</div>
+    </div>
   </div>
 </div>
 
@@ -4577,6 +4582,583 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
 
 
 <!-- FCM ya está integrado en el bloque Firebase de <head> -->
+
+<!-- ══════════════════════════════════ ÁREA ASIGNATURAS ══════════════════════════════════ -->
+<div class="area" id="area-asignaturas">
+  <div class="back-bar">
+    <button class="back-btn" onclick="goPortada()">← Portada</button>
+    <span class="back-area-label">Asignaturas y Notas</span>
+  </div>
+
+  <div class="hero-personal">
+    <div class="hero-personal-inner">
+      <div>
+        <h2>MIS <span>ASIGNATURAS</span></h2>
+        <div class="hero-personal-desc">Notas · Exámenes · Media ponderada · Seguimiento</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:2rem;max-width:960px;margin:0 auto">
+
+    <!-- Resumen global -->
+    <div class="reg-stats-bar" id="asig-stats-bar">
+      <div class="reg-stat-card"><div class="reg-stat-val" id="asig-stat-asig">0</div><div class="reg-stat-lbl">Asignaturas</div></div>
+      <div class="reg-stat-card"><div class="reg-stat-val" id="asig-stat-exams">0</div><div class="reg-stat-lbl">Exámenes</div></div>
+      <div class="reg-stat-card"><div class="reg-stat-val" id="asig-stat-media">—</div><div class="reg-stat-lbl">Media global</div></div>
+      <div class="reg-stat-card"><div class="reg-stat-val" id="asig-stat-apro">0</div><div class="reg-stat-lbl">Aprobadas</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="nav-personal" style="margin-bottom:1.5rem">
+      <div class="nav-personal-tabs">
+        <div class="pers-tab active" data-asig-tab="asignaturas">📚 Asignaturas</div>
+        <div class="pers-tab" data-asig-tab="notas">📝 Notas / Exámenes</div>
+        <div class="pers-tab" data-asig-tab="resumen">📊 Resumen</div>
+      </div>
+    </div>
+
+    <!-- TAB: ASIGNATURAS -->
+    <div class="asig-section active" id="asig-tab-asignaturas">
+      <div class="section-heading">Mis Asignaturas</div>
+      <p class="section-sub">Añade tus asignaturas y configura el peso de cada una en la nota final.</p>
+
+      <!-- Formulario nueva asignatura -->
+      <div class="reg-form-card" style="margin-bottom:1.5rem">
+        <div class="reg-form-title">➕ Nueva Asignatura</div>
+        <div class="reg-grid">
+          <div class="reg-field">
+            <label class="reg-label">Nombre</label>
+            <input class="reg-input" id="asig-input-nombre" type="text" placeholder="Ej. Matemáticas" maxlength="60" />
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Abreviatura</label>
+            <input class="reg-input" id="asig-input-abrev" type="text" placeholder="MAT" maxlength="6" />
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Créditos / Peso</label>
+            <input class="reg-input" id="asig-input-creditos" type="number" min="1" max="12" placeholder="6" />
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Color</label>
+            <select class="reg-select" id="asig-input-color">
+              <option value="ocean">🔵 Azul</option>
+              <option value="grass">🟢 Verde</option>
+              <option value="coral">🔴 Rojo</option>
+              <option value="amber">🟠 Naranja</option>
+              <option value="purple">🟣 Morado</option>
+              <option value="pink">🩷 Rosa</option>
+            </select>
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Nota mínima para aprobar</label>
+            <input class="reg-input" id="asig-input-minimo" type="number" min="0" max="10" step="0.1" placeholder="5" />
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Profesor/a (opcional)</label>
+            <input class="reg-input" id="asig-input-profe" type="text" placeholder="Nombre del profesor" maxlength="60" />
+          </div>
+        </div>
+        <button class="reg-btn" onclick="asigAddAsignatura()">＋ Añadir asignatura</button>
+      </div>
+
+      <!-- Lista de asignaturas -->
+      <div id="asig-lista-wrap">
+        <div class="reg-empty" id="asig-lista-empty"><div class="reg-empty-icon">📚</div><div>Aún no has añadido ninguna asignatura.</div></div>
+        <div id="asig-lista-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.85rem"></div>
+      </div>
+    </div>
+
+    <!-- TAB: NOTAS / EXÁMENES -->
+    <div class="asig-section" id="asig-tab-notas">
+      <div class="section-heading">Notas y Exámenes</div>
+      <p class="section-sub">Registra cada examen o evaluación con su nota y peso en la asignatura.</p>
+
+      <!-- Formulario nueva nota -->
+      <div class="reg-form-card" style="margin-bottom:1.5rem">
+        <div class="reg-form-title">📝 Registrar Nota</div>
+        <div class="reg-grid">
+          <div class="reg-field">
+            <label class="reg-label">Asignatura</label>
+            <select class="reg-select" id="asig-nota-asig">
+              <option value="">— Selecciona asignatura —</option>
+            </select>
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Tipo de evaluación</label>
+            <select class="reg-select" id="asig-nota-tipo">
+              <option value="examen">Examen</option>
+              <option value="parcial">Parcial</option>
+              <option value="practica">Práctica</option>
+              <option value="trabajo">Trabajo</option>
+              <option value="oral">Oral</option>
+              <option value="test">Test</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Descripción</label>
+            <input class="reg-input" id="asig-nota-desc" type="text" placeholder="Ej. Tema 3 — Álgebra" maxlength="80" />
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Fecha</label>
+            <input class="reg-input" id="asig-nota-fecha" type="date" />
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Nota (0–10)</label>
+            <input class="reg-input" id="asig-nota-nota" type="number" min="0" max="10" step="0.01" placeholder="7.5" />
+          </div>
+          <div class="reg-field">
+            <label class="reg-label">Peso en la asig. (%)</label>
+            <input class="reg-input" id="asig-nota-peso" type="number" min="1" max="100" placeholder="30" />
+          </div>
+        </div>
+        <button class="reg-btn" onclick="asigAddNota()">＋ Registrar nota</button>
+      </div>
+
+      <!-- Filtro por asignatura -->
+      <div class="reg-filter-row" id="asig-filtro-row">
+        <button class="reg-filter-btn active" onclick="asigSetFiltroNota('todos',this)">Todas</button>
+      </div>
+
+      <!-- Tabla de notas -->
+      <div class="reg-history-wrap">
+        <div class="reg-history-header">
+          <div class="reg-history-title">Historial de Notas</div>
+          <button class="reg-btn-danger" onclick="asigBorrarTodasNotas()">Borrar todo</button>
+        </div>
+        <div id="asig-notas-wrap">
+          <div class="reg-empty" id="asig-notas-empty"><div class="reg-empty-icon">📝</div><div>Aún no hay notas registradas.</div></div>
+          <table class="reg-table" id="asig-notas-tabla" style="display:none">
+            <thead><tr><th>Fecha</th><th>Asignatura</th><th>Tipo</th><th>Descripción</th><th>Nota</th><th>Peso</th><th></th></tr></thead>
+            <tbody id="asig-notas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: RESUMEN -->
+    <div class="asig-section" id="asig-tab-resumen">
+      <div class="section-heading">Resumen por Asignatura</div>
+      <p class="section-sub">Media ponderada por asignatura, calculada en tiempo real a partir de tus notas.</p>
+      <div id="asig-resumen-lista" style="display:flex;flex-direction:column;gap:1rem"></div>
+      <div class="reg-empty" id="asig-resumen-empty" style="display:none"><div class="reg-empty-icon">📊</div><div>Añade asignaturas y notas para ver el resumen.</div></div>
+    </div>
+
+  </div>
+  <footer>Asignaturas y notas — sincronizado en la nube ☁️</footer>
+</div>
+
+<style>
+/* ── ÁREA ASIGNATURAS ── */
+.asig-section { display:none }
+.asig-section.active { display:block }
+
+.asig-card {
+  background:white;border:1.5px solid var(--border);border-radius:16px;
+  overflow:hidden;transition:box-shadow 0.2s;
+}
+.asig-card:hover { box-shadow:0 6px 20px rgba(10,37,64,0.1); }
+.asig-card-header {
+  display:flex;align-items:center;gap:0.75rem;
+  padding:1rem 1.2rem;border-bottom:1px solid var(--border);
+}
+.asig-badge {
+  width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:0.85rem;
+  letter-spacing:0.05em;color:white;flex-shrink:0;
+}
+.asig-badge.ocean  { background:var(--ocean); }
+.asig-badge.grass  { background:var(--grass); }
+.asig-badge.coral  { background:var(--coral); }
+.asig-badge.amber  { background:var(--amber); }
+.asig-badge.purple { background:#7c3aed; }
+.asig-badge.pink   { background:#db2777; }
+
+.asig-card-nombre { font-weight:700;font-size:0.92rem;color:var(--navy);flex:1;line-height:1.2; }
+.asig-card-creditos { font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted); }
+.asig-card-body { padding:0.9rem 1.2rem; }
+.asig-card-media-wrap { display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.4rem; }
+.asig-card-media {
+  font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:0.02em;line-height:1;
+}
+.asig-card-media.aprobado { color:var(--grass); }
+.asig-card-media.suspenso { color:var(--coral); }
+.asig-card-media.sin-nota { color:var(--muted); }
+.asig-card-media-lbl { font-size:0.72rem;color:var(--muted);font-weight:600;letter-spacing:0.08em;text-transform:uppercase; }
+.asig-card-bar-wrap { height:5px;background:#e5e7eb;border-radius:3px;margin-bottom:0.6rem; }
+.asig-card-bar { height:5px;border-radius:3px;transition:width 0.4s; }
+.asig-card-bar.aprobado { background:var(--grass); }
+.asig-card-bar.suspenso { background:var(--coral); }
+.asig-card-bar.sin-nota { background:#d1d5db; }
+.asig-card-profe { font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem; }
+.asig-card-footer {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.6rem 1.2rem;border-top:1px solid var(--border);background:var(--sand);
+  font-size:0.72rem;color:var(--muted);
+}
+
+/* Resumen card */
+.asig-resumen-card {
+  background:white;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;
+}
+.asig-resumen-header {
+  display:flex;align-items:center;gap:0.75rem;padding:1rem 1.3rem;
+  border-bottom:1px solid var(--border);background:var(--sand);
+}
+.asig-resumen-body { padding:1rem 1.3rem; }
+.asig-nota-item {
+  display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;
+  border-bottom:1px solid var(--border);font-size:0.84rem;
+}
+.asig-nota-item:last-child { border-bottom:none; }
+.asig-nota-badge {
+  font-size:0.7rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;
+  padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+}
+.asig-nota-badge.examen  { background:#dbeafe;color:#1e40af; }
+.asig-nota-badge.parcial { background:#ede9fe;color:#4c1d95; }
+.asig-nota-badge.practica{ background:#dcfce7;color:#14532d; }
+.asig-nota-badge.trabajo { background:#fef3c7;color:#92400e; }
+.asig-nota-badge.oral    { background:#fce7f3;color:#9d174d; }
+.asig-nota-badge.test    { background:#e0f2fe;color:#0369a1; }
+.asig-nota-badge.otro    { background:#f3f4f6;color:#374151; }
+
+.asig-resumen-media-big {
+  font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:0.02em;line-height:1;
+  margin-bottom:0.25rem;
+}
+.asig-resumen-media-big.aprobado { color:var(--grass); }
+.asig-resumen-media-big.suspenso { color:var(--coral); }
+</style>
+
+<script>
+// ══════════════════════════════ ASIGNATURAS Y NOTAS ══════════════════════════════
+
+const ASIG_COLORS = {
+  ocean:'#0e6ba8', grass:'#1a5c2a', coral:'#c0392b',
+  amber:'#c96a00', purple:'#7c3aed', pink:'#db2777'
+};
+
+let asigDB = [];   // [{id, nombre, abrev, creditos, color, minimo, profe}]
+let notasDB = [];  // [{id, asigId, tipo, desc, fecha, nota, peso}]
+let asigFiltroNota = 'todos';
+
+// ── Firebase sync ──
+function asigSyncAll() {
+  if (!window._fbSet) { asigRender(); return; }
+  // Guardar asigDB y notasDB como documentos separados
+  window._fbSet('asignaturas', 'data', { asigDB: JSON.stringify(asigDB), notasDB: JSON.stringify(notasDB) });
+}
+
+function asigLoadFromFirebase() {
+  if (!window._fbListen) { asigRender(); return; }
+  window._fbListen('asignaturas', docs => {
+    if (docs && docs['data']) {
+      try {
+        asigDB  = JSON.parse(docs['data'].asigDB  || '[]');
+        notasDB = JSON.parse(docs['data'].notasDB || '[]');
+      } catch(e) { asigDB = []; notasDB = []; }
+    }
+    asigRender();
+  });
+}
+
+function asigUID() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+// ── Añadir asignatura ──
+function asigAddAsignatura() {
+  const nombre   = document.getElementById('asig-input-nombre').value.trim();
+  const abrev    = document.getElementById('asig-input-abrev').value.trim().toUpperCase() || nombre.slice(0,3).toUpperCase();
+  const creditos = parseFloat(document.getElementById('asig-input-creditos').value) || 6;
+  const color    = document.getElementById('asig-input-color').value;
+  const minimo   = parseFloat(document.getElementById('asig-input-minimo').value) || 5;
+  const profe    = document.getElementById('asig-input-profe').value.trim();
+
+  if (!nombre) { mostrarToast('⚠️ Escribe el nombre de la asignatura'); return; }
+
+  asigDB.push({ id: asigUID(), nombre, abrev, creditos, color, minimo, profe });
+  asigSyncAll();
+  asigRender();
+  mostrarToast('✅ Asignatura añadida: ' + nombre);
+
+  document.getElementById('asig-input-nombre').value = '';
+  document.getElementById('asig-input-abrev').value = '';
+  document.getElementById('asig-input-creditos').value = '';
+  document.getElementById('asig-input-profe').value = '';
+}
+
+// ── Eliminar asignatura ──
+function asigDelAsignatura(id) {
+  if (!confirm('¿Eliminar esta asignatura y todas sus notas?')) return;
+  asigDB   = asigDB.filter(a => a.id !== id);
+  notasDB  = notasDB.filter(n => n.asigId !== id);
+  asigSyncAll();
+  asigRender();
+  mostrarToast('🗑️ Asignatura eliminada');
+}
+
+// ── Añadir nota ──
+function asigAddNota() {
+  const asigId = document.getElementById('asig-nota-asig').value;
+  const tipo   = document.getElementById('asig-nota-tipo').value;
+  const desc   = document.getElementById('asig-nota-desc').value.trim();
+  const fecha  = document.getElementById('asig-nota-fecha').value;
+  const nota   = parseFloat(document.getElementById('asig-nota-nota').value);
+  const peso   = parseFloat(document.getElementById('asig-nota-peso').value) || 100;
+
+  if (!asigId) { mostrarToast('⚠️ Selecciona una asignatura'); return; }
+  if (isNaN(nota) || nota < 0 || nota > 10) { mostrarToast('⚠️ La nota debe ser entre 0 y 10'); return; }
+
+  notasDB.push({ id: asigUID(), asigId, tipo, desc, fecha, nota, peso });
+  asigSyncAll();
+  asigRender();
+  mostrarToast('✅ Nota registrada: ' + nota.toFixed(2));
+
+  document.getElementById('asig-nota-nota').value = '';
+  document.getElementById('asig-nota-desc').value = '';
+  document.getElementById('asig-nota-peso').value = '';
+}
+
+// ── Eliminar nota ──
+function asigDelNota(id) {
+  notasDB = notasDB.filter(n => n.id !== id);
+  asigSyncAll();
+  asigRender();
+  mostrarToast('🗑️ Nota eliminada');
+}
+
+// ── Borrar todas notas ──
+function asigBorrarTodasNotas() {
+  if (!confirm('¿Borrar todo el historial de notas?')) return;
+  notasDB = [];
+  asigSyncAll();
+  asigRender();
+  mostrarToast('🗑️ Historial borrado');
+}
+
+// ── Filtro notas ──
+function asigSetFiltroNota(val, btn) {
+  asigFiltroNota = val;
+  document.querySelectorAll('#asig-filtro-row .reg-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  asigRenderNotas();
+}
+
+// ── Media ponderada de una asignatura ──
+function asigMedia(asigId) {
+  const notas = notasDB.filter(n => n.asigId === asigId);
+  if (!notas.length) return null;
+  const sumaPeso = notas.reduce((s, n) => s + (n.peso || 100), 0);
+  const sumaNota = notas.reduce((s, n) => s + n.nota * (n.peso || 100), 0);
+  return sumaPeso ? sumaNota / sumaPeso : null;
+}
+
+// ── Media global ponderada por créditos ──
+function asigMediaGlobal() {
+  const asigConMedia = asigDB.map(a => ({ cred: a.creditos || 1, media: asigMedia(a.id) }))
+                             .filter(x => x.media !== null);
+  if (!asigConMedia.length) return null;
+  const sumaCred = asigConMedia.reduce((s, x) => s + x.cred, 0);
+  const sumaVal  = asigConMedia.reduce((s, x) => s + x.media * x.cred, 0);
+  return sumaCred ? sumaVal / sumaCred : null;
+}
+
+// ── RENDER PRINCIPAL ──
+function asigRender() {
+  asigRenderStats();
+  asigRenderLista();
+  asigRenderSelectNota();
+  asigRenderFiltros();
+  asigRenderNotas();
+  asigRenderResumen();
+}
+
+function asigRenderStats() {
+  document.getElementById('asig-stat-asig').textContent  = asigDB.length;
+  document.getElementById('asig-stat-exams').textContent = notasDB.length;
+  const mediaG = asigMediaGlobal();
+  document.getElementById('asig-stat-media').textContent = mediaG !== null ? mediaG.toFixed(2) : '—';
+  const aprobadas = asigDB.filter(a => {
+    const m = asigMedia(a.id);
+    return m !== null && m >= (a.minimo || 5);
+  }).length;
+  document.getElementById('asig-stat-apro').textContent = aprobadas;
+}
+
+function asigRenderLista() {
+  const empty = document.getElementById('asig-lista-empty');
+  const cards = document.getElementById('asig-lista-cards');
+  if (!asigDB.length) {
+    empty.style.display = 'block';
+    cards.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  cards.style.display = 'grid';
+  cards.innerHTML = asigDB.map(a => {
+    const m = asigMedia(a.id);
+    const minimo = a.minimo || 5;
+    const estado = m === null ? 'sin-nota' : m >= minimo ? 'aprobado' : 'suspenso';
+    const pct    = m !== null ? Math.min(100, (m / 10) * 100) : 0;
+    const notasTxt = notasDB.filter(n => n.asigId === a.id).length;
+    return `
+    <div class="asig-card">
+      <div class="asig-card-header">
+        <div class="asig-badge ${a.color}">${a.abrev || a.nombre.slice(0,3).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div class="asig-card-nombre">${a.nombre}</div>
+          <div class="asig-card-creditos">${a.creditos || 6} créditos · mín. ${minimo}</div>
+        </div>
+        <button class="reg-btn-danger" onclick="asigDelAsignatura('${a.id}')" title="Eliminar">✕</button>
+      </div>
+      <div class="asig-card-body">
+        ${a.profe ? `<div class="asig-card-profe">👤 ${a.profe}</div>` : ''}
+        <div class="asig-card-media-wrap">
+          <div class="asig-card-media ${estado}">${m !== null ? m.toFixed(2) : '—'}</div>
+          <div class="asig-card-media-lbl">/ 10</div>
+          ${estado === 'aprobado' ? '<span style="font-size:0.75rem;color:var(--grass);font-weight:700">✓ APROBADA</span>' : ''}
+          ${estado === 'suspenso' ? '<span style="font-size:0.75rem;color:var(--coral);font-weight:700">✗ SUSPENSO</span>' : ''}
+        </div>
+        <div class="asig-card-bar-wrap">
+          <div class="asig-card-bar ${estado}" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <div class="asig-card-footer">
+        <span>${notasTxt} nota${notasTxt !== 1 ? 's' : ''} registrada${notasTxt !== 1 ? 's' : ''}</span>
+        <span style="color:var(--ocean);font-weight:600">Peso: ${a.creditos || 6} ECTS</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function asigRenderSelectNota() {
+  const sel = document.getElementById('asig-nota-asig');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona asignatura —</option>' +
+    asigDB.map(a => `<option value="${a.id}" ${a.id === cur ? 'selected' : ''}>${a.nombre}</option>`).join('');
+}
+
+function asigRenderFiltros() {
+  const row = document.getElementById('asig-filtro-row');
+  row.innerHTML = `<button class="reg-filter-btn ${asigFiltroNota === 'todos' ? 'active' : ''}" onclick="asigSetFiltroNota('todos',this)">Todas</button>` +
+    asigDB.map(a => `<button class="reg-filter-btn ${asigFiltroNota === a.id ? 'active' : ''}" onclick="asigSetFiltroNota('${a.id}',this)">${a.abrev || a.nombre}</button>`).join('');
+}
+
+function asigRenderNotas() {
+  const empty = document.getElementById('asig-notas-empty');
+  const tabla = document.getElementById('asig-notas-tabla');
+  const tbody = document.getElementById('asig-notas-tbody');
+
+  const filtradas = asigFiltroNota === 'todos'
+    ? [...notasDB]
+    : notasDB.filter(n => n.asigId === asigFiltroNota);
+
+  filtradas.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+
+  if (!filtradas.length) {
+    empty.style.display = 'block';
+    tabla.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  tabla.style.display = 'table';
+
+  tbody.innerHTML = filtradas.map(n => {
+    const asig = asigDB.find(a => a.id === n.asigId);
+    const nombre = asig ? asig.nombre : '—';
+    const color  = asig ? ASIG_COLORS[asig.color] || '#0e6ba8' : '#0e6ba8';
+    const minimo = asig ? (asig.minimo || 5) : 5;
+    const estado = n.nota >= minimo ? 'var(--grass)' : 'var(--coral)';
+    return `<tr>
+      <td style="color:var(--muted);font-size:0.8rem">${n.fecha || '—'}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>${nombre}</span></td>
+      <td><span class="asig-nota-badge ${n.tipo}">${n.tipo}</span></td>
+      <td style="font-size:0.83rem;color:var(--ink)">${n.desc || '—'}</td>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.03em;color:${estado}">${n.nota.toFixed(2)}</td>
+      <td style="font-size:0.8rem;color:var(--muted)">${n.peso || 100}%</td>
+      <td><button class="reg-btn-danger" onclick="asigDelNota('${n.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function asigRenderResumen() {
+  const lista  = document.getElementById('asig-resumen-lista');
+  const empty  = document.getElementById('asig-resumen-empty');
+
+  if (!asigDB.length) {
+    lista.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  lista.style.display = 'flex';
+  empty.style.display = 'none';
+
+  lista.innerHTML = asigDB.map(a => {
+    const notas  = notasDB.filter(n => n.asigId === a.id).sort((x,y) => (y.fecha||'').localeCompare(x.fecha||''));
+    const m      = asigMedia(a.id);
+    const minimo = a.minimo || 5;
+    const estado = m === null ? 'sin-nota' : m >= minimo ? 'aprobado' : 'suspenso';
+    const pct    = m !== null ? Math.min(100, (m/10)*100) : 0;
+    const notasHtml = notas.length ? notas.map(n =>
+      `<div class="asig-nota-item">
+        <span class="asig-nota-badge ${n.tipo}">${n.tipo}</span>
+        <span style="flex:1;font-size:0.83rem;color:var(--ink)">${n.desc || '—'} ${n.fecha ? '<span style="color:var(--muted);font-size:0.75rem">· ' + n.fecha + '</span>' : ''}</span>
+        <span style="font-weight:700;color:${n.nota >= minimo ? 'var(--grass)' : 'var(--coral)'};min-width:36px;text-align:right">${n.nota.toFixed(2)}</span>
+        <span style="font-size:0.72rem;color:var(--muted);min-width:30px;text-align:right">${n.peso||100}%</span>
+      </div>`
+    ).join('') : '<div style="text-align:center;padding:0.75rem;color:var(--muted);font-size:0.82rem">Sin notas aún</div>';
+
+    return `
+    <div class="asig-resumen-card">
+      <div class="asig-resumen-header">
+        <div class="asig-badge ${a.color}" style="width:40px;height:40px;border-radius:12px;font-size:0.9rem">${a.abrev || a.nombre.slice(0,3).toUpperCase()}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.95rem;color:var(--navy)">${a.nombre}</div>
+          <div style="font-size:0.72rem;color:var(--muted)">${a.creditos||6} créditos · Mínimo: ${minimo}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="asig-resumen-media-big ${estado}">${m !== null ? m.toFixed(2) : '—'}</div>
+          ${estado === 'aprobado' ? '<div style="font-size:0.7rem;color:var(--grass);font-weight:700">✓ APROBADA</div>' : ''}
+          ${estado === 'suspenso' ? '<div style="font-size:0.7rem;color:var(--coral);font-weight:700">✗ SUSPENSO</div>' : ''}
+        </div>
+      </div>
+      <div style="padding:0.5rem 1.3rem 0.1rem">
+        <div class="asig-card-bar-wrap" style="margin-bottom:0.75rem">
+          <div class="asig-card-bar ${estado}" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <div class="asig-resumen-body">${notasHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Tabs asignaturas ──
+document.querySelectorAll('[data-asig-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-asig-tab]').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.asig-section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('asig-tab-' + tab.dataset.asigTab).classList.add('active');
+  });
+});
+
+// ── Fecha por defecto ──
+document.addEventListener('DOMContentLoaded', () => {
+  const hoy = new Date().toISOString().slice(0,10);
+  const f = document.getElementById('asig-nota-fecha');
+  if (f) f.value = hoy;
+});
+
+// ── Init: cargar datos ──
+if (window._fbReady) {
+  asigLoadFromFirebase();
+} else {
+  window.addEventListener('firebase-ready', () => asigLoadFromFirebase(), { once: true });
+}
+</script>
 
 </body>
 </html>
