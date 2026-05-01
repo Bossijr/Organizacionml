@@ -5197,7 +5197,7 @@ function asigMedia(asigId) {
 }
 
 // Calcula la media ponderada de un nivel del árbol
-// Cada nodo: { id, nombre, pct, sub: [] }
+// Cada nodo: { id, nombre, pct, min, sub: [] }
 // Si tiene sub: su nota = media ponderada de sus hijos (sub suman 100% entre ellos)
 // Si no tiene sub: busca notas cuyo campo 'catId' === nodo.id
 function asigMediaNivel(nodos, notas, minimo) {
@@ -5225,6 +5225,24 @@ function asigMediaNivel(nodos, notas, minimo) {
   if (sumaPctUsado === 0) return null;
   // Normalizar al porcentaje usado (si faltan categorías sin notas)
   return sumaTotal / sumaPctUsado;
+}
+
+// Devuelve true si alguna subcategoría hoja con nota mínima configurada NO la supera
+function asigHayMinimoSubIncumplido(nodos, notas) {
+  for (const nodo of nodos) {
+    if (nodo.sub && nodo.sub.length > 0) {
+      if (asigHayMinimoSubIncumplido(nodo.sub, notas)) return true;
+    } else {
+      if (nodo.min != null) {
+        const ns = notas.filter(n => n.catId === nodo.id);
+        if (ns.length > 0) {
+          const media = ns.reduce((s, n) => s + n.nota, 0) / ns.length;
+          if (media < nodo.min) return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 // ── Media global ponderada por créditos ──
@@ -5257,7 +5275,11 @@ function asigRenderStats() {
   document.getElementById('asig-stat-media').textContent = mediaG !== null ? mediaG.toFixed(2) : '—';
   const aprobadas = asigDB.filter(a => {
     const m = asigMedia(a.id);
-    return m !== null && m >= (a.minimo || 5);
+    if (m === null) return false;
+    if (m < (a.minimo || 5)) return false;
+    const notas = notasDB.filter(n => n.asigId === a.id);
+    if (a.pcts && a.pcts.length > 0 && asigHayMinimoSubIncumplido(a.pcts, notas)) return false;
+    return true;
   }).length;
   document.getElementById('asig-stat-apro').textContent = aprobadas;
 }
@@ -5275,9 +5297,11 @@ function asigRenderLista() {
   cards.innerHTML = asigDB.map(a => {
     const m = asigMedia(a.id);
     const minimo = a.minimo || 5;
-    const estado = m === null ? 'sin-nota' : m >= minimo ? 'aprobado' : 'suspenso';
+    const notas = notasDB.filter(n => n.asigId === a.id);
+    const subMinIncumplido = a.pcts && a.pcts.length > 0 && asigHayMinimoSubIncumplido(a.pcts, notas);
+    const estado = m === null ? 'sin-nota' : (m >= minimo && !subMinIncumplido) ? 'aprobado' : 'suspenso';
     const pct    = m !== null ? Math.min(100, (m / 10) * 100) : 0;
-    const notasTxt = notasDB.filter(n => n.asigId === a.id).length;
+    const notasTxt = notas.length;
     return `
     <div class="asig-card">
       <div class="asig-card-header">
@@ -5295,7 +5319,8 @@ function asigRenderLista() {
           <div class="asig-card-media ${estado}">${m !== null ? m.toFixed(2) : '—'}</div>
           <div class="asig-card-media-lbl">/ 10</div>
           ${estado === 'aprobado' ? '<span style="font-size:0.75rem;color:var(--grass);font-weight:700">✓ APROBADA</span>' : ''}
-          ${estado === 'suspenso' ? '<span style="font-size:0.75rem;color:var(--coral);font-weight:700">✗ SUSPENSO</span>' : ''}
+          ${estado === 'suspenso' && subMinIncumplido ? '<span style="font-size:0.75rem;color:var(--coral);font-weight:700">✗ MÍNIMO PARCIAL</span>' : ''}
+          ${estado === 'suspenso' && !subMinIncumplido ? '<span style="font-size:0.75rem;color:var(--coral);font-weight:700">✗ SUSPENSO</span>' : ''}
         </div>
         <div class="asig-card-bar-wrap">
           <div class="asig-card-bar ${estado}" style="width:${pct}%"></div>
@@ -5378,11 +5403,17 @@ function asigRenderNotas() {
     const color  = asig ? ASIG_COLORS[asig.color] || '#0e6ba8' : '#0e6ba8';
     const minimo = asig ? (asig.minimo || 5) : 5;
     const estado = n.nota >= minimo ? 'var(--grass)' : 'var(--coral)';
-    // Obtener % de la categoría del árbol
+    // Obtener % de la categoría del árbol y nota mínima de subcategoría
     let pctLabel = '';
     if (n.catId && asig && asig.pcts && asig.pcts.length > 0) {
       const nodo = asigPctBuscarNodo(asig.pcts, n.catId);
-      if (nodo) pctLabel = `<span style="font-size:0.7rem;font-weight:700;padding:1px 7px;border-radius:10px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
+      if (nodo) {
+        pctLabel = `<span style="font-size:0.7rem;font-weight:700;padding:1px 7px;border-radius:10px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
+        if (nodo.min != null) {
+          const minOk = n.nota >= nodo.min;
+          pctLabel += `<span style="font-size:0.68rem;font-weight:700;padding:1px 6px;border-radius:10px;background:${minOk ? '#dcfce7' : '#fee2e2'};color:${minOk ? '#15803d' : '#dc2626'}" title="Mínimo: ${nodo.min}">mín ${nodo.min} ${minOk ? '✓' : '✗'}</span>`;
+        }
+      }
     }
     return `<tr>
       <td style="color:var(--muted);font-size:0.8rem">${n.fecha || '—'}</td>
@@ -5414,14 +5445,21 @@ function asigRenderResumen() {
     const notas  = notasDB.filter(n => n.asigId === a.id).sort((x,y) => (y.fecha||'').localeCompare(x.fecha||''));
     const m      = asigMedia(a.id);
     const minimo = a.minimo || 5;
-    const estado = m === null ? 'sin-nota' : m >= minimo ? 'aprobado' : 'suspenso';
+    const subMinIncumplido = a.pcts && a.pcts.length > 0 && asigHayMinimoSubIncumplido(a.pcts, notas);
+    const estado = m === null ? 'sin-nota' : (m >= minimo && !subMinIncumplido) ? 'aprobado' : 'suspenso';
     const pct    = m !== null ? Math.min(100, (m/10)*100) : 0;
     const notasHtml = notas.length ? notas.map(n => {
       // Obtener % real de la categoría del árbol
       let pctTag = '';
       if (n.catId && a.pcts && a.pcts.length > 0) {
         const nodo = asigPctBuscarNodo(a.pcts, n.catId);
-        if (nodo) pctTag = `<span style="font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:8px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
+        if (nodo) {
+          pctTag = `<span style="font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:8px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
+          if (nodo.min != null) {
+            const minOk = n.nota >= nodo.min;
+            pctTag += `<span style="font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:8px;background:${minOk ? '#dcfce7' : '#fee2e2'};color:${minOk ? '#15803d' : '#dc2626'}">mín ${nodo.min} ${minOk ? '✓' : '✗'}</span>`;
+          }
+        }
       }
       return `<div class="asig-nota-item">
         <span class="asig-nota-badge ${n.tipo}">${n.catNombre || n.tipo}</span>
@@ -5442,7 +5480,8 @@ function asigRenderResumen() {
         <div style="text-align:right">
           <div class="asig-resumen-media-big ${estado}">${m !== null ? m.toFixed(2) : '—'}</div>
           ${estado === 'aprobado' ? '<div style="font-size:0.7rem;color:var(--grass);font-weight:700">✓ APROBADA</div>' : ''}
-          ${estado === 'suspenso' ? '<div style="font-size:0.7rem;color:var(--coral);font-weight:700">✗ SUSPENSO</div>' : ''}
+          ${estado === 'suspenso' && subMinIncumplido ? '<div style="font-size:0.7rem;color:var(--coral);font-weight:700">✗ MÍNIMO PARCIAL</div>' : ''}
+          ${estado === 'suspenso' && !subMinIncumplido ? '<div style="font-size:0.7rem;color:var(--coral);font-weight:700">✗ SUSPENSO</div>' : ''}
         </div>
       </div>
       <div style="padding:0.5rem 1.3rem 0.1rem">
@@ -5455,7 +5494,8 @@ function asigRenderResumen() {
               const bg   = depth===0 ? '#e0f2fe' : depth===1 ? '#ede9fe' : '#fce7f3';
               const col  = depth===0 ? '#0369a1' : depth===1 ? '#4c1d95' : '#9d174d';
               const sub  = n.sub && n.sub.length > 0 ? ' ▸' : '';
-              return `<span style="font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:10px;background:${bg};color:${col}">${n.nombre||'?'}${sub}: ${n.pct}%</span>${n.sub&&n.sub.length?renderPills(n.sub,depth+1):''}`;
+              const minTag = (n.sub.length === 0 && n.min != null) ? ` · mín ${n.min}` : '';
+              return `<span style="font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:10px;background:${bg};color:${col}">${n.nombre||'?'}${sub}: ${n.pct}%${minTag}</span>${n.sub&&n.sub.length?renderPills(n.sub,depth+1):''}`;
             }).join('');
           })(a.pcts, 0)
         }</div>` : ''}
@@ -5553,9 +5593,11 @@ function asigPctLeerArbol() {
       const pathStr = prefijo + i;
       const nombreEl = document.getElementById('asig-pct-n-' + n.id);
       const pctEl    = document.getElementById('asig-pct-p-' + n.id);
+      const minEl    = document.getElementById('asig-pct-m-' + n.id);
       const nombre = nombreEl ? nombreEl.value.trim() : n.nombre;
       const pct    = pctEl    ? parseFloat(pctEl.value) || 0 : parseFloat(n.pct) || 0;
-      return { id: n.id, nombre, pct, sub: leerNivel(n.sub, pathStr + '-') };
+      const min    = minEl    ? (minEl.value !== '' ? parseFloat(minEl.value) : null) : (n.min != null ? n.min : null);
+      return { id: n.id, nombre, pct, min, sub: leerNivel(n.sub, pathStr + '-') };
     });
   }
   return leerNivel(asigPctArbol, '');
@@ -5589,6 +5631,22 @@ function asigPctRenderBuilder() {
            </div>`
         : '';
 
+      const esHoja = n.sub.length === 0;
+      const minHtml = esHoja ? `
+          <div style="display:flex;align-items:center;gap:0.2rem;flex-shrink:0" title="Nota mínima para aprobar esta parte">
+            <input
+              id="asig-pct-m-${n.id}"
+              class="reg-input"
+              type="number"
+              min="0" max="10" step="0.1"
+              placeholder="mín"
+              value="${n.min != null ? n.min : ''}"
+              style="width:52px;padding:0.35rem 0.4rem;font-size:0.78rem;text-align:center;border-color:#fbbf24"
+              oninput="asigPctActualizarTotal()"
+            />
+            <span style="font-size:0.7rem;color:#d97706;font-weight:600">mín</span>
+          </div>` : '';
+
       return `
       <div class="asig-pct-nodo" data-id="${n.id}" style="margin-left:${indent}px;background:${bgColor};border:1.5px solid ${borderColor};border-radius:10px;padding:0.55rem 0.7rem">
         <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
@@ -5616,6 +5674,7 @@ function asigPctRenderBuilder() {
             />
             <span style="font-size:0.75rem;color:var(--muted);font-weight:600">%</span>
           </div>
+          ${minHtml}
           ${nivel < 2 ? `<button type="button" class="asig-pct-sub-btn" onclick="asigPctSyncDesdeDOM();asigPctAddSub([${path.join(',')}])">＋ sub</button>` : ''}
           <button type="button" class="asig-pct-del-btn" onclick="asigPctSyncDesdeDOM();asigPctDelNodo([${path.join(',')}])">✕</button>
         </div>
@@ -5999,9 +6058,11 @@ function editAsigPctLeerArbol() {
     return nodos.map(n => {
       const nombreEl = document.getElementById('edit-pct-n-' + n.id);
       const pctEl    = document.getElementById('edit-pct-p-' + n.id);
+      const minEl    = document.getElementById('edit-pct-m-' + n.id);
       const nombre = nombreEl ? nombreEl.value.trim() : n.nombre;
       const pct    = pctEl    ? parseFloat(pctEl.value) || 0 : parseFloat(n.pct) || 0;
-      return { id: n.id, nombre, pct, sub: leerNivel(n.sub) };
+      const min    = minEl    ? (minEl.value !== '' ? parseFloat(minEl.value) : null) : (n.min != null ? n.min : null);
+      return { id: n.id, nombre, pct, min, sub: leerNivel(n.sub) };
     });
   }
   return leerNivel(_editAsigPctArbol);
@@ -6102,6 +6163,20 @@ function editAsigPctRenderBuilder() {
             />
             <span style="font-size:0.75rem;color:var(--muted);font-weight:600">%</span>
           </div>
+          ${n.sub.length === 0 ? `
+          <div style="display:flex;align-items:center;gap:0.2rem;flex-shrink:0" title="Nota mínima para aprobar esta parte">
+            <input
+              id="edit-pct-m-${n.id}"
+              class="reg-input"
+              type="number"
+              min="0" max="10" step="0.1"
+              placeholder="mín"
+              value="${n.min != null ? n.min : ''}"
+              style="width:52px;padding:0.35rem 0.4rem;font-size:0.78rem;text-align:center;border-color:#fbbf24"
+              oninput="editAsigPctActualizarTotal()"
+            />
+            <span style="font-size:0.7rem;color:#d97706;font-weight:600">mín</span>
+          </div>` : ''}
           ${nivel < 2 ? `<button type="button" class="asig-pct-sub-btn" onclick="editAsigPctSyncDesdeDOM();editAsigPctAddSub([${path.join(',')}])">＋ sub</button>` : ''}
           <button type="button" class="asig-pct-del-btn" onclick="editAsigPctSyncDesdeDOM();editAsigPctDelNodo([${path.join(',')}])">✕</button>
         </div>
