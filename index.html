@@ -976,6 +976,75 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     letter-spacing: 0.03em; margin-bottom: 1px;
   }
+
+  /* ── MÓVIL: Calendario (iPhone 13 y similares ≤430px) ── */
+  @media (max-width: 430px) {
+    /* Toolbar: apilar botones de vista en una fila y nav en otra */
+    .cal-toolbar {
+      gap: 0.4rem;
+    }
+    .cal-view-btn {
+      font-size: 0.68rem;
+      padding: 0.38rem 0.7rem;
+      letter-spacing: 0.04em;
+    }
+    .cal-nav-group {
+      margin-left: auto;
+    }
+    .cal-period-btn {
+      font-size: 1rem;
+    }
+    /* Celdas del mes: más compactas pero con altura mínima útil */
+    .cal-cell {
+      min-height: 52px;
+      padding: 0.22rem 0.18rem;
+    }
+    .cal-num {
+      font-size: 0.72rem;
+      margin-bottom: 2px;
+    }
+    .cal-cell.today .cal-num {
+      width: 18px; height: 18px; font-size: 0.68rem;
+    }
+    /* Eventos mini: texto más pequeño para que quepan */
+    .cal-ev-mini {
+      font-size: 0.55rem;
+      padding: 1px 3px;
+      margin-top: 1px;
+      border-radius: 3px;
+    }
+    .cal-festivo-label {
+      font-size: 0.5rem;
+    }
+    /* Nombre días de la semana */
+    .cal-day-name {
+      font-size: 0.55rem;
+      padding: 0.35rem 0;
+      letter-spacing: 0.04em;
+    }
+    /* Panel de evento: más espacio */
+    .cal-event-panel-body {
+      padding: 0.75rem 1rem;
+    }
+    /* Formulario de evento: meta en columna */
+    .cal-event-meta {
+      flex-wrap: wrap;
+    }
+    .cal-event-time {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.5rem;
+    }
+    /* Área calendario con menos padding lateral */
+    #area-calendario {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    .cal-inner-wrap {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+      padding-top: 1.2rem !important;
+    }
+  }
   .cal-hour-cell.festivo-col { background: #fff7ed !important; }
   .cal-dia-wrap.festivo-day .cal-dia-header { background: #9a3412; }
   .festivo-banner {
@@ -1922,7 +1991,7 @@
     </div>
   </div>
 
-  <div style="padding: 2rem; max-width: 900px; margin: 0 auto;">
+  <div class="cal-inner-wrap" style="padding: 2rem; max-width: 900px; margin: 0 auto;">
     <div class="section-heading">Calendario</div>
     <p class="section-sub">Escribe la fecha directamente o toca cualquier celda para seleccionarla.</p>
 
