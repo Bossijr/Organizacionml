@@ -980,8 +980,10 @@
   /* ── MÓVIL: Calendario (iPhone 13 ≤480px) — escritorio sin cambios ── */
   @media (max-width: 480px) {
     /* Reducir padding del contenedor interno del calendario */
-    .cal-inner-wrap {
-      padding: 1.2rem 0.6rem !important;
+    #area-calendario > div:not(.back-bar):not(.hero-personal) {
+      padding-left: 0.6rem !important;
+      padding-right: 0.6rem !important;
+      padding-top: 1.2rem !important;
     }
 
     /* Botones de vista más compactos */
@@ -1999,7 +2001,7 @@
     </div>
   </div>
 
-  <div class="cal-inner-wrap" style="padding: 2rem; max-width: 900px; margin: 0 auto;">
+  <div style="padding: 2rem; max-width: 900px; margin: 0 auto;">
     <div class="section-heading">Calendario</div>
     <p class="section-sub">Escribe la fecha directamente o toca cualquier celda para seleccionarla.</p>
 
