@@ -5800,7 +5800,6 @@ function calcTodosNodos(nodos, pctPadre, depth, prefijo) {
 
 function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
   const hojas = calcHojas(asig.pcts, 100);
-  const todos  = calcTodosNodos(asig.pcts, 100, 0, '');
 
   const filasHojas = hojas.map(h => {
     const ns = notas.filter(n => n.catId === h.id);
@@ -5862,99 +5861,119 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
     </div>`;
   }
 
-  // ── Simulador: una card por cada categoría que tiene mínimo Y tiene subapartados ──
-  // Buscar nodos del árbol de nivel 0 (o cualquier nivel) que tengan min y tengan hijos
-  function renderSimuladorCategoria(nodo, pctPadre) {
-    // pct absoluto de este nodo
-    const pctAbs = (nodo.pct / 100) * pctPadre;
-    // Solo procesar nodos con mínimo y con subapartados
-    if (nodo.min == null || !nodo.sub || nodo.sub.length === 0) return '';
-
-    // Hojas directas o anidadas de este nodo
-    const hojasNodo = calcHojas([nodo], pctAbs);
-    const hojasConDatos = hojasNodo.map(h => {
-      const ns = notas.filter(n => n.catId === h.id);
-      const mediaActual = ns.length ? ns.reduce((s, n) => s + n.nota, 0) / ns.length : null;
-      return { ...h, mediaActual };
-    });
-
-    // pct de cada hoja relativo al peso del nodo padre (para calcular media ponderada dentro del nodo)
-    // pctAbs de hoja / pctAbs del nodo * 100 = % local dentro del nodo
-    const pctNodoAbs = pctAbs; // ya calculado
-
-    let bloque = `<div class="reg-form-card" style="margin-bottom:1rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.9rem">
-        <div>
-          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Simulador de categoría</div>
-          <div style="font-size:1rem;font-weight:700;color:var(--navy)">${nodo.nombre}</div>
-        </div>
-        <span style="font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:8px;background:#fef3c7;color:#b45309">Mínimo: ${nodo.min}</span>
-      </div>
-      <table class="reg-table" style="table-layout:fixed;margin-bottom:0.75rem">
-        <thead><tr>
-          <th style="width:40%">Apartado</th>
-          <th style="width:14%;text-align:center">Peso</th>
-          <th style="width:18%;text-align:center">Nota real</th>
-          <th style="width:18%;text-align:center">Simular</th>
-          <th style="width:10%;text-align:center">✓</th>
-        </tr></thead>
-        <tbody>`;
-
-    hojasConDatos.forEach(h => {
-      // peso local de la hoja dentro del nodo (0-100)
-      const pctLocal = pctNodoAbs > 0 ? (h.pct / pctNodoAbs) * 100 : 0;
-      const notaReal = h.mediaActual !== null
-        ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${h.mediaActual.toFixed(2)}</span>`
-        : `<span style="color:var(--muted);font-size:0.8rem">—</span>`;
-
-      bloque += `<tr>
-        <td style="font-size:0.83rem;font-weight:600">${h.nombre || '—'}</td>
-        <td style="text-align:center"><span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:8px;background:#e0f2fe;color:#0369a1">${pctLocal.toFixed(pctLocal % 1 === 0 ? 0 : 1)}%</span></td>
-        <td style="text-align:center">${notaReal}</td>
-        <td style="text-align:center">
-          <input type="number" min="0" max="10" step="0.01" placeholder="0–10"
-            class="reg-input calc-min-sim-input"
-            data-grupo="${nodo.id}"
-            data-hoja="${h.id}"
-            data-pct-local="${pctLocal}"
-            data-min-grupo="${nodo.min}"
-            ${h.mediaActual !== null ? `value="${h.mediaActual.toFixed(2)}"` : ''}
-            style="width:70px;padding:0.3rem 0.4rem;font-size:0.82rem;text-align:center"
-            oninput="calcMinSimActualizar('${nodo.id}')" />
-        </td>
-        <td style="text-align:center" id="calc-min-hoja-${h.id}"></td>
-      </tr>`;
-    });
-
-    bloque += `</tbody></table>
-      <div id="calc-min-resultado-${nodo.id}" style="padding:0.65rem 1rem;border-radius:10px;font-size:0.88rem;display:none"></div>
-    </div>`;
-
-    return bloque;
-  }
-
-  // Recorrer árbol buscando nodos con min y sub
-  function recorrerArbol(nodos, pctPadre) {
-    let out = '';
+  // ── Simuladores: un bloque por cada nodo (a cualquier nivel) que tenga min configurado ──
+  // Recolectar todos los nodos con min, con sus hojas hijas directas o anidadas
+  function recolectarNodosConMin(nodos, pctPadre) {
+    const resultado = [];
     nodos.forEach(n => {
-      out += renderSimuladorCategoria(n, pctPadre);
+      const pctAbs = (n.pct / 100) * pctPadre;
+      if (n.min != null) {
+        // Obtener las hojas de este nodo (puede ser él mismo si es hoja, o sus descendientes)
+        const hojasNodo = calcHojas([n], pctAbs);
+        resultado.push({ nodo: n, pctAbs, hojasNodo });
+      }
+      // Seguir buscando en hijos (aunque el padre tenga min, sus hijos pueden tener también)
       if (n.sub && n.sub.length > 0) {
-        const pctN = (n.pct / 100) * pctPadre;
-        out += recorrerArbol(n.sub, pctN);
+        resultado.push(...recolectarNodosConMin(n.sub, pctAbs));
       }
     });
-    return out;
+    return resultado;
   }
 
-  const simuladores = recorrerArbol(asig.pcts, 100);
+  const nodosConMin = recolectarNodosConMin(asig.pcts, 100);
 
-  if (simuladores) {
-    html += simuladores;
+  if (nodosConMin.length === 0) {
+    // Sin mínimos configurados: mostrar tabla simple de hojas
+    html += `<div class="reg-history-wrap">
+      <div class="reg-history-header"><div class="reg-history-title">Desglose por categoría</div></div>
+      <table class="reg-table" style="table-layout:fixed">
+        <thead><tr>
+          <th style="width:44%">Categoría</th>
+          <th style="width:14%;text-align:center">Peso</th>
+          <th style="width:20%;text-align:center">Nota actual</th>
+          <th style="width:22%;text-align:center">Necesitas</th>
+        </tr></thead><tbody>`;
+    filasHojas.forEach(f => {
+      const mediaStr = f.mediaActual !== null
+        ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${f.mediaActual >= minimo ? 'var(--grass)' : 'var(--coral)'}">${f.mediaActual.toFixed(2)}</span>`
+        : `<span style="color:var(--muted);font-size:0.8rem">—</span>`;
+      let necStr = '—';
+      if (f.mediaActual === null) {
+        const puntosOtras = filasHojas.filter(x => x.id !== f.id).reduce((s, x) => s + (x.mediaActual ?? 10) * (x.pct / 100), 0);
+        const nec = (objetivo - puntosOtras) / (f.pct / 100);
+        necStr = nec <= 0 ? `<span style="color:var(--grass);font-weight:700">No necesitas</span>`
+               : nec > 10  ? `<span style="color:var(--coral);font-weight:700">&gt;10</span>`
+               : `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${nec.toFixed(2)}</span>`;
+      }
+      html += `<tr>
+        <td style="font-size:0.85rem;font-weight:600">${f.nombre || '—'}</td>
+        <td style="text-align:center"><span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#e0f2fe;color:#0369a1">${f.pct.toFixed(f.pct % 1 === 0 ? 0 : 1)}%</span></td>
+        <td style="text-align:center">${mediaStr}</td>
+        <td style="text-align:center">${necStr}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  } else {
+    // Con mínimos: un bloque simulador por cada nodo con min
+    nodosConMin.forEach(({ nodo, pctAbs, hojasNodo }) => {
+      const hojasConDatos = hojasNodo.map(h => {
+        const ns = notas.filter(n => n.catId === h.id);
+        const mediaActual = ns.length ? ns.reduce((s, n) => s + n.nota, 0) / ns.length : null;
+        return { ...h, mediaActual };
+      });
+
+      html += `<div class="reg-form-card" style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.9rem">
+          <div>
+            <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Simulador</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--navy)">${nodo.nombre}</div>
+          </div>
+          <span style="font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:8px;background:#fef3c7;color:#b45309">Mínimo: ${nodo.min}</span>
+        </div>
+        <table class="reg-table" style="table-layout:fixed;margin-bottom:0.75rem">
+          <thead><tr>
+            <th style="width:38%">Apartado</th>
+            <th style="width:13%;text-align:center">Peso</th>
+            <th style="width:17%;text-align:center">Nota real</th>
+            <th style="width:18%;text-align:center">Simular</th>
+            <th style="width:14%;text-align:center">¿Aprueba?</th>
+          </tr></thead>
+          <tbody>`;
+
+      hojasConDatos.forEach(h => {
+        const pctLocal = pctAbs > 0 ? (h.pct / pctAbs) * 100 : 0;
+        const notaReal = h.mediaActual !== null
+          ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${h.mediaActual.toFixed(2)}</span>`
+          : `<span style="color:var(--muted);font-size:0.8rem">—</span>`;
+
+        html += `<tr>
+          <td style="font-size:0.83rem;font-weight:600">${h.nombre || '—'}</td>
+          <td style="text-align:center"><span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:8px;background:#e0f2fe;color:#0369a1">${pctLocal.toFixed(pctLocal % 1 === 0 ? 0 : 1)}%</span></td>
+          <td style="text-align:center">${notaReal}</td>
+          <td style="text-align:center">
+            <input type="number" min="0" max="10" step="0.01" placeholder="0–10"
+              class="reg-input calc-min-sim-input"
+              data-grupo="${nodo.id}"
+              data-hoja="${h.id}"
+              data-pct-local="${pctLocal}"
+              data-min-grupo="${nodo.min}"
+              ${h.mediaActual !== null ? `value="${h.mediaActual.toFixed(2)}"` : ''}
+              style="width:70px;padding:0.3rem 0.4rem;font-size:0.82rem;text-align:center"
+              oninput="calcMinSimActualizar('${nodo.id}')" />
+          </td>
+          <td style="text-align:center" id="calc-min-hoja-${h.id}"></td>
+        </tr>`;
+      });
+
+      html += `</tbody></table>
+        <div id="calc-min-resultado-${nodo.id}" style="padding:0.65rem 1rem;border-radius:10px;font-size:0.88rem;display:none"></div>
+      </div>`;
+    });
   }
 
   el.innerHTML = html;
 
-  // Inicializar los que ya tienen nota real
+  // Inicializar los que ya tienen valor
   const grupos = new Set([...el.querySelectorAll('.calc-min-sim-input')].map(i => i.dataset.grupo));
   grupos.forEach(gid => calcMinSimActualizar(gid));
 }
@@ -5967,9 +5986,9 @@ function calcMinSimActualizar(grupoId) {
   let totalPonderado = 0, pesoTotal = 0;
 
   inputs.forEach(inp => {
-    const pctLocal = parseFloat(inp.dataset.pctLocal);
-    const hojaId   = inp.dataset.hoja;
-    const val      = parseFloat(inp.value);
+    const pctLocal  = parseFloat(inp.dataset.pctLocal);
+    const hojaId    = inp.dataset.hoja;
+    const val       = parseFloat(inp.value);
     const hojaEstEl = document.getElementById('calc-min-hoja-' + hojaId);
 
     if (!isNaN(val) && inp.value !== '') {
@@ -5991,7 +6010,6 @@ function calcMinSimActualizar(grupoId) {
 
   if (pesoTotal === 0) { resEl.style.display = 'none'; return; }
 
-  // Media ponderada dentro de la categoría (normalizada a 0-10)
   const mediaCat = totalPonderado / (pesoTotal / 100);
   const aprueba  = mediaCat >= minGrupo;
   const parcial  = pesoTotal < 99.9;
