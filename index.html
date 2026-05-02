@@ -224,7 +224,6 @@
     grid-template-columns: 1fr 1fr 1fr;
     gap: 1.2rem;
     width: 100%;
-    max-width: 780px;
     position: relative;
     z-index: 1;
   }
@@ -265,7 +264,6 @@
     grid-template-columns: 1fr 1fr 1fr;
     gap: 0.85rem;
     width: 100%;
-    max-width: 780px;
     margin-bottom: 1.8rem;
     position: relative;
     z-index: 1;
@@ -471,9 +469,9 @@
   .pers-tab.active { color: var(--ocean-light); border-bottom-color: var(--ocean-light); }
 
   /* ── SECTIONS ── */
-  .section { display: none; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  .section { display: none; padding: 2rem; }
   .section.active { display: block; }
-  .pers-section { display: none; padding: 2rem; max-width: 960px; margin: 0 auto; }
+  .pers-section { display: none; padding: 2rem; }
   .pers-section.active { display: block; }
 
   /* ── WEEK GRID ── */
@@ -615,6 +613,25 @@
   .dot-media { background: var(--amber); }
   .dot-baja { background: var(--grass); }
 
+  /* ── CALENDARIO DESKTOP LAYOUT ── */
+  .cal-desktop-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .cal-desktop-main { flex: 1; min-width: 0; }
+  .cal-desktop-sidebar { width: 100%; }
+
+  @media (min-width: 900px) {
+    .cal-desktop-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 1.4rem;
+    }
+    .cal-desktop-main { flex: 1; min-width: 0; }
+    .cal-desktop-sidebar { width: 340px; flex-shrink: 0; position: sticky; top: 1rem; }
+  }
+
   /* ── CALENDARIO ── */
   .cal-toolbar {
     display: flex;
@@ -706,8 +723,11 @@
   .cal-day-name { text-align: center; padding: 0.5rem 0; font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
   .cal-mes-grid { display: grid; grid-template-columns: repeat(7,1fr); }
   .cal-cell {
-    min-height: 76px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    min-height: clamp(76px, 10vw, 120px); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
     padding: 0.4rem; cursor: pointer; transition: background 0.1s; position: relative;
+  }
+  @media (min-width: 900px) {
+    .cal-cell { min-height: 110px; }
   }
   .cal-cell:nth-child(7n) { border-right: none; }
   .cal-cell:hover { background: #f0f7ff; }
@@ -1764,14 +1784,11 @@
   /* ── Contenedores internos de área (inline → clase) ── */
   .area-inner-wrap {
     padding: 2rem;
-    max-width: 900px;
-    margin: 0 auto;
   }
   .area-inner-wrap--weather {
     padding: 1.5rem 2rem;
   }
   .area-inner-wrap--wide {
-    max-width: 960px;
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -1786,14 +1803,14 @@
     .portada-sub   { font-size: 1rem; margin-bottom: 1.6rem; }
     .portada-label { font-size: 0.75rem; letter-spacing: 0.22em; margin-bottom: 0.6rem; }
     .portada-cards {
-      max-width: 1000px;
+      max-width: none;
       gap: 1rem;
     }
     .portada-card  { padding: 1.4rem 1.2rem; border-radius: 16px; }
     .portada-card-icon  { font-size: 2rem; margin-bottom: 0.5rem; }
     .portada-card-title { font-size: 1.3rem; }
     .portada-card-desc  { font-size: 0.8rem; }
-    .portada-widgets    { max-width: 1000px; gap: 1rem; margin-bottom: 1.2rem; grid-template-columns: 1fr 1fr 1fr; }
+    .portada-widgets    { max-width: none; gap: 1rem; margin-bottom: 1.2rem; grid-template-columns: 1fr 1fr 1fr; }
     .portada-widgets .pw:last-child { grid-column: auto; }
     .pw             { padding: 1rem 1.2rem; border-radius: 14px; }
     .pw-label       { font-size: 0.62rem; letter-spacing: 0.18em; margin-bottom: 0.4rem; }
@@ -1803,8 +1820,8 @@
     .pw-task-item   { font-size: 0.8rem; }
 
     /* ── Secciones contenedoras ── */
-    .section      { padding: 2rem 2.5rem; max-width: 1100px; }
-    .pers-section { padding: 2rem 2.5rem; max-width: 1180px; }
+    .section      { padding: 2rem 2.5rem; }
+    .pers-section { padding: 2rem 2.5rem; }
     .area { padding-bottom: 80px; }
 
     /* ── Back bar ── */
@@ -2023,13 +2040,11 @@
     /* ── Contenedores internos de área ── */
     .area-inner-wrap {
       padding: 2rem 2.5rem;
-      max-width: 1100px;
     }
     .area-inner-wrap--weather {
       padding: 1.8rem 2.5rem;
     }
     .area-inner-wrap--wide {
-      max-width: 1180px;
     }
   }
 </style>
@@ -2128,7 +2143,7 @@
   </div>
 
   <!-- PROGRAMA -->
-  <div class="section active" id="tab-programa">
+  <div class="section active" id="tab-programa" style="max-width:900px;margin-left:auto;margin-right:auto;">
     <div class="week-grid" id="weekGrid">
       <div class="week-card active" data-day="0"><div class="wc-day">Lunes</div><div class="wc-title">Fuerza tren inferior</div><span class="tag tag-fuerza">Fuerza</span></div>
       <div class="week-card" data-day="1"><div class="wc-day">Martes</div><div class="wc-title">Cardio + habilidad surf</div><span class="tag tag-surf">Surf</span></div>
@@ -2305,6 +2320,8 @@
       </div>
     </div>
 
+    <div class="cal-desktop-layout">
+    <div class="cal-desktop-main">
     <!-- Vista mes -->
     <div id="cal-view-mes">
       <div class="cal-mes-wrap">
@@ -2331,6 +2348,8 @@
         <div class="cal-dia-body" id="cal-dia-body"></div>
       </div>
     </div>
+    </div><!-- end cal-desktop-main -->
+    <div class="cal-desktop-sidebar">
 
     <!-- Panel evento -->
     <div class="cal-event-panel" id="cal-event-panel">
@@ -2430,6 +2449,8 @@
         </div>
       </div>
     </div>
+    </div><!-- end cal-desktop-sidebar -->
+    </div><!-- end cal-desktop-layout -->
   </div>
 
   <footer>Tu calendario — sincronizado en la nube ☁️</footer>
