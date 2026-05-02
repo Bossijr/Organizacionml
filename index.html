@@ -977,72 +977,80 @@
     letter-spacing: 0.03em; margin-bottom: 1px;
   }
 
-  /* ── MÓVIL: Calendario (iPhone 13 y similares ≤430px) ── */
-  @media (max-width: 430px) {
-    /* Toolbar: apilar botones de vista en una fila y nav en otra */
-    .cal-toolbar {
-      gap: 0.4rem;
+  /* ── MÓVIL: Calendario (iPhone 13 ≤480px) — escritorio sin cambios ── */
+  @media (max-width: 480px) {
+    /* Reducir padding del contenedor interno del calendario */
+    .cal-inner-wrap {
+      padding: 1.2rem 0.6rem !important;
     }
+
+    /* Botones de vista más compactos */
     .cal-view-btn {
-      font-size: 0.68rem;
-      padding: 0.38rem 0.7rem;
-      letter-spacing: 0.04em;
-    }
-    .cal-nav-group {
-      margin-left: auto;
+      font-size: 0.7rem;
+      padding: 0.38rem 0.75rem;
     }
     .cal-period-btn {
       font-size: 1rem;
     }
-    /* Celdas del mes: más compactas pero con altura mínima útil */
-    .cal-cell {
-      min-height: 52px;
-      padding: 0.22rem 0.18rem;
+
+    /* Contenedor del grid: no desborde */
+    .cal-mes-wrap {
+      overflow: hidden;
+      width: 100%;
     }
+
+    /* Forzar 7 columnas iguales sin desbordamiento */
+    .cal-mes-grid,
+    .cal-days-header {
+      display: grid !important;
+      grid-template-columns: repeat(7, 1fr) !important;
+      width: 100% !important;
+    }
+
+    /* Celdas compactas, sin overflow */
+    .cal-cell {
+      min-height: 54px;
+      padding: 0.2rem 0.12rem;
+      overflow: hidden;
+      width: 100%;
+      min-width: 0;
+    }
+
+    /* Número del día */
     .cal-num {
-      font-size: 0.72rem;
-      margin-bottom: 2px;
+      font-size: 0.7rem;
+      margin-bottom: 1px;
     }
     .cal-cell.today .cal-num {
-      width: 18px; height: 18px; font-size: 0.68rem;
+      width: 18px;
+      height: 18px;
+      font-size: 0.65rem;
     }
-    /* Eventos mini: texto más pequeño para que quepan */
+
+    /* Eventos mini: no ensanchan la celda */
     .cal-ev-mini {
-      font-size: 0.55rem;
-      padding: 1px 3px;
+      font-size: 0.52rem;
+      padding: 1px 2px;
       margin-top: 1px;
       border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      display: block;
+      box-sizing: border-box;
     }
+
+    /* Label festivo */
     .cal-festivo-label {
-      font-size: 0.5rem;
+      font-size: 0.48rem;
     }
-    /* Nombre días de la semana */
+
+    /* Nombre de los días de la semana */
     .cal-day-name {
-      font-size: 0.55rem;
-      padding: 0.35rem 0;
-      letter-spacing: 0.04em;
-    }
-    /* Panel de evento: más espacio */
-    .cal-event-panel-body {
-      padding: 0.75rem 1rem;
-    }
-    /* Formulario de evento: meta en columna */
-    .cal-event-meta {
-      flex-wrap: wrap;
-    }
-    .cal-event-time {
-      font-size: 0.8rem;
-      padding: 0.4rem 0.5rem;
-    }
-    /* Área calendario con menos padding lateral */
-    #area-calendario {
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
-    }
-    .cal-inner-wrap {
-      padding-left: 0.75rem !important;
-      padding-right: 0.75rem !important;
-      padding-top: 1.2rem !important;
+      font-size: 0.52rem;
+      padding: 0.3rem 0;
+      letter-spacing: 0;
     }
   }
   .cal-hour-cell.festivo-col { background: #fff7ed !important; }
