@@ -34,244 +34,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72.png">
 
-<!-- Firebase — inicializado UNA sola vez para Firestore + Auth + FCM -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
-  // ══════════ CONFIGURACIÓN FIREBASE ══════════
-  const firebaseConfig = {
-    apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
-    authDomain: "organizacionml.firebaseapp.com",
-    projectId: "organizacionml",
-    storageBucket: "organizacionml.firebasestorage.app",
-    messagingSenderId: "217963164755",
-    appId: "1:217963164755:web:6504fc815010b7110242a6",
-    measurementId: "G-GXFENBBT8B"
-  };
-
-  // Instancia única compartida
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-  const auth = getAuth(app);
-
-  // UID del usuario actual (se actualiza con onAuthStateChanged)
-  let _currentUid = null;
-
-  // ══════════ HELPERS FIRESTORE (multi-usuario) ══════════
-  window._fbSet = async (coleccion, id, data) => {
-    if (!_currentUid) { console.warn('[Firebase] Sin usuario autenticado'); return; }
-    try {
-      await setDoc(doc(db, "users", _currentUid, coleccion, id), data);
-    } catch(e) { console.warn('[Firebase] Error guardando:', e); }
-  };
-
-  window._fbDelete = async (coleccion, id) => {
-    if (!_currentUid) return;
-    try {
-      await deleteDoc(doc(db, "users", _currentUid, coleccion, id));
-    } catch(e) { console.warn('[Firebase] Error borrando:', e); }
-  };
-
-  window._fbListen = (coleccion, callback) => {
-    if (!_currentUid) return () => {};
-    return onSnapshot(collection(db, "users", _currentUid, coleccion), snapshot => {
-      const docs = {};
-      snapshot.forEach(d => { docs[d.id] = d.data(); });
-      callback(docs);
-    }, err => console.warn('[Firebase] Error escuchando:', err));
-  };
-
-  // ══════════ AUTH: OBSERVADOR DE ESTADO ══════════
-  // Esperar a que el DOM esté completamente cargado antes de manipular elementos
-  function iniciarObservadorAuth() {
-    onAuthStateChanged(auth, user => {
-      // Ocultar loader siempre
-      const loader = document.getElementById('loading-screen');
-      if (loader) loader.style.display = 'none';
-
-      if (user) {
-        _currentUid = user.uid;
-        const nameEl = document.getElementById('portada-user-name');
-        if (nameEl) nameEl.textContent = user.displayName || user.email.split('@')[0];
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-root').style.display = 'block';
-        window._fbReady = true;
-        window.dispatchEvent(new Event('firebase-ready'));
-      } else {
-        _currentUid = null;
-        window._fbReady = false;
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('app-root').style.display = 'none';
-      }
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciarObservadorAuth);
-  } else {
-    iniciarObservadorAuth();
-  }
-
-  // ══════════ AUTH: FUNCIONES EXPUESTAS ══════════
-  window._authRegistrar = async (nombre, email, password) => {
-    try {
-      authSetError('');
-      authSetLoading(true);
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName: nombre });
-    } catch(e) {
-      authSetLoading(false);
-      authSetError(traducirErrorAuth(e.code));
-    }
-  };
-
-  window._authLogin = async (email, password) => {
-    try {
-      authSetError('');
-      authSetLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch(e) {
-      authSetLoading(false);
-      authSetError(traducirErrorAuth(e.code));
-    }
-  };
-
-  window._authLogout = async () => {
-    await signOut(auth);
-    // Volver a portada si estamos en un área
-    if (typeof goPortada === 'function') goPortada();
-  };
-
-  function authSetLoading(on) {
-    const btn = document.getElementById('auth-submit-btn');
-    if (btn) { btn.disabled = on; btn.textContent = on ? 'Cargando...' : (authModoLogin() ? 'Entrar' : 'Crear cuenta'); }
-  }
-
-  function authSetError(msg) {
-    const el = document.getElementById('auth-error');
-    if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
-  }
-
-  function authModoLogin() {
-    return document.getElementById('auth-tab-login')?.classList.contains('auth-tab-active');
-  }
-
-  function traducirErrorAuth(code) {
-    const map = {
-      'auth/email-already-in-use': 'Ese correo ya está registrado.',
-      'auth/invalid-email': 'El correo no es válido.',
-      'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
-      'auth/user-not-found': 'No existe cuenta con ese correo.',
-      'auth/wrong-password': 'Contraseña incorrecta.',
-      'auth/invalid-credential': 'Correo o contraseña incorrectos.',
-      'auth/too-many-requests': 'Demasiados intentos. Inténtalo más tarde.',
-    };
-    return map[code] || 'Error: ' + code;
-  }
-
-  window._fbReady = false;
-
-  // ══════════ FCM (notificaciones push) ══════════
-  const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
-
-  async function initFCM() {
-    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
-    try {
-      const messaging = getMessaging(app);
-      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-
-      // Registrar onMessage SIEMPRE (independiente del estado del permiso)
-      onMessage(messaging, payload => {
-        const title = payload.notification?.title || '⏰ Recordatorio';
-        const body  = payload.notification?.body  || '';
-        if (typeof mostrarToast === 'function') mostrarToast('🔔 ' + body);
-        if (Notification.permission === 'granted') {
-          new Notification(title, { body, icon: '/icons/icon-192.png' });
-        }
-      });
-
-      if (Notification.permission === 'granted') {
-        await registerFCMToken(messaging, swReg);
-        return;
-      }
-      if (Notification.permission === 'denied') return;
-
-      // Permiso pendiente → mostrar banner
-      const banner = document.getElementById('fcm-banner');
-      if (banner) banner.style.display = 'flex';
-
-      document.getElementById('fcm-allow-btn').addEventListener('click', async () => {
-        if (banner) banner.style.display = 'none';
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') await registerFCMToken(messaging, swReg);
-      });
-    } catch(e) {
-      console.warn('[FCM] Error:', e);
-    }
-  }
-
-  async function registerFCMToken(messaging, swReg) {
-    try {
-      const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-      if (token) {
-        const doSave = async () => {
-          if (window._fbSet) {
-            await window._fbSet('fcm_tokens', token.slice(-20), { token, ts: Date.now() });
-            console.log('[FCM] Token guardado ✓');
-          }
-        };
-        if (window._fbReady) await doSave();
-        else window.addEventListener('firebase-ready', doSave, { once: true });
-      }
-    } catch(e) {
-      console.warn('[FCM] Error registrando token:', e);
-    }
-  }
-
-  window.addEventListener('load', () => {
-    setTimeout(() => initFCM(), 1500);
-  });
-</script>
-
-<!-- Auth UI (no module needed) -->
-<script>
-  function authSwitchTab(tab) {
-    const isLogin = tab === 'login';
-    document.getElementById('auth-tab-login').classList.toggle('auth-tab-active', isLogin);
-    document.getElementById('auth-tab-registro').classList.toggle('auth-tab-active', !isLogin);
-    document.getElementById('auth-field-nombre').style.display = isLogin ? 'none' : '';
-    document.getElementById('auth-submit-btn').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
-    document.getElementById('auth-error').style.display = 'none';
-    document.getElementById('auth-password').autocomplete = isLogin ? 'current-password' : 'new-password';
-  }
-
-  function authSubmit() {
-    const email    = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-password').value;
-    const isLogin  = document.getElementById('auth-tab-login').classList.contains('auth-tab-active');
-    if (!email || !password) {
-      document.getElementById('auth-error').textContent = 'Rellena todos los campos.';
-      document.getElementById('auth-error').style.display = 'block';
-      return;
-    }
-    if (isLogin) {
-      window._authLogin(email, password);
-    } else {
-      const nombre = document.getElementById('auth-nombre').value.trim() || email.split('@')[0];
-      window._authRegistrar(nombre, email, password);
-    }
-  }
-
-  // Permitir Enter en los inputs
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('auth-screen')?.style.display !== 'none') {
-      authSubmit();
-    }
-  });
-</script>
 
 <!-- Fuentes -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1914,87 +1677,6 @@
     .portada-widgets    { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
   }
 
-  /* ══════════════════════════════════════════════════════════
-     AUTH SCREEN
-     ══════════════════════════════════════════════════════════ */
-  #auth-screen {
-    display: flex; position: fixed; inset: 0; z-index: 9999;
-    background: var(--navy); align-items: center; justify-content: center;
-    padding: 1.5rem;
-  }
-  #auth-screen::before {
-    content: ''; position: absolute; top: -80px; right: -100px;
-    width: 420px; height: 420px; border-radius: 50%;
-    border: 50px solid rgba(14,107,168,0.18); pointer-events: none;
-  }
-  #auth-screen::after {
-    content: ''; position: absolute; bottom: -60px; left: 60px;
-    width: 260px; height: 260px; border-radius: 50%;
-    border: 35px solid rgba(14,107,168,0.1); pointer-events: none;
-  }
-  .auth-box {
-    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 24px; padding: 2.2rem 2rem; width: 100%; max-width: 380px;
-    position: relative; z-index: 1;
-  }
-  .auth-logo {
-    font-family: 'Bebas Neue', sans-serif; font-size: 2.6rem; letter-spacing: 0.06em;
-    color: white; text-align: center; line-height: 1; margin-bottom: 0.3rem;
-  }
-  .auth-logo span { color: var(--ocean-light); }
-  .auth-tagline {
-    font-size: 0.78rem; color: rgba(255,255,255,0.45); text-align: center;
-    margin-bottom: 1.8rem; font-weight: 300; letter-spacing: 0.06em;
-  }
-  .auth-tabs {
-    display: flex; gap: 0; background: rgba(0,0,0,0.2); border-radius: 10px;
-    padding: 3px; margin-bottom: 1.5rem;
-  }
-  .auth-tab {
-    flex: 1; text-align: center; padding: 0.5rem; font-size: 0.82rem;
-    font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-    color: rgba(255,255,255,0.5); cursor: pointer; border-radius: 8px;
-    transition: all 0.2s; user-select: none;
-  }
-  .auth-tab-active { background: rgba(255,255,255,0.12); color: white; }
-  .auth-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 0.9rem; }
-  .auth-label {
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--ocean-light); opacity: 0.8;
-  }
-  .auth-input {
-    font-family: 'DM Sans', sans-serif; font-size: 0.92rem;
-    padding: 0.65rem 0.9rem; border: 1.5px solid rgba(255,255,255,0.15);
-    border-radius: 10px; background: rgba(255,255,255,0.06); color: white;
-    outline: none; transition: border-color 0.2s;
-    -webkit-appearance: none;
-  }
-  .auth-input::placeholder { color: rgba(255,255,255,0.3); }
-  .auth-input:focus { border-color: var(--ocean-light); background: rgba(255,255,255,0.1); }
-  .auth-submit {
-    width: 100%; padding: 0.75rem; background: var(--ocean); color: white; border: none;
-    border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.92rem;
-    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
-    transition: background 0.2s; margin-top: 0.4rem;
-  }
-  .auth-submit:hover:not(:disabled) { background: #0d7fc0; }
-  .auth-submit:disabled { opacity: 0.55; cursor: not-allowed; }
-  .auth-error {
-    display: none; background: rgba(192,57,43,0.2); border: 1px solid rgba(192,57,43,0.5);
-    color: #fca5a5; border-radius: 8px; padding: 0.55rem 0.8rem;
-    font-size: 0.8rem; margin-top: 0.75rem; text-align: center;
-  }
-  /* Botón cerrar sesión en portada */
-  #btn-logout {
-    position: absolute; top: 1.2rem; right: 1.2rem; z-index: 10;
-    background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.2);
-    color: rgba(255,255,255,0.6); border-radius: 8px; padding: 0.4rem 0.85rem;
-    font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600;
-    cursor: pointer; letter-spacing: 0.06em; transition: all 0.15s;
-  }
-  #btn-logout:hover { background: rgba(255,255,255,0.17); color: white; }
-  #portada-user-name { color: var(--ocean-light); }
-
   /* ── Contenedores internos de área (inline → clase) ── */
   .area-inner-wrap {
     padding: 2rem;
@@ -2265,56 +1947,47 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════════ PANTALLA CARGA ══════════════════════════════════ -->
+<!-- ══ LOADING SCREEN ══ -->
 <div id="loading-screen" style="display:flex;position:fixed;inset:0;z-index:99999;background:#0a2540;align-items:center;justify-content:center;flex-direction:column;gap:1rem">
   <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:0.08em;color:white">Cargando<span style="color:#a8d5f0">…</span></div>
   <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#a8d5f0;border-radius:50%;animation:spin 0.8s linear infinite"></div>
   <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 </div>
 
-<!-- ══════════════════════════════════ PANTALLA AUTH ══════════════════════════════════ -->
-<div id="auth-screen" style="display:none">
-  <div class="auth-box">
-    <div class="auth-logo">MI <span>APP</span></div>
-    <div class="auth-tagline">Entrenamiento · Calendario · Organización</div>
-
-    <!-- Tabs -->
-    <div class="auth-tabs">
-      <div class="auth-tab auth-tab-active" id="auth-tab-login" onclick="authSwitchTab('login')">Entrar</div>
-      <div class="auth-tab" id="auth-tab-registro" onclick="authSwitchTab('registro')">Registro</div>
+<!-- ══ AUTH SCREEN ══ -->
+<div id="auth-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:#0a2540;align-items:center;justify-content:center;padding:1.5rem">
+  <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:2.2rem 2rem;width:100%;max-width:380px;position:relative;z-index:1">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:0.06em;color:white;text-align:center;line-height:1;margin-bottom:0.3rem">MI <span style="color:#a8d5f0">APP</span></div>
+    <div style="font-size:0.78rem;color:rgba(255,255,255,0.45);text-align:center;margin-bottom:1.8rem;font-weight:300">Entrenamiento · Calendario · Organización</div>
+    <div style="display:flex;background:rgba(0,0,0,0.2);border-radius:10px;padding:3px;margin-bottom:1.5rem">
+      <div id="auth-tab-login" onclick="authSwitchTab('login')" style="flex:1;text-align:center;padding:0.5rem;font-size:0.82rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border-radius:8px;background:rgba(255,255,255,0.12);color:white">Entrar</div>
+      <div id="auth-tab-registro" onclick="authSwitchTab('registro')" style="flex:1;text-align:center;padding:0.5rem;font-size:0.82rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border-radius:8px;color:rgba(255,255,255,0.5)">Registro</div>
     </div>
-
-    <!-- Campo nombre (solo registro) -->
-    <div class="auth-field" id="auth-field-nombre" style="display:none">
-      <label class="auth-label">Nombre</label>
-      <input class="auth-input" id="auth-nombre" type="text" placeholder="Tu nombre" autocomplete="name">
+    <div id="auth-field-nombre" style="display:none;margin-bottom:0.9rem">
+      <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a8d5f0;margin-bottom:4px">Nombre</div>
+      <input id="auth-nombre" type="text" placeholder="Tu nombre" autocomplete="name" style="width:100%;font-family:'DM Sans',sans-serif;font-size:0.92rem;padding:0.65rem 0.9rem;border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;background:rgba(255,255,255,0.06);color:white;outline:none">
     </div>
-
-    <!-- Email -->
-    <div class="auth-field">
-      <label class="auth-label">Correo</label>
-      <input class="auth-input" id="auth-email" type="email" placeholder="correo@ejemplo.com" autocomplete="email">
+    <div style="margin-bottom:0.9rem">
+      <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a8d5f0;margin-bottom:4px">Correo</div>
+      <input id="auth-email" type="email" placeholder="correo@ejemplo.com" autocomplete="email" style="width:100%;font-family:'DM Sans',sans-serif;font-size:0.92rem;padding:0.65rem 0.9rem;border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;background:rgba(255,255,255,0.06);color:white;outline:none">
     </div>
-
-    <!-- Contraseña -->
-    <div class="auth-field">
-      <label class="auth-label">Contraseña</label>
-      <input class="auth-input" id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password">
+    <div style="margin-bottom:0.9rem">
+      <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a8d5f0;margin-bottom:4px">Contraseña</div>
+      <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;font-family:'DM Sans',sans-serif;font-size:0.92rem;padding:0.65rem 0.9rem;border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;background:rgba(255,255,255,0.06);color:white;outline:none">
     </div>
-
-    <button class="auth-submit" id="auth-submit-btn" onclick="authSubmit()">Entrar</button>
-    <div class="auth-error" id="auth-error"></div>
+    <button id="auth-submit-btn" onclick="authSubmit()" style="width:100%;padding:0.75rem;background:#0e6ba8;color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.92rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer">Entrar</button>
+    <div id="auth-error" style="display:none;background:rgba(192,57,43,0.2);border:1px solid rgba(192,57,43,0.5);color:#fca5a5;border-radius:8px;padding:0.55rem 0.8rem;font-size:0.8rem;margin-top:0.75rem;text-align:center"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════ APP ══════════════════════════════════ -->
+<!-- ══ APP ══ -->
 <div id="app-root" style="display:none">
+  <button id="btn-logout" onclick="_authLogout()" style="position:absolute;top:1.2rem;right:1.2rem;z-index:10;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);border-radius:8px;padding:0.4rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:0.75rem;font-weight:600;cursor:pointer">Cerrar sesión</button>
 
 <!-- ══════════════════════════════════ PORTADA ══════════════════════════════════ -->
 <div id="portada">
-  <button id="btn-logout" onclick="_authLogout()">Cerrar sesión</button>
   <div class="portada-label">Mi espacio personal</div>
-  <div class="portada-title">HOLA, <span id="portada-user-name">…</span></div>
+  <div class="portada-title">HOLA, <span id="portada-user-name" style="color:#a8d5f0">…</span></div>
   <p class="portada-sub">Selecciona un área para empezar</p>
 
   <!-- WIDGETS -->
@@ -7367,7 +7040,175 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 });
 </script>
 
+
 </div><!-- /app-root -->
+
+<!-- Firebase + Auth -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
+    authDomain: "organizacionml.firebaseapp.com",
+    projectId: "organizacionml",
+    storageBucket: "organizacionml.firebasestorage.app",
+    messagingSenderId: "217963164755",
+    appId: "1:217963164755:web:6504fc815010b7110242a6",
+    measurementId: "G-GXFENBBT8B"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+  let _currentUid = null;
+
+  // ── Helpers Firestore (por usuario) ──
+  window._fbSet = async (col, id, data) => {
+    if (!_currentUid) return;
+    try { await setDoc(doc(db, "users", _currentUid, col, id), data); }
+    catch(e) { console.warn('[FB] set error', e); }
+  };
+  window._fbDelete = async (col, id) => {
+    if (!_currentUid) return;
+    try { await deleteDoc(doc(db, "users", _currentUid, col, id)); }
+    catch(e) { console.warn('[FB] delete error', e); }
+  };
+  window._fbListen = (col, cb) => {
+    if (!_currentUid) return () => {};
+    return onSnapshot(collection(db, "users", _currentUid, col), snap => {
+      const docs = {};
+      snap.forEach(d => { docs[d.id] = d.data(); });
+      cb(docs);
+    }, err => console.warn('[FB] listen error', err));
+  };
+
+  // ── Auth functions ──
+  window._authLogin = async (email, pw) => {
+    authSetError(''); authSetLoading(true);
+    try { await signInWithEmailAndPassword(auth, email, pw); }
+    catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
+  };
+  window._authRegistrar = async (nombre, email, pw) => {
+    authSetError(''); authSetLoading(true);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      await updateProfile(cred.user, { displayName: nombre });
+    } catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
+  };
+  window._authLogout = async () => {
+    await signOut(auth);
+    if (typeof goPortada === 'function') goPortada();
+  };
+
+  function authSetLoading(on) {
+    const btn = document.getElementById('auth-submit-btn');
+    if (!btn) return;
+    btn.disabled = on;
+    btn.textContent = on ? 'Cargando...' : (document.getElementById('auth-tab-login').classList.contains('auth-tab-active') ? 'Entrar' : 'Crear cuenta');
+  }
+  function authSetError(msg) {
+    const el = document.getElementById('auth-error');
+    if (!el) return;
+    el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+  }
+  function traducirError(code) {
+    const map = {
+      'auth/email-already-in-use': 'Ese correo ya está registrado.',
+      'auth/invalid-email': 'El correo no es válido.',
+      'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
+      'auth/user-not-found': 'No existe cuenta con ese correo.',
+      'auth/wrong-password': 'Contraseña incorrecta.',
+      'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+      'auth/too-many-requests': 'Demasiados intentos. Inténtalo más tarde.',
+    };
+    return map[code] || 'Error: ' + code;
+  }
+
+  // ── Estado de autenticación ──
+  onAuthStateChanged(auth, user => {
+    document.getElementById('loading-screen').style.display = 'none';
+    if (user) {
+      _currentUid = user.uid;
+      const n = document.getElementById('portada-user-name');
+      if (n) n.textContent = user.displayName || user.email.split('@')[0];
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app-root').style.display   = 'block';
+      window._fbReady = true;
+      window.dispatchEvent(new Event('firebase-ready'));
+    } else {
+      _currentUid = null;
+      window._fbReady = false;
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('app-root').style.display   = 'none';
+    }
+  });
+
+  // ── FCM ──
+  const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
+  async function initFCM() {
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    try {
+      const messaging = getMessaging(app);
+      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      onMessage(messaging, payload => {
+        const body = payload.notification?.body || '';
+        if (typeof mostrarToast === 'function') mostrarToast('\uD83D\uDD14 ' + body);
+        if (Notification.permission === 'granted')
+          new Notification(payload.notification?.title || 'Recordatorio', { body, icon: '/icons/icon-192.png' });
+      });
+      if (Notification.permission === 'granted') { await regToken(messaging, swReg); return; }
+      if (Notification.permission === 'denied') return;
+      const banner = document.getElementById('fcm-banner');
+      if (banner) banner.style.display = 'flex';
+      document.getElementById('fcm-allow-btn')?.addEventListener('click', async () => {
+        if (banner) banner.style.display = 'none';
+        if (await Notification.requestPermission() === 'granted') await regToken(messaging, swReg);
+      });
+    } catch(e) { console.warn('[FCM]', e); }
+  }
+  async function regToken(messaging, swReg) {
+    try {
+      const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+      if (token) {
+        const save = async () => window._fbSet && await window._fbSet('fcm_tokens', token.slice(-20), { token, ts: Date.now() });
+        window._fbReady ? save() : window.addEventListener('firebase-ready', save, { once: true });
+      }
+    } catch(e) { console.warn('[FCM] token error', e); }
+  }
+  window.addEventListener('load', () => setTimeout(initFCM, 1500));
+</script>
+
+<script>
+  // ── Auth UI ──
+  function authSwitchTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('auth-tab-login').classList.toggle('auth-tab-active', isLogin);
+    document.getElementById('auth-tab-registro').classList.toggle('auth-tab-active', !isLogin);
+    document.getElementById('auth-field-nombre').style.display = isLogin ? 'none' : '';
+    document.getElementById('auth-submit-btn').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
+    document.getElementById('auth-error').style.display = 'none';
+  }
+  function authSubmit() {
+    const email = document.getElementById('auth-email').value.trim();
+    const pw    = document.getElementById('auth-password').value;
+    const login = document.getElementById('auth-tab-login').classList.contains('auth-tab-active');
+    if (!email || !pw) {
+      document.getElementById('auth-error').textContent = 'Rellena todos los campos.';
+      document.getElementById('auth-error').style.display = 'block'; return;
+    }
+    if (login) { window._authLogin(email, pw); }
+    else {
+      const nombre = document.getElementById('auth-nombre').value.trim() || email.split('@')[0];
+      window._authRegistrar(nombre, email, pw);
+    }
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('auth-screen').style.display !== 'none') authSubmit();
+  });
+</script>
 
 </body>
 </html>
