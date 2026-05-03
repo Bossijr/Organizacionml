@@ -86,6 +86,10 @@
 
   // ══════════ AUTH: OBSERVADOR DE ESTADO ══════════
   onAuthStateChanged(auth, user => {
+    // Ocultar loader siempre
+    const loader = document.getElementById('loading-screen');
+    if (loader) loader.style.display = 'none';
+
     if (user) {
       _currentUid = user.uid;
       // Actualizar nombre en portada
@@ -2256,8 +2260,15 @@
 </head>
 <body>
 
+<!-- ══════════════════════════════════ PANTALLA CARGA ══════════════════════════════════ -->
+<div id="loading-screen" style="display:flex;position:fixed;inset:0;z-index:99999;background:#0a2540;align-items:center;justify-content:center;flex-direction:column;gap:1rem">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:0.08em;color:white">Cargando<span style="color:#a8d5f0">…</span></div>
+  <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#a8d5f0;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>
+
 <!-- ══════════════════════════════════ PANTALLA AUTH ══════════════════════════════════ -->
-<div id="auth-screen" style="display:flex">
+<div id="auth-screen" style="display:none">
   <div class="auth-box">
     <div class="auth-logo">MI <span>APP</span></div>
     <div class="auth-tagline">Entrenamiento · Calendario · Organización</div>
