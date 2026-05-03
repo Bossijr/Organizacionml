@@ -7330,8 +7330,20 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   // ── Auth UI ──
   function authSwitchTab(tab) {
     const isLogin = tab === 'login';
-    document.getElementById('auth-tab-login').classList.toggle('auth-tab-active', isLogin);
-    document.getElementById('auth-tab-registro').classList.toggle('auth-tab-active', !isLogin);
+    const tabLogin    = document.getElementById('auth-tab-login');
+    const tabRegistro = document.getElementById('auth-tab-registro');
+
+    tabLogin.classList.toggle('auth-tab-active', isLogin);
+    tabRegistro.classList.toggle('auth-tab-active', !isLogin);
+
+    // Tab activo: fondo blanco, color azul, sombra
+    tabLogin.style.background  = isLogin  ? '#ffffff' : 'transparent';
+    tabLogin.style.color       = isLogin  ? '#0071e3' : 'rgba(29,29,31,0.4)';
+    tabLogin.style.boxShadow   = isLogin  ? '0 1px 4px rgba(0,0,0,0.1)' : 'none';
+    tabRegistro.style.background = !isLogin ? '#ffffff' : 'transparent';
+    tabRegistro.style.color      = !isLogin ? '#0071e3' : 'rgba(29,29,31,0.4)';
+    tabRegistro.style.boxShadow  = !isLogin ? '0 1px 4px rgba(0,0,0,0.1)' : 'none';
+
     document.getElementById('auth-field-nombre').style.display = isLogin ? 'none' : '';
     document.getElementById('auth-submit-btn').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
     document.getElementById('auth-error').style.display = 'none';
