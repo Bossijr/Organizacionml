@@ -1348,7 +1348,7 @@
   }
   @media (max-width: 520px) { .wx-main-card { grid-template-columns: 1fr; } }
   .wx-main-left { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; }
-  .wx-icon-big { font-family: 'Cormorant Garamond', serif; font-size: 5rem; line-height: 1; opacity: 0.9; letter-spacing: -0.02em; }
+  .wx-icon-big { font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; font-size: 5rem; line-height: 1; opacity: 0.9; letter-spacing: 0; }
   .wx-temp-big { font-family: 'Cormorant Garamond', serif; font-size: 4.5rem; letter-spacing: 0.02em; line-height: 1; }
   .wx-desc-now { font-size: 1rem; font-weight: 500; opacity: 0.85; text-transform: capitalize; }
   .wx-main-right { display: flex; flex-direction: column; gap: 0.55rem; justify-content: center; }
@@ -1361,7 +1361,7 @@
   .wx-forecast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.6rem; margin-bottom: 1.5rem; }
   .wx-day-card { background: var(--surface2); border: 1.5px solid var(--card-border); border-radius: 10px; padding: 0.9rem 0.7rem; text-align: center; display: flex; flex-direction: column; gap: 0.35rem; }
   .wx-day-name { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-  .wx-day-icon { font-family: 'Cormorant Garamond', serif; font-size: 2rem; line-height: 1; color: var(--ink); }
+  .wx-day-icon { font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; font-size: 2rem; line-height: 1; color: var(--ink); }
   .wx-day-max { font-size: 1.05rem; font-weight: 700; color: var(--ink); }
   .wx-day-min { font-size: 0.8rem; color: var(--muted); }
   .wx-day-rain { font-size: 0.7rem; color: #60a5fa; font-weight: 500; }
@@ -1460,7 +1460,7 @@
   }
   .wx-hour-time { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
   .wx-hour-card.wx-hour-now .wx-hour-time { color: var(--gold); }
-  .wx-hour-icon { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; line-height: 1; color: var(--ink); }
+  .wx-hour-icon { font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; font-size: 1.6rem; line-height: 1; color: var(--ink); }
   .wx-hour-temp { font-size: 1rem; font-weight: 700; color: var(--ink); }
   .wx-hour-rain { font-size: 0.62rem; color: #60a5fa; font-weight: 600; }
   .wx-hour-wind { font-size: 0.6rem; color: var(--muted); }
@@ -4163,14 +4163,14 @@ const WX_CODES = {
   95:'Tormenta',96:'Tormenta con granizo',99:'Tormenta fuerte con granizo'
 };
 const WX_ICONS = {
-  0:'○',1:'◑',2:'◑',3:'●',
-  45:'≋',48:'≋',
-  51:'≈',53:'≈',55:'≈',
-  61:'↓',63:'↓',65:'↓',
-  71:'*',73:'*',75:'*',77:'*',
-  80:'↓',81:'↓',82:'↯',
-  85:'*',86:'*',
-  95:'↯',96:'↯',99:'↯'
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌧️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'🌨️',73:'🌨️',75:'❄️',77:'🌨️',
+  80:'🌦️',81:'🌧️',82:'⛈️',
+  85:'🌨️',86:'❄️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
 };
 const DIAS_WX = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
