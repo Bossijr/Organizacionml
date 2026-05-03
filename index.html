@@ -85,30 +85,35 @@
   };
 
   // ══════════ AUTH: OBSERVADOR DE ESTADO ══════════
-  onAuthStateChanged(auth, user => {
-    // Ocultar loader siempre
-    const loader = document.getElementById('loading-screen');
-    if (loader) loader.style.display = 'none';
+  // Esperar a que el DOM esté completamente cargado antes de manipular elementos
+  function iniciarObservadorAuth() {
+    onAuthStateChanged(auth, user => {
+      // Ocultar loader siempre
+      const loader = document.getElementById('loading-screen');
+      if (loader) loader.style.display = 'none';
 
-    if (user) {
-      _currentUid = user.uid;
-      // Actualizar nombre en portada
-      const nameEl = document.getElementById('portada-user-name');
-      if (nameEl) nameEl.textContent = user.displayName || user.email.split('@')[0];
-      // Ocultar pantalla auth, mostrar app
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('app-root').style.display = 'block';
-      // Disparar evento para que el resto de la app cargue datos
-      window._fbReady = true;
-      window.dispatchEvent(new Event('firebase-ready'));
-    } else {
-      _currentUid = null;
-      window._fbReady = false;
-      // Mostrar pantalla de login
-      document.getElementById('auth-screen').style.display = 'flex';
-      document.getElementById('app-root').style.display = 'none';
-    }
-  });
+      if (user) {
+        _currentUid = user.uid;
+        const nameEl = document.getElementById('portada-user-name');
+        if (nameEl) nameEl.textContent = user.displayName || user.email.split('@')[0];
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-root').style.display = 'block';
+        window._fbReady = true;
+        window.dispatchEvent(new Event('firebase-ready'));
+      } else {
+        _currentUid = null;
+        window._fbReady = false;
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('app-root').style.display = 'none';
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarObservadorAuth);
+  } else {
+    iniciarObservadorAuth();
+  }
 
   // ══════════ AUTH: FUNCIONES EXPUESTAS ══════════
   window._authRegistrar = async (nombre, email, password) => {
