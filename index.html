@@ -133,26 +133,40 @@
   @media (max-width: 640px) {
     .portada-cards { grid-template-columns: 1fr 1fr; gap: 0.65rem; }
     .portada-card { padding: 1.4rem 1rem; }
-    .portada-card-icon { font-size: 2rem; }
+    .portada-card-icon { width: 2rem; height: 2rem; }
     .portada-card-title { font-size: 1.2rem; }
   }
   .portada-card {
     background: rgba(212,175,55,0.03);
     border: 1px solid rgba(212,175,55,0.18);
+    border-top: 2px solid rgba(212,175,55,0.35);
     border-radius: 4px;
     padding: 2rem 1.5rem;
     cursor: pointer;
-    transition: background 0.2s, transform 0.2s, border-color 0.2s;
+    transition: background 0.2s, transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     text-align: center;
     user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .portada-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 40%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent);
+    pointer-events: none;
   }
   .portada-card:hover {
     background: rgba(212,175,55,0.07);
     border-color: var(--gold);
+    border-top-color: var(--gold);
     transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(212,175,55,0.1);
+    box-shadow: 0 8px 32px rgba(212,175,55,0.12), 0 0 0 1px rgba(212,175,55,0.08);
   }
-  .portada-card-icon { font-size: 2.4rem; margin-bottom: 0.7rem; }
+  .portada-card-icon { width: 2.6rem; height: 2.6rem; margin: 0 auto 0.85rem; display: flex; align-items: center; justify-content: center; }
+  .portada-card-icon svg { width: 100%; height: 100%; stroke: var(--gold); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; transition: opacity 0.2s, transform 0.2s; }
+  .portada-card:hover .portada-card-icon svg { opacity: 1; transform: scale(1.1); }
   .portada-card-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.4rem;
@@ -184,6 +198,7 @@
   .pw {
     background: rgba(212,175,55,0.03);
     border: 1px solid rgba(212,175,55,0.15);
+    border-left: 2px solid rgba(212,175,55,0.4);
     border-radius: 4px;
     padding: 1.1rem 1.2rem;
     cursor: pointer;
@@ -192,7 +207,7 @@
     overflow: hidden;
     text-align: left;
   }
-  .pw:hover { background: rgba(212,175,55,0.06); border-color: rgba(212,175,55,0.4); }
+  .pw:hover { background: rgba(212,175,55,0.06); border-color: rgba(212,175,55,0.4); border-left-color: var(--gold); }
   .pw-label {
     font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
     color: var(--gold); opacity: 0.8; margin-bottom: 0.5rem; display: block; letter-spacing: 0.2em;
@@ -202,7 +217,8 @@
     color: white; line-height: 1; margin-bottom: 0.2rem; font-weight: 300;
   }
   .pw-sub { font-size: 0.75rem; color: rgba(255,255,255,0.55); font-weight: 300; line-height: 1.4; }
-  .pw-icon { position: absolute; bottom: 0.6rem; right: 0.9rem; font-size: 1.6rem; opacity: 0.18; }
+  .pw-icon { position: absolute; bottom: 0.6rem; right: 0.9rem; width: 2rem; height: 2rem; opacity: 0.12; }
+  .pw-icon svg { width: 100%; height: 100%; stroke: var(--gold); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .pw-badge {
     display: inline-flex; align-items: center; justify-content: center;
     width: 22px; height: 22px; border-radius: 50%;
@@ -1573,7 +1589,7 @@
     /* ════════ PORTADA ════════ */
     .portada-cards   { grid-template-columns: 1fr 1fr; gap: 0.45rem; }
     .portada-card    { padding: 0.95rem 0.65rem; border-radius: 13px; }
-    .portada-card-icon  { font-size: 1.6rem; margin-bottom: 0.4rem; }
+    .portada-card-icon  { width: 1.6rem; height: 1.6rem; margin-bottom: 0.4rem; }
     .portada-card-title { font-size: 1rem; }
     .portada-card-desc  { font-size: 0.7rem; }
     .portada-widgets    { grid-template-columns: 1fr 1fr; gap: 0.45rem; }
@@ -1688,7 +1704,7 @@
        ════════════════════════════════ */
     .portada-cards      { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .portada-card       { padding: 1rem 0.7rem; border-radius: 4px; }
-    .portada-card-icon  { font-size: 1.7rem; margin-bottom: 0.5rem; }
+    .portada-card-icon  { width: 1.7rem; height: 1.7rem; margin-bottom: 0.5rem; }
     .portada-card-title { font-size: 1.05rem; }
     .portada-card-desc  { font-size: 0.72rem; }
     .portada-widgets    { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
@@ -1720,7 +1736,7 @@
       gap: 1rem;
     }
     .portada-card  { padding: 1.4rem 1.2rem; border-radius: 4px; }
-    .portada-card-icon  { font-size: 2rem; margin-bottom: 0.5rem; }
+    .portada-card-icon  { width: 2rem; height: 2rem; margin-bottom: 0.5rem; }
     .portada-card-title { font-size: 1.3rem; }
     .portada-card-desc  { font-size: 0.8rem; }
     .portada-widgets    { max-width: none; gap: 1rem; margin-bottom: 1.2rem; grid-template-columns: 1fr 1fr 1fr; }
@@ -2011,52 +2027,62 @@
   <div class="portada-widgets">
     <!-- Tiempo -->
     <div class="pw" onclick="goArea('tiempo')" id="pw-tiempo">
-      <span class="pw-label">🌤 Tiempo</span>
+      <span class="pw-label">Tiempo</span>
       <div class="pw-main" id="pw-temp"><div class="pw-skeleton short"></div></div>
       <div class="pw-sub" id="pw-desc"><div class="pw-skeleton medium"></div></div>
-
+      <div class="pw-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg></div>
     </div>
     <!-- Próximo evento -->
     <div class="pw" onclick="goArea('calendario')" id="pw-cal">
-      <span class="pw-label">📅 Próximo evento</span>
+      <span class="pw-label">Próximo evento</span>
       <div id="pw-evento-content">
         <div class="pw-skeleton wide"></div><div class="pw-skeleton medium"></div>
       </div>
-
+      <div class="pw-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
     </div>
     <!-- Tareas pendientes -->
     <div class="pw" onclick="goArea('personal')" id="pw-tareas">
-      <span class="pw-label">✅ Tareas hoy</span>
+      <span class="pw-label">Tareas hoy</span>
       <div id="pw-tareas-content">
         <div class="pw-skeleton wide"></div><div class="pw-skeleton medium"></div>
       </div>
-
+      <div class="pw-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
     </div>
   </div>
 
   <div class="portada-cards">
     <div class="portada-card" onclick="goArea('entrenamiento')">
-      <div class="portada-card-icon">🏄‍♂️</div>
+      <div class="portada-card-icon">
+        <svg viewBox="0 0 24 24"><path d="M4 19c0-3.5 2.5-6 6-6 1.5 0 2.8.5 3.8 1.4"/><path d="M14 5.5c0 2.5-2 4.5-4.5 4.5S5 8 5 5.5 7 1 9.5 1 14 3 14 5.5Z"/><path d="M20 15l-6 6"/><path d="M14 15l6 6"/><circle cx="17" cy="12" r="2"/></svg>
+      </div>
       <div class="portada-card-title">ENTRENAMIENTO</div>
       <div class="portada-card-desc">Surf · Fútbol · Cargas · Progresión</div>
     </div>
     <div class="portada-card" onclick="goArea('calendario')">
-      <div class="portada-card-icon">📅</div>
+      <div class="portada-card-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1" fill="currentColor" stroke="none" style="fill:var(--gold)"/><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none" style="fill:var(--gold)"/></svg>
+      </div>
       <div class="portada-card-title">CALENDARIO</div>
       <div class="portada-card-desc">Mes · Semana · Día · Eventos</div>
     </div>
     <div class="portada-card" onclick="goArea('personal')">
-      <div class="portada-card-icon">✅</div>
+      <div class="portada-card-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
       <div class="portada-card-title">PERSONAL</div>
       <div class="portada-card-desc">Tareas · Objetivos · Lista de la compra</div>
     </div>
     <div class="portada-card" onclick="goArea('tiempo')">
-      <div class="portada-card-icon">🌤️</div>
+      <div class="portada-card-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/><circle cx="12" cy="12" r="4"/><path d="M6 18a4 4 0 0 1 0-8h.5"/></svg>
+      </div>
       <div class="portada-card-title">TIEMPO</div>
       <div class="portada-card-desc">Meteorología · Previsión 7 días</div>
     </div>
     <div class="portada-card" onclick="goArea('asignaturas')">
-      <div class="portada-card-icon">📚</div>
+      <div class="portada-card-icon">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+      </div>
       <div class="portada-card-title">ASIGNATURAS</div>
       <div class="portada-card-desc">Notas · Exámenes · Media</div>
     </div>
@@ -2088,7 +2114,7 @@
       <div class="nav-tab" data-tab="nutricion">Nutrición</div>
       <div class="nav-tab" data-tab="progresion">Progresión</div>
       <div class="nav-tab" data-tab="recuperacion">Recuperación</div>
-      <div class="nav-tab" data-tab="registro">📊 Mis Cargas</div>
+      <div class="nav-tab" data-tab="registro">Mis Cargas</div>
     </div>
   </div>
 
@@ -2160,7 +2186,7 @@
       <div class="reg-stat-card"><div class="reg-stat-val" id="stat-prs">0</div><div class="reg-stat-lbl">Records (PR)</div></div>
     </div>
     <div class="reg-form-card">
-      <div class="reg-form-title">➕ Nuevo Registro</div>
+      <div class="reg-form-title">Nuevo Registro</div>
       <div class="reg-grid">
         <div class="reg-field"><label class="reg-label">Fecha</label><input type="date" class="reg-input" id="reg-fecha"></div>
         <div class="reg-field"><label class="reg-label">Día / Sesión</label>
@@ -2424,7 +2450,7 @@
 
   <div class="nav-personal">
     <div class="nav-personal-tabs">
-      <div class="pers-tab active" data-ptab="tareas">✅ Tareas</div>
+      <div class="pers-tab active" data-ptab="tareas">Tareas</div>
       <div class="pers-tab" data-ptab="midia">🌅 Mi Día</div>
       <div class="pers-tab" data-ptab="compra">🛒 Lista Compra</div>
     </div>
@@ -2446,7 +2472,7 @@
         <div class="tarea-footer"><span id="footer-diarias">0 pendientes</span><button class="tarea-clear-btn" onclick="clearDone('diarias')">Borrar completadas</button></div>
       </div>
       <div class="tarea-panel">
-        <div class="tarea-panel-header"><h3>🎯 Objetivos a largo plazo</h3><span class="tarea-count" id="count-largas">0</span></div>
+        <div class="tarea-panel-header"><h3>Objetivos a largo plazo</h3><span class="tarea-count" id="count-largas">0</span></div>
         <div class="tarea-input-row">
           <input class="tarea-input" id="input-larga" type="text" placeholder="Nuevo objetivo…" maxlength="120" />
           <select class="tarea-pri-select" id="pri-larga">
