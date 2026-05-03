@@ -6546,12 +6546,23 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
   }
 
   // ── Bloques simuladores: uno por cada nodo de nivel raíz ──
-  // Cada nodo raíz (o cualquier nodo con sub) genera un bloque con sus hojas simulables
-  function renderBloqueNodo(nodo, pctPadre) {
-    const pctAbs = (nodo.pct / 100) * pctPadre;
-    // Hojas directas o anidadas de este nodo
-    const hojasNodo = calcHojas([nodo], pctAbs);
-    const hojasConDatos = hojasNodo.map(h => {
+  function renderBloqueNodo(nodo) {
+    // pctAbs = peso real de este nodo sobre la nota final (ej: 60 si el nodo vale 60%)
+    const pctAbs = nodo.pct; // los nodos raíz ya tienen su pct directo (0-100)
+
+    // Obtener hojas de ESTE nodo con su peso global correcto
+    // calcHojas(nodos, pctPadre): pctEfectivo = (n.pct/100) * pctPadre
+    // Para el nodo raíz (pct=60), sus hojas internas tienen pct relativo (ej 50%)
+    // → pct global de la hoja = (50/100) * 60 = 30 ✓
+    const hojasNodo = calcHojas(nodo.sub && nodo.sub.length > 0 ? nodo.sub : [nodo],
+                                 nodo.sub && nodo.sub.length > 0 ? pctAbs : 100);
+
+    // Si el nodo es hoja directa (sin sub), la hoja es el propio nodo con su pct global
+    const hojasFinales = (nodo.sub && nodo.sub.length > 0)
+      ? hojasNodo
+      : [{ id: nodo.id, nombre: nodo.nombre, pct: pctAbs, min: nodo.min ?? null }];
+
+    const hojasConDatos = hojasFinales.map(h => {
       const ns = notas.filter(n => n.catId === h.id);
       const mediaActual = ns.length ? ns.reduce((s, n) => s + n.nota, 0) / ns.length : null;
       return { ...h, mediaActual };
@@ -6565,7 +6576,7 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
     let bloque = `<div class="reg-form-card" style="margin-bottom:1rem">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.9rem">
         <div>
-          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Simulador · <span style="font-size:0.68rem;color:#0369a1">${nodo.pct}%</span></div>
+          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Simulador · <span style="font-size:0.68rem;color:#0369a1">${nodo.pct}% de la nota final</span></div>
           <div style="font-size:1rem;font-weight:700;color:var(--navy)">${nodo.nombre}</div>
         </div>
         ${minBadge}
@@ -6573,16 +6584,17 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
       <table class="reg-table" style="table-layout:fixed;margin-bottom:0.75rem">
         <thead><tr>
           <th style="width:38%">Apartado</th>
-          <th style="width:13%;text-align:center">Peso</th>
+          <th style="width:13%;text-align:center">Peso total</th>
           <th style="width:17%;text-align:center">Nota real</th>
           <th style="width:18%;text-align:center">Simular</th>
-          <th style="width:14%;text-align:center">¿Aprueba?</th>
+          <th style="width:14%;text-align:center">Estado</th>
         </tr></thead>
         <tbody>`;
 
     hojasConDatos.forEach(h => {
-      const pctLocal  = pctAbs > 0 ? (h.pct / pctAbs) * 100 : 0; // % relativo dentro del grupo (para cálculo interno)
-      const pctGlobal = h.pct; // % real sobre la nota final (0-100)
+      const pctGlobal = h.pct; // peso real sobre la nota final (ya calculado por calcHojas)
+      // peso relativo dentro del bloque (para calcMinSimActualizar)
+      const pctLocal  = pctAbs > 0 ? (pctGlobal / pctAbs) * 100 : pctGlobal;
       const notaReal = h.mediaActual !== null
         ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${h.mediaActual.toFixed(2)}</span>`
         : `<span style="color:var(--muted);font-size:0.8rem">—</span>`;
@@ -6617,9 +6629,8 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
   }
 
   // Recorrer solo el primer nivel del árbol para los bloques principales
-  // Si un nodo raíz no tiene hijos, es hoja y también se muestra
   asig.pcts.forEach(nodo => {
-    html += renderBloqueNodo(nodo, 100);
+    html += renderBloqueNodo(nodo);
   });
 
   // ── Panel de media final global ──
