@@ -6583,40 +6583,48 @@ function calcRenderConPcts(el, asig, notas, objetivo, minimo) {
       </div>
       <table class="reg-table" style="table-layout:fixed;margin-bottom:0.75rem">
         <thead><tr>
-          <th style="width:38%">Apartado</th>
-          <th style="width:13%;text-align:center">Peso total</th>
-          <th style="width:17%;text-align:center">Nota real</th>
-          <th style="width:18%;text-align:center">Simular</th>
-          <th style="width:14%;text-align:center">Estado</th>
+          <th style="width:40%">Apartado</th>
+          <th style="width:13%;text-align:center">Peso</th>
+          <th style="width:20%;text-align:center">Nota</th>
+          <th style="width:13%;text-align:center">Estado</th>
         </tr></thead>
         <tbody>`;
 
     hojasConDatos.forEach(h => {
-      const pctGlobal = h.pct; // peso real sobre la nota final (ya calculado por calcHojas)
-      // peso relativo dentro del bloque (para calcMinSimActualizar)
+      const pctGlobal = h.pct;
       const pctLocal  = pctAbs > 0 ? (pctGlobal / pctAbs) * 100 : pctGlobal;
-      const notaReal = h.mediaActual !== null
-        ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--ocean)">${h.mediaActual.toFixed(2)}</span>`
-        : `<span style="color:var(--muted);font-size:0.8rem">—</span>`;
+      const tieneNotaReal = h.mediaActual !== null;
 
-      bloque += `<tr>
-        <td style="font-size:0.83rem;font-weight:600">${h.nombre || '—'}</td>
-        <td style="text-align:center">
-          <span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:8px;background:#e0f2fe;color:#0369a1">${pctGlobal.toFixed(pctGlobal % 1 === 0 ? 0 : 1)}%</span>
-        </td>
-        <td style="text-align:center">${notaReal}</td>
-        <td style="text-align:center">
-          <input type="number" min="0" max="10" step="0.01" placeholder="0–10"
+      // Si tiene nota real: input readonly prellenado con la nota real
+      // Si no tiene nota: input editable para simular
+      const inputCell = tieneNotaReal
+        ? `<input type="number" min="0" max="10" step="0.01"
             class="reg-input calc-min-sim-input"
             data-grupo="${nodo.id}"
             data-hoja="${h.id}"
             data-pct-local="${pctLocal}"
             data-pct-global="${pctGlobal}"
             data-min-grupo="${tieneMin ? nodo.min : ''}"
-            ${h.mediaActual !== null ? `value="${h.mediaActual.toFixed(2)}"` : ''}
-            style="width:70px;padding:0.3rem 0.4rem;font-size:0.82rem;text-align:center"
-            oninput="calcMinSimActualizar('${nodo.id}');calcMediaFinalGlobal()" />
+            value="${h.mediaActual.toFixed(2)}"
+            readonly
+            style="width:80px;padding:0.3rem 0.4rem;font-size:0.9rem;text-align:center;background:#f0f9ff;border-color:#bae6fd;color:var(--ocean);font-weight:700;cursor:default"
+            oninput="calcMinSimActualizar('${nodo.id}');calcMediaFinalGlobal()" />`
+        : `<input type="number" min="0" max="10" step="0.01" placeholder="0–10"
+            class="reg-input calc-min-sim-input"
+            data-grupo="${nodo.id}"
+            data-hoja="${h.id}"
+            data-pct-local="${pctLocal}"
+            data-pct-global="${pctGlobal}"
+            data-min-grupo="${tieneMin ? nodo.min : ''}"
+            style="width:80px;padding:0.3rem 0.4rem;font-size:0.82rem;text-align:center;border-style:dashed"
+            oninput="calcMinSimActualizar('${nodo.id}');calcMediaFinalGlobal()" />`;
+
+      bloque += `<tr>
+        <td style="font-size:0.83rem;font-weight:600">${h.nombre || '—'}${tieneNotaReal ? '' : ' <span style="font-size:0.65rem;color:var(--muted);font-weight:400">(simular)</span>'}</td>
+        <td style="text-align:center">
+          <span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:8px;background:#e0f2fe;color:#0369a1">${pctGlobal.toFixed(pctGlobal % 1 === 0 ? 0 : 1)}%</span>
         </td>
+        <td style="text-align:center">${inputCell}</td>
         <td style="text-align:center" id="calc-min-hoja-${h.id}"></td>
       </tr>`;
     });
