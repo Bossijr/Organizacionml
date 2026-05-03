@@ -5282,9 +5282,9 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
     <div class="nav-personal" style="margin-bottom:1.5rem">
       <div class="nav-personal-tabs">
         <div class="pers-tab active" data-asig-tab="asignaturas">Asignaturas</div>
-        <div class="pers-tab" data-asig-tab="notas">📝 Notas / Exámenes</div>
+        <div class="pers-tab" data-asig-tab="notas">Notas / Exámenes</div>
         <div class="pers-tab" data-asig-tab="resumen">Resumen</div>
-        <div class="pers-tab" data-asig-tab="calculadora">🧮 Calculadora</div>
+        <div class="pers-tab" data-asig-tab="calculadora">Calculadora</div>
       </div>
     </div>
 
@@ -6407,18 +6407,30 @@ function calcRenderSelectAsig() {
   const cur = sel.value;
   sel.innerHTML = '<option value="">— Selecciona asignatura —</option>' +
     asigDB.map(a => `<option value="${a.id}" ${a.id === cur ? 'selected' : ''}>${a.nombre}</option>`).join('');
-  if (!sel.value && asigDB.length) sel.value = asigDB[0].id;
+  // Restaurar la selección previa si sigue existiendo, sino tomar la primera
+  if (cur && asigDB.find(a => a.id === cur)) {
+    sel.value = cur;
+  } else if (asigDB.length) {
+    sel.value = asigDB[0].id;
+  }
 }
 
 function calcRender() {
   const el = document.getElementById('calc-resultado');
   if (!el) return;
 
-  const asigId   = document.getElementById('calc-asig').value;
+  // Sincronizar el selector con las asignaturas disponibles
+  calcRenderSelectAsig();
+
+  const asigSel = document.getElementById('calc-asig');
+  // Auto-seleccionar la primera si no hay selección
+  if (!asigSel.value && asigDB.length) asigSel.value = asigDB[0].id;
+
+  const asigId   = asigSel.value;
   const objetivo = parseFloat(document.getElementById('calc-objetivo').value);
 
   if (!asigId) {
-    el.innerHTML = `<div class="reg-empty"><div class="reg-empty-icon">🧮</div><div>Selecciona una asignatura para empezar.</div></div>`;
+    el.innerHTML = `<div class="reg-empty"><div class="reg-empty-icon">🧮</div><div>Añade una asignatura primero para usar la calculadora.</div></div>`;
     return;
   }
   if (isNaN(objetivo) || objetivo < 0 || objetivo > 10) {
