@@ -2406,6 +2406,17 @@
       <div class="portada-row-chevron">›</div>
     </div>
 
+    <div class="portada-row" onclick="ajustesAbrir()">
+      <div class="portada-row-icon" style="background:#f0f0f2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="portada-row-text">
+        <div class="portada-row-title">Ajustes</div>
+        <div class="portada-row-sub">Perfil · Cuenta · Preferencias</div>
+      </div>
+      <div class="portada-row-chevron">›</div>
+    </div>
+
   </div>
 </div>
 
@@ -7723,6 +7734,805 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   document.getElementById('auth-recuperar-modal').addEventListener('click', function(e) {
     if (e.target === this) authCerrarRecuperar();
   });
+</script>
+
+<!-- ══ MODAL AJUSTES ══ -->
+<div id="ajustes-modal" style="display:none;position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,0.3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);overflow-y:auto">
+<style>
+  /* ── Ajustes Modal ── */
+  #ajustes-modal {
+    font-family: 'Inter', sans-serif;
+  }
+  .aj-panel {
+    background: #f5f5f7;
+    min-height: 100vh;
+    max-width: 600px;
+    margin: 0 auto;
+    animation: aj-slidein 0.32s cubic-bezier(.22,.68,0,1.2);
+  }
+  @keyframes aj-slidein {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .aj-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(245,245,247,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.2rem;
+    padding-top: calc(1rem + env(safe-area-inset-top));
+  }
+  .aj-close-btn {
+    background: rgba(0,0,0,0.07);
+    border: none;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #1d1d1f;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .aj-close-btn:hover { background: rgba(0,0,0,0.13); }
+  .aj-topbar-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: #1d1d1f;
+    flex: 1;
+  }
+  .aj-body {
+    padding: 1.5rem 1.2rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  /* Section header */
+  .aj-section-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #86868b;
+    margin-bottom: 0.5rem;
+    padding-left: 0.1rem;
+  }
+  /* Card groups (like iOS settings) */
+  .aj-group {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .aj-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: background 0.12s;
+    min-height: 52px;
+  }
+  .aj-row:last-child { border-bottom: none; }
+  .aj-row:active { background: rgba(0,0,0,0.04); }
+  @media (hover:hover) { .aj-row:hover { background: rgba(0,0,0,0.025); } }
+  .aj-row-icon {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+  }
+  .aj-row-icon svg { width: 16px; height: 16px; }
+  .aj-row-info { flex: 1; min-width: 0; }
+  .aj-row-title { font-size: 0.9rem; font-weight: 500; color: #1d1d1f; }
+  .aj-row-val {
+    font-size: 0.78rem;
+    color: #86868b;
+    font-weight: 300;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+  .aj-row-chev { color: rgba(0,0,0,0.2); font-size: 1rem; flex-shrink: 0; }
+  /* Avatar */
+  .aj-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .aj-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0071e3 0%, #34c759 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    color: white;
+    font-weight: 400;
+    flex-shrink: 0;
+  }
+  .aj-avatar-info { flex: 1; }
+  .aj-avatar-name { font-size: 1rem; font-weight: 600; color: #1d1d1f; }
+  .aj-avatar-email { font-size: 0.78rem; color: #86868b; font-weight: 300; }
+  /* Danger row */
+  .aj-row-danger .aj-row-title { color: #ff3b30; }
+  /* Sub-modal (sheet) */
+  .aj-sheet {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.35);
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .aj-sheet.open { display: flex; }
+  .aj-sheet-box {
+    background: #f5f5f7;
+    border-radius: 18px 18px 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 0 0 calc(1.5rem + env(safe-area-inset-bottom));
+    animation: aj-sheet-in 0.28s cubic-bezier(.22,.68,0,1.1);
+  }
+  @keyframes aj-sheet-in {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .aj-sheet-handle {
+    width: 36px; height: 4px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 2px;
+    margin: 0.75rem auto 0;
+  }
+  .aj-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem 0.5rem;
+  }
+  .aj-sheet-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    color: #1d1d1f;
+  }
+  .aj-sheet-cancel {
+    font-size: 0.85rem;
+    color: #0071e3;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    padding: 0.3rem 0;
+  }
+  .aj-sheet-body { padding: 0.75rem 1.2rem 0; }
+  .aj-field { margin-bottom: 1.1rem; }
+  .aj-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #86868b;
+    margin-bottom: 5px;
+    display: block;
+  }
+  .aj-input {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    padding: 0.7rem 0.9rem;
+    border: 1.5px solid rgba(0,0,0,0.1);
+    border-radius: 10px;
+    background: #ffffff;
+    color: #1d1d1f;
+    outline: none;
+    transition: border-color 0.18s;
+    box-sizing: border-box;
+  }
+  .aj-input:focus { border-color: #0071e3; }
+  .aj-save-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: #0071e3;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: opacity 0.15s;
+  }
+  .aj-save-btn:hover { opacity: 0.88; }
+  .aj-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .aj-msg { font-size: 0.78rem; border-radius: 8px; padding: 0.5rem 0.8rem; margin-top: 0.75rem; display: none; text-align: center; }
+  .aj-msg.ok  { background: rgba(52,199,89,0.12);  color: #1a7a34; }
+  .aj-msg.err { background: rgba(255,59,48,0.12);   color: #c0392b; }
+  /* Chips dentro del sheet */
+  .aj-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.3rem; }
+  .aj-chip {
+    padding: 0.5rem 0.85rem;
+    border: 1.5px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    background: #f5f5f7;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .aj-chip:hover { background: #ebebed; }
+  .aj-chip.on { background: #0071e3; border-color: #0071e3; color: white; }
+  .aj-danger-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: transparent;
+    color: #ff3b30;
+    border: 1.5px solid rgba(255,59,48,0.3);
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .aj-danger-btn:hover { background: rgba(255,59,48,0.06); }
+</style>
+
+<div class="aj-panel">
+  <div class="aj-topbar">
+    <button class="aj-close-btn" onclick="ajustesCerrar()">✕</button>
+    <div class="aj-topbar-title">Ajustes</div>
+  </div>
+  <div class="aj-body">
+
+    <!-- CUENTA -->
+    <div>
+      <div class="aj-section-label">Cuenta</div>
+      <div class="aj-group">
+        <div class="aj-avatar-row">
+          <div class="aj-avatar" id="aj-avatar-letra">?</div>
+          <div class="aj-avatar-info">
+            <div class="aj-avatar-name" id="aj-user-name-display">—</div>
+            <div class="aj-avatar-email" id="aj-user-email-display">—</div>
+          </div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('nombre')">
+          <div class="aj-row-icon" style="background:#e8f0fe"><svg viewBox="0 0 24 24" fill="none" stroke="#3b6be8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="aj-row-info"><div class="aj-row-title">Nombre de usuario</div><div class="aj-row-val" id="aj-val-nombre">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('password')">
+          <div class="aj-row-icon" style="background:#fce8e8"><svg viewBox="0 0 24 24" fill="none" stroke="#d94040" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="aj-row-info"><div class="aj-row-title">Cambiar contraseña</div><div class="aj-row-val">••••••••</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row aj-row-danger" onclick="ajSheetAbrir('logout')">
+          <div class="aj-row-icon" style="background:#fce8e8"><svg viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+          <div class="aj-row-info"><div class="aj-row-title">Cerrar sesión</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERFIL FÍSICO -->
+    <div>
+      <div class="aj-section-label">Perfil físico</div>
+      <div class="aj-group">
+        <div class="aj-row" onclick="ajSheetAbrir('sexo')">
+          <div class="aj-row-icon" style="background:#f0e8fe">⚧️</div>
+          <div class="aj-row-info"><div class="aj-row-title">Sexo</div><div class="aj-row-val" id="aj-val-sexo">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('edad')">
+          <div class="aj-row-icon" style="background:#fff4e0">🎂</div>
+          <div class="aj-row-info"><div class="aj-row-title">Edad</div><div class="aj-row-val" id="aj-val-edad">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('nivel')">
+          <div class="aj-row-icon" style="background:#e8f7ee">💪</div>
+          <div class="aj-row-info"><div class="aj-row-title">Nivel físico</div><div class="aj-row-val" id="aj-val-nivel">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('lesiones')">
+          <div class="aj-row-icon" style="background:#fce8e8">🩺</div>
+          <div class="aj-row-info"><div class="aj-row-title">Lesiones</div><div class="aj-row-val" id="aj-val-lesiones">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRENAMIENTO -->
+    <div>
+      <div class="aj-section-label">Entrenamiento</div>
+      <div class="aj-group">
+        <div class="aj-row" onclick="ajSheetAbrir('frecuencia_ejercicio')">
+          <div class="aj-row-icon" style="background:#e8f0fe">🏃</div>
+          <div class="aj-row-info"><div class="aj-row-title">Frecuencia de entreno</div><div class="aj-row-val" id="aj-val-frecuencia_ejercicio">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('tiempo_disponible')">
+          <div class="aj-row-icon" style="background:#fff4e0">⏱️</div>
+          <div class="aj-row-info"><div class="aj-row-title">Tiempo por sesión</div><div class="aj-row-val" id="aj-val-tiempo_disponible">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('objetivo')">
+          <div class="aj-row-icon" style="background:#e8f7ee">🎯</div>
+          <div class="aj-row-info"><div class="aj-row-title">Objetivo principal</div><div class="aj-row-val" id="aj-val-objetivo">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('material')">
+          <div class="aj-row-icon" style="background:#f0e8fe">🏋️</div>
+          <div class="aj-row-info"><div class="aj-row-title">Material disponible</div><div class="aj-row-val" id="aj-val-material">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('deporte')">
+          <div class="aj-row-icon" style="background:#e8f0fe">⚽</div>
+          <div class="aj-row-info"><div class="aj-row-title">Deportes</div><div class="aj-row-val" id="aj-val-deporte">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HÁBITOS -->
+    <div>
+      <div class="aj-section-label">Hábitos</div>
+      <div class="aj-group">
+        <div class="aj-row" onclick="ajSheetAbrir('sueno')">
+          <div class="aj-row-icon" style="background:#f0e8fe">😴</div>
+          <div class="aj-row-info"><div class="aj-row-title">Horas de sueño</div><div class="aj-row-val" id="aj-val-sueno">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONA PELIGROSA -->
+    <div>
+      <div class="aj-section-label">Zona peligrosa</div>
+      <div class="aj-group">
+        <div class="aj-row aj-row-danger" onclick="ajSheetAbrir('reset_perfil')">
+          <div class="aj-row-icon" style="background:#fce8e8"><svg viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg></div>
+          <div class="aj-row-info"><div class="aj-row-title">Resetear perfil</div><div class="aj-row-val">Vuelve a mostrar el wizard de configuración</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- SHEETS (bottom drawers) -->
+<div id="aj-sheet-nombre" class="aj-sheet" onclick="if(event.target===this)ajSheetCerrar('nombre')">
+  <div class="aj-sheet-box">
+    <div class="aj-sheet-handle"></div>
+    <div class="aj-sheet-header">
+      <div class="aj-sheet-title">Nombre de usuario</div>
+      <button class="aj-sheet-cancel" onclick="ajSheetCerrar('nombre')">Cancelar</button>
+    </div>
+    <div class="aj-sheet-body">
+      <div class="aj-field">
+        <label class="aj-label">Nuevo nombre</label>
+        <input class="aj-input" id="aj-inp-nombre" type="text" placeholder="Tu nombre" autocomplete="name" maxlength="40">
+      </div>
+      <div id="aj-msg-nombre" class="aj-msg"></div>
+      <button class="aj-save-btn" onclick="ajGuardarNombre()">Guardar nombre</button>
+    </div>
+  </div>
+</div>
+
+<div id="aj-sheet-password" class="aj-sheet" onclick="if(event.target===this)ajSheetCerrar('password')">
+  <div class="aj-sheet-box">
+    <div class="aj-sheet-handle"></div>
+    <div class="aj-sheet-header">
+      <div class="aj-sheet-title">Cambiar contraseña</div>
+      <button class="aj-sheet-cancel" onclick="ajSheetCerrar('password')">Cancelar</button>
+    </div>
+    <div class="aj-sheet-body">
+      <div class="aj-field">
+        <label class="aj-label">Contraseña actual</label>
+        <input class="aj-input" id="aj-pw-actual" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="aj-field">
+        <label class="aj-label">Nueva contraseña</label>
+        <input class="aj-input" id="aj-pw-nueva" type="password" placeholder="Min. 6 caracteres" autocomplete="new-password">
+      </div>
+      <div class="aj-field">
+        <label class="aj-label">Confirmar contraseña</label>
+        <input class="aj-input" id="aj-pw-confirmar" type="password" placeholder="Repite la contraseña" autocomplete="new-password">
+      </div>
+      <div id="aj-msg-password" class="aj-msg"></div>
+      <button class="aj-save-btn" onclick="ajGuardarPassword()">Actualizar contraseña</button>
+    </div>
+  </div>
+</div>
+
+<div id="aj-sheet-logout" class="aj-sheet" onclick="if(event.target===this)ajSheetCerrar('logout')">
+  <div class="aj-sheet-box">
+    <div class="aj-sheet-handle"></div>
+    <div class="aj-sheet-header">
+      <div class="aj-sheet-title">Cerrar sesión</div>
+      <button class="aj-sheet-cancel" onclick="ajSheetCerrar('logout')">Cancelar</button>
+    </div>
+    <div class="aj-sheet-body" style="text-align:center;padding-bottom:1rem">
+      <div style="font-size:2.5rem;margin:0.5rem 0 1rem">👋</div>
+      <div style="font-size:0.9rem;color:#86868b;margin-bottom:1.5rem;font-weight:300">¿Seguro que quieres salir de tu cuenta?</div>
+      <button class="aj-danger-btn" onclick="_authLogout();ajustesCerrar()">Sí, cerrar sesión</button>
+    </div>
+  </div>
+</div>
+
+<div id="aj-sheet-reset_perfil" class="aj-sheet" onclick="if(event.target===this)ajSheetCerrar('reset_perfil')">
+  <div class="aj-sheet-box">
+    <div class="aj-sheet-handle"></div>
+    <div class="aj-sheet-header">
+      <div class="aj-sheet-title">Resetear perfil</div>
+      <button class="aj-sheet-cancel" onclick="ajSheetCerrar('reset_perfil')">Cancelar</button>
+    </div>
+    <div class="aj-sheet-body" style="text-align:center;padding-bottom:1rem">
+      <div style="font-size:2.5rem;margin:0.5rem 0 1rem">🔄</div>
+      <div style="font-size:0.9rem;color:#86868b;margin-bottom:1.5rem;font-weight:300;line-height:1.6">Esto borrará tu perfil guardado y volverá a mostrarte el asistente de configuración la próxima vez que abras la app.</div>
+      <button class="aj-danger-btn" onclick="ajResetPerfil()">Sí, resetear perfil</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sheets para preferencias (chips/multi generados dinámicamente) -->
+<div id="aj-sheet-generic" class="aj-sheet" onclick="if(event.target===this)ajSheetCerrarGeneric()">
+  <div class="aj-sheet-box">
+    <div class="aj-sheet-handle"></div>
+    <div class="aj-sheet-header">
+      <div class="aj-sheet-title" id="aj-generic-title">—</div>
+      <button class="aj-sheet-cancel" onclick="ajSheetCerrarGeneric()">Cancelar</button>
+    </div>
+    <div class="aj-sheet-body">
+      <div id="aj-generic-body"></div>
+      <div id="aj-msg-generic" class="aj-msg"></div>
+      <button class="aj-save-btn" onclick="ajGuardarGeneric()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════ AJUSTES ══════════════════════════════
+let _ajPerfil = {}; // caché local del perfil
+let _ajGenericKey = null; // qué campo está editando el sheet genérico
+
+// Labels legibles para los valores del perfil
+const AJ_LABELS = {
+  sexo:                { masculino:'Masculino', femenino:'Femenino', otro:'Otro' },
+  nivel:               { principiante:'Principiante', intermedio:'Intermedio', avanzado:'Avanzado', elite:'Élite' },
+  frecuencia_ejercicio:{ 'nunca':'Casi nunca','1-2d':'1–2 días/sem','3-4d':'3–4 días/sem','5-6d':'5–6 días/sem','7d':'Cada día' },
+  tiempo_disponible:   { '<30m':'<30 min','30-45m':'30–45 min','45-60m':'45–60 min','60-90m':'60–90 min','>90m':'>90 min' },
+  objetivo:            { fuerza:'Fuerza',perder_grasa:'Perder grasa',ganar_musculo:'Ganar músculo',resistencia:'Resistencia',flexibilidad:'Flexibilidad',deporte:'Deporte',salud:'Salud' },
+  material:            { sin_material:'Sin material',gimnasio:'Gimnasio',mancuernas:'Mancuernas',bandas:'Bandas',barras:'Barras',exterior:'Exterior',cardio_maquina:'Cardio máquina' },
+  deporte:             { futbol:'Fútbol',surf:'Surf',basket:'Baloncesto',padel:'Pádel',natacion:'Natación',ciclismo:'Ciclismo',running:'Running',ninguno:'Ninguno' },
+  lesiones:            { ninguna:'Ninguna',rodilla:'Rodilla',espalda:'Espalda',hombro:'Hombro',tobillo:'Tobillo',otra:'Otra' },
+  sueno:               { '<5h':'<5h','5-6h':'5–6h','6-7h':'6–7h','7-8h':'7–8h','>8h':'>8h' },
+};
+
+function ajValLabel(key, val) {
+  const map = AJ_LABELS[key];
+  if (!map) return Array.isArray(val) ? val.join(', ') : String(val ?? '—');
+  if (Array.isArray(val)) return val.map(v => map[v] || v).join(' · ') || '—';
+  return map[val] || val || '—';
+}
+
+function ajustesAbrir() {
+  // Rellenar datos de usuario
+  const u = window._currentUser || (typeof auth !== 'undefined' ? null : null);
+  // Obtenemos el usuario de Firebase desde el estado global
+  try {
+    const name = document.getElementById('portada-user-name')?.textContent || '?';
+    document.getElementById('aj-user-name-display').textContent = name;
+    document.getElementById('aj-val-nombre').textContent = name;
+    document.getElementById('aj-avatar-letra').textContent = name.charAt(0).toUpperCase();
+    // Email: tomamos del auth si está disponible
+    const emailEl = document.getElementById('auth-email');
+    const emailVal = emailEl?.value || '';
+    document.getElementById('aj-user-email-display').textContent = emailVal || 'Cuenta activa';
+  } catch(e) {}
+
+  // Cargar perfil y rellenar valores
+  ajCargarPerfil(() => ajRellenarUI());
+
+  document.getElementById('ajustes-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function ajustesCerrar() {
+  document.getElementById('ajustes-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  // Cerrar todos los sheets
+  document.querySelectorAll('.aj-sheet').forEach(s => s.classList.remove('open'));
+}
+
+function ajCargarPerfil(cb) {
+  // Primero caché local
+  try {
+    const local = localStorage.getItem('ob_perfil_v1');
+    if (local) { _ajPerfil = JSON.parse(local) || {}; if (cb) cb(); }
+  } catch(e) {}
+  // Luego Firestore (actualiza en background)
+  if (window._fbListen) {
+    window._fbListen('perfil', docs => {
+      if (docs['datos']) {
+        _ajPerfil = docs['datos'];
+        try { localStorage.setItem('ob_perfil_v1', JSON.stringify(_ajPerfil)); } catch(e) {}
+        ajRellenarUI();
+      }
+    });
+  }
+}
+
+function ajRellenarUI() {
+  const p = _ajPerfil;
+  const campos = ['sexo','edad','nivel','lesiones','frecuencia_ejercicio','tiempo_disponible','objetivo','material','deporte','sueno'];
+  campos.forEach(k => {
+    const el = document.getElementById('aj-val-' + k);
+    if (!el) return;
+    const val = p[k];
+    if (val === undefined || val === null) { el.textContent = 'No configurado'; return; }
+    if (k === 'edad') { el.textContent = val + ' años'; return; }
+    el.textContent = ajValLabel(k, val);
+  });
+}
+
+// ── Sheets básicos ──
+function ajSheetAbrir(key) {
+  // Sheets especiales
+  const especiales = ['nombre','password','logout','reset_perfil'];
+  if (especiales.includes(key)) {
+    // Reset campos
+    if (key === 'nombre') {
+      const name = document.getElementById('portada-user-name')?.textContent || '';
+      document.getElementById('aj-inp-nombre').value = name;
+      ajMsgLimpiar('nombre');
+    }
+    if (key === 'password') {
+      ['aj-pw-actual','aj-pw-nueva','aj-pw-confirmar'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      ajMsgLimpiar('password');
+    }
+    document.getElementById('aj-sheet-' + key).classList.add('open');
+    return;
+  }
+  // Sheet genérico para campos del perfil
+  _ajGenericKey = key;
+  const stepDef = (typeof OB_STEPS !== 'undefined') ? OB_STEPS.find(s => s.id === key) : null;
+  const titles = {
+    sexo:'Sexo', edad:'Edad', nivel:'Nivel físico', lesiones:'Lesiones',
+    frecuencia_ejercicio:'Frecuencia de entreno', tiempo_disponible:'Tiempo por sesión',
+    objetivo:'Objetivo principal', material:'Material disponible',
+    deporte:'Deportes', sueno:'Horas de sueño',
+  };
+  document.getElementById('aj-generic-title').textContent = titles[key] || key;
+  ajMsgLimpiar('generic');
+
+  // Construir el body del sheet
+  let html = '';
+  if (key === 'edad') {
+    const val = _ajPerfil['edad'] || '';
+    html = `<div class="aj-field"><label class="aj-label">Edad (años)</label><input class="aj-input" id="aj-generic-input" type="number" min="12" max="90" value="${val}" placeholder="Ej: 19"></div>`;
+  } else if (stepDef) {
+    const isMulti = stepDef.type === 'multi';
+    const current = _ajPerfil[key];
+    if (isMulti) html += `<div style="font-size:0.75rem;color:#86868b;margin-bottom:0.6rem;font-style:italic">Puedes elegir varias opciones</div>`;
+    html += `<div class="aj-chips" id="aj-generic-chips">`;
+    stepDef.options.forEach(opt => {
+      let on = '';
+      if (isMulti && Array.isArray(current) && current.includes(opt.value)) on = ' on';
+      if (!isMulti && current === opt.value) on = ' on';
+      html += `<div class="aj-chip${on}" onclick="ajChipToggle(this,'${opt.value}','${isMulti}')" data-value="${opt.value}">${opt.icon} ${opt.label}</div>`;
+    });
+    html += `</div>`;
+  }
+  document.getElementById('aj-generic-body').innerHTML = html;
+  document.getElementById('aj-sheet-generic').classList.add('open');
+}
+
+function ajSheetCerrar(key) {
+  document.getElementById('aj-sheet-' + key)?.classList.remove('open');
+}
+function ajSheetCerrarGeneric() {
+  document.getElementById('aj-sheet-generic').classList.remove('open');
+  _ajGenericKey = null;
+}
+
+function ajChipToggle(el, value, isMultiStr) {
+  const isMulti = isMultiStr === 'true';
+  if (!isMulti) {
+    document.querySelectorAll('#aj-generic-chips .aj-chip').forEach(c => c.classList.remove('on'));
+  }
+  el.classList.toggle('on');
+}
+
+function ajMsgLimpiar(id) {
+  const el = document.getElementById('aj-msg-' + id);
+  if (el) { el.style.display = 'none'; el.textContent = ''; el.className = 'aj-msg'; }
+}
+function ajMsgShow(id, text, type) {
+  const el = document.getElementById('aj-msg-' + id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'aj-msg ' + type;
+  el.style.display = 'block';
+}
+
+// ── Guardar nombre ──
+async function ajGuardarNombre() {
+  const nombre = document.getElementById('aj-inp-nombre').value.trim();
+  if (!nombre) { ajMsgShow('nombre', 'El nombre no puede estar vacío.', 'err'); return; }
+  const btn = document.querySelector('#aj-sheet-nombre .aj-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    // Actualizar displayName en Firebase Auth
+    if (typeof updateProfile !== 'undefined' && auth?.currentUser) {
+      await updateProfile(auth.currentUser, { displayName: nombre });
+    } else if (window._authUpdateProfile) {
+      await window._authUpdateProfile(nombre);
+    }
+    // Actualizar UI
+    const nameEl = document.getElementById('portada-user-name');
+    if (nameEl) nameEl.textContent = nombre;
+    document.getElementById('aj-user-name-display').textContent = nombre;
+    document.getElementById('aj-val-nombre').textContent = nombre;
+    document.getElementById('aj-avatar-letra').textContent = nombre.charAt(0).toUpperCase();
+    ajMsgShow('nombre', '✓ Nombre actualizado correctamente.', 'ok');
+    setTimeout(() => ajSheetCerrar('nombre'), 1400);
+  } catch(e) {
+    ajMsgShow('nombre', 'Error al actualizar: ' + (e.message || e), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar nombre';
+  }
+}
+
+// ── Guardar contraseña ──
+async function ajGuardarPassword() {
+  const actual    = document.getElementById('aj-pw-actual').value;
+  const nueva     = document.getElementById('aj-pw-nueva').value;
+  const confirmar = document.getElementById('aj-pw-confirmar').value;
+  if (!actual || !nueva || !confirmar) { ajMsgShow('password', 'Rellena todos los campos.', 'err'); return; }
+  if (nueva.length < 6) { ajMsgShow('password', 'La nueva contraseña debe tener al menos 6 caracteres.', 'err'); return; }
+  if (nueva !== confirmar) { ajMsgShow('password', 'Las contraseñas nuevas no coinciden.', 'err'); return; }
+
+  const btn = document.querySelector('#aj-sheet-password .aj-save-btn');
+  btn.disabled = true; btn.textContent = 'Actualizando…';
+
+  try {
+    // Re-autenticar y cambiar contraseña via Firebase
+    if (window._ajCambiarPassword) {
+      await window._ajCambiarPassword(actual, nueva);
+    } else {
+      throw new Error('Función de cambio de contraseña no disponible.');
+    }
+    ajMsgShow('password', '✓ Contraseña actualizada correctamente.', 'ok');
+    document.getElementById('aj-pw-actual').value = '';
+    document.getElementById('aj-pw-nueva').value = '';
+    document.getElementById('aj-pw-confirmar').value = '';
+    setTimeout(() => ajSheetCerrar('password'), 1600);
+  } catch(e) {
+    const errMap = {
+      'auth/wrong-password': 'La contraseña actual es incorrecta.',
+      'auth/invalid-credential': 'La contraseña actual es incorrecta.',
+      'auth/too-many-requests': 'Demasiados intentos. Espera un momento.',
+      'auth/requires-recent-login': 'Cierra sesión, vuelve a entrar e inténtalo de nuevo.',
+    };
+    ajMsgShow('password', errMap[e.code] || (e.message || 'Error al actualizar la contraseña.'), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Actualizar contraseña';
+  }
+}
+
+// ── Guardar campo genérico del perfil ──
+async function ajGuardarGeneric() {
+  const key = _ajGenericKey;
+  if (!key) return;
+  let newVal;
+
+  if (key === 'edad') {
+    const inp = document.getElementById('aj-generic-input');
+    const v = parseInt(inp?.value);
+    if (!v || v < 12 || v > 90) { ajMsgShow('generic', 'Introduce una edad válida (12–90).', 'err'); return; }
+    newVal = v;
+  } else {
+    const stepDef = (typeof OB_STEPS !== 'undefined') ? OB_STEPS.find(s => s.id === key) : null;
+    const isMulti = stepDef?.type === 'multi';
+    const selected = [...document.querySelectorAll('#aj-generic-chips .aj-chip.on')].map(c => c.dataset.value);
+    if (!selected.length) { ajMsgShow('generic', 'Selecciona al menos una opción.', 'err'); return; }
+    newVal = isMulti ? selected : selected[0];
+  }
+
+  const btn = document.querySelector('#aj-sheet-generic .aj-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  try {
+    _ajPerfil[key] = newVal;
+    _ajPerfil.completado = true;
+    if (window._fbSet) await window._fbSet('perfil', 'datos', _ajPerfil);
+    try { localStorage.setItem('ob_perfil_v1', JSON.stringify(_ajPerfil)); } catch(e2) {}
+    ajRellenarUI();
+    ajMsgShow('generic', '✓ Guardado correctamente.', 'ok');
+    setTimeout(() => ajSheetCerrarGeneric(), 1200);
+    if (typeof mostrarToast === 'function') mostrarToast('Perfil actualizado');
+  } catch(e) {
+    ajMsgShow('generic', 'Error al guardar: ' + (e.message || e), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
+}
+
+// ── Reset perfil ──
+async function ajResetPerfil() {
+  try {
+    localStorage.removeItem('ob_perfil_v1');
+    localStorage.removeItem('ob_skipped');
+    if (window._fbSet) await window._fbSet('perfil', 'datos', { completado: false });
+    _ajPerfil = {};
+    ajSheetCerrar('reset_perfil');
+    ajustesCerrar();
+    if (typeof mostrarToast === 'function') mostrarToast('Perfil reseteado. Recarga para el wizard.');
+  } catch(e) {
+    if (typeof mostrarToast === 'function') mostrarToast('Error al resetear');
+  }
+}
+</script>
+
+<!-- Firebase helper para cambio de contraseña (módulo ESM, se añade al módulo principal) -->
+<script type="module">
+  import { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  // Esperar a que Firebase esté listo
+  const waitAuth = () => new Promise(res => {
+    const check = () => { const a = getAuth(); if (a.currentUser) res(a); else setTimeout(check, 200); };
+    check();
+  });
+
+  window._ajCambiarPassword = async (actual, nueva) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) throw new Error('No hay usuario autenticado.');
+    const cred = EmailAuthProvider.credential(user.email, actual);
+    await reauthenticateWithCredential(user, cred);
+    await updatePassword(user, nueva);
+  };
+
+  window._authUpdateProfile = async (nombre) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) throw new Error('No hay usuario autenticado.');
+    await updateProfile(user, { displayName: nombre });
+  };
+
+  // Rellenar email en ajustes cuando Firebase esté listo
+  const fillEmail = () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (user) {
+      const el = document.getElementById('aj-user-email-display');
+      if (el && el.textContent !== user.email) el.textContent = user.email;
+    }
+  };
+  window.addEventListener('firebase-ready', fillEmail);
+  setTimeout(fillEmail, 1000);
 </script>
 
 <script>
