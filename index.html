@@ -1744,8 +1744,13 @@
   /* ── EDIT BUTTONS ── */
   .reg-btn-edit { background: #e0f2fe; color: #0369a1; border: none; border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; }
   .reg-btn-edit:hover { background: #bae6fd; }
-  .tarea-edit-btn { background: none; border: none; cursor: pointer; font-size: 0.85rem; padding: 0 3px; opacity: 0.5; }
-  .tarea-edit-btn:hover { opacity: 1; }
+  .tarea-edit-btn {
+    background: none; border: none; cursor: pointer;
+    padding: 3px 5px; opacity: 0; border-radius: 5px;
+    transition: opacity 0.15s, background 0.15s; line-height: 1; color: var(--muted);
+  }
+  .tarea-item:hover .tarea-edit-btn { opacity: 1; }
+  .tarea-edit-btn:hover { background: rgba(0,0,0,0.06); color: var(--gold); opacity: 1; }
   .tarea-time-input {
     font-family: 'Inter', sans-serif; font-size: 0.82rem;
     padding: 0.45rem 0.55rem; border: 1.5px solid var(--card-border); border-radius: 6px;
@@ -1786,8 +1791,13 @@
     white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px;
   }
   .tarea-hora-badge.fired { background: #d1fae5; color: #065f46; }
-  .shop-edit { background: none; border: none; cursor: pointer; font-size: 0.85rem; padding: 0 3px; opacity: 0.5; margin-left: auto; }
-  .shop-edit:hover { opacity: 1; }
+  .shop-edit {
+    background: none; border: none; cursor: pointer;
+    padding: 3px 5px; opacity: 0; border-radius: 5px; margin-left: auto;
+    transition: opacity 0.15s, background 0.15s; line-height: 1; color: var(--muted);
+  }
+  .shop-item:hover .shop-edit { opacity: 1; }
+  .shop-edit:hover { background: rgba(0,0,0,0.06); color: var(--gold); opacity: 1; }
 
   /* ── TIEMPO (WEATHER) ── */
   .wx-main-card {
@@ -4146,7 +4156,7 @@ function renderTareas(tipo) {
       <input type="checkbox" class="tarea-check" ${t.done?'checked':''} onchange="toggleTarea('${tipo}',${t.id})" />
       <span class="tarea-text${t.done?' done':''}">${t.text}</span>
       ${tipo === 'diarias' && t.hora ? `<span class="tarea-hora-badge${t.done?' fired':''}">${t.hora}</span>` : ''}
-      <button class="tarea-edit-btn" onclick="abrirEditTarea('${tipo}',${t.id})"></button>
+      <button class="tarea-edit-btn" onclick="abrirEditTarea('${tipo}',${t.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       <button class="tarea-del" onclick="deleteTarea('${tipo}',${t.id})">✕</button>
     </div>`).join('');
 }
@@ -5238,7 +5248,7 @@ function renderShop() {
       <span class="shop-cat-badge ${catCls}">${catIcon}</span>
       <span class="shop-item-name${item.done?' done':''}">${item.name}</span>
       ${item.qty ? `<span class="shop-item-qty">${item.qty}</span>` : ''}
-      <button class="shop-edit" onclick="abrirEditShop(${item.id})"></button>
+      <button class="shop-edit" onclick="abrirEditShop(${item.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       <button class="shop-del" onclick="deleteShopItem(${item.id})">✕</button>
     </div>`;
   }).join('');
@@ -6788,6 +6798,12 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
 .asig-card-bar.suspenso { background:var(--coral); }
 .asig-card-bar.sin-nota { background:#d1d5db; }
 .asig-card-profe { font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem; }
+.asig-icon-btn {
+  background: none; border: 1.5px solid currentColor; border-radius: 7px;
+  cursor: pointer; padding: 4px 6px; line-height: 1;
+  transition: background 0.15s, transform 0.1s; opacity: 0.7; flex-shrink: 0;
+}
+.asig-icon-btn:hover { background: rgba(0,113,227,0.08); opacity: 1; transform: scale(1.08); }
 .asig-card-footer {
   display:flex;align-items:center;justify-content:space-between;
   padding:0.6rem 1.2rem;border-top:1px solid var(--border);background:var(--sand);
@@ -7307,7 +7323,7 @@ function asigRenderLista() {
           <div class="asig-card-creditos">${a.creditos || 6} créditos · mín. ${minimo}</div>
         </div>
         <button class="reg-btn-danger" onclick="asigDelAsignatura('${a.id}')" title="Eliminar">✕</button>
-        <button class="reg-btn-danger" style="color:var(--ocean);border-color:var(--ocean);background:transparent" onclick="asigAbrirEditAsig('${a.id}')" title="Editar"></button>
+        <button class="asig-icon-btn" onclick="asigAbrirEditAsig('${a.id}')" title="Editar asignatura" style="color:var(--ocean)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       </div>
       <div class="asig-card-body">
         ${a.profe ? `<div class="asig-card-profe">👤 ${a.profe}</div>` : ''}
