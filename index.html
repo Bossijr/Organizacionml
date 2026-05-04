@@ -267,7 +267,6 @@
   }
   .portada-label {
     font-size: 0.7rem;
-    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--gold);
     margin-bottom: 1rem;
@@ -5003,7 +5002,6 @@ function toggleModalCustomDur() {
 }
 
 // ── EVENTOS REPETIDOS: getEventsFor con soporte repeat ──
-var _origGetEventsFor = getEventsFor;
 // Override getEventsFor to include repeated events from other dates
 function getEventsFor(key) {
   const direct = calEventsDB[key] || [];
@@ -5068,16 +5066,14 @@ document.getElementById('cal-ev-fecha').addEventListener('change', function() {
   renderCalPanel();
 });
 
-// ── STUB hasActiveReminder ya definido antes de renderCalPanel ──
-if (false) { // placeholder eliminado
-  window.hasActiveReminder = function(evId) {
-    try {
-      const RKEY = 'cal_reminders_v1';
-      const saved = JSON.parse(localStorage.getItem(RKEY) || '{}');
-      return !!(saved[evId] && saved[evId].fireAt > Date.now());
-    } catch(e) { return false; }
-  };
-}
+// ── hasActiveReminder ──
+window.hasActiveReminder = function(evId) {
+  try {
+    const RKEY = 'cal_reminders_v1';
+    const saved = JSON.parse(localStorage.getItem(RKEY) || '{}');
+    return !!(saved[evId] && saved[evId].fireAt > Date.now());
+  } catch(e) { return false; }
+};
 
 // ── EDICIÓN DE EVENTOS ──
 let editingEventId = null;
@@ -5136,7 +5132,6 @@ function saveEditEvent() {
   const reminder = document.getElementById('modal-ev-reminder').value;
 
   // Buscar el evento en su fecha original
-  const origKey = calSelectedKey;
   let foundKey = null;
   let foundIdx = -1;
   // Buscar en todas las fechas (por si acaso)
@@ -5145,6 +5140,8 @@ function saveEditEvent() {
     if (idx !== -1) { foundKey = k; foundIdx = idx; break; }
   }
   if (foundKey === null) return;
+
+  const origKey = foundKey; // clave real donde está guardado el evento
 
   const updatedEv = { ...calEventsDB[foundKey][foundIdx], text, hora, pri, allday, duracion, repeat, reminder };
 
@@ -5469,10 +5466,15 @@ async function wxFetchAndRender(lat, lon, ciudad) {
     + `&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m`
     + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset`
     + `&timezone=auto&forecast_days=7`;
-  const wxRes = await fetch(wxUrl);
-  const wx = await wxRes.json();
-  renderWeather(wx, ciudad);
-  wxRenderSavedChips();
+  try {
+    const wxRes = await fetch(wxUrl);
+    if (!wxRes.ok) { showWxError('Error al obtener los datos meteorológicos.'); return; }
+    const wx = await wxRes.json();
+    renderWeather(wx, ciudad);
+    wxRenderSavedChips();
+  } catch(e) {
+    showWxError('Error al obtener los datos meteorológicos.');
+  }
 }
 
 // ── BUSCADOR ──
@@ -7451,11 +7453,11 @@ function asigRenderSelectNota() {
   }
 }
 
-function asigNotaActualizarCatSelector() {
-  const asigId = document.getElementById('asig-nota-asig').value;
+function _asigActualizarCatSelector(prefijo) {
+  const asigId = document.getElementById('asig-' + prefijo + '-asig').value;
   const asig = asigDB.find(a => a.id === asigId);
-  const catField = document.getElementById('asig-nota-cat-field');
-  const catSel   = document.getElementById('asig-nota-cat');
+  const catField = document.getElementById('asig-' + prefijo + '-cat-field');
+  const catSel   = document.getElementById('asig-' + prefijo + '-cat');
 
   if (asig && asig.pcts && asig.pcts.length > 0) {
     catField.style.display = '';
@@ -7480,34 +7482,8 @@ function asigNotaActualizarCatSelector() {
   }
 }
 
-function asigExamActualizarCatSelector() {
-  const asigId = document.getElementById('asig-exam-asig').value;
-  const asig = asigDB.find(a => a.id === asigId);
-  const catField = document.getElementById('asig-exam-cat-field');
-  const catSel   = document.getElementById('asig-exam-cat');
-
-  if (asig && asig.pcts && asig.pcts.length > 0) {
-    catField.style.display = '';
-    const opts = ['<option value="">— Selecciona categoría —</option>'];
-    function recorrer(nodos, prefix) {
-      nodos.forEach(n => {
-        const label = prefix + (n.nombre || 'Sin nombre') + ' (' + n.pct + '%)';
-        if (n.sub && n.sub.length > 0) {
-          opts.push(`<optgroup label="${label}">`);
-          recorrer(n.sub, '  ');
-          opts.push('</optgroup>');
-        } else {
-          opts.push(`<option value="${n.id}">${label}</option>`);
-        }
-      });
-    }
-    recorrer(asig.pcts, '');
-    catSel.innerHTML = opts.join('');
-  } else {
-    catField.style.display = 'none';
-    catSel.innerHTML = '';
-  }
-}
+function asigNotaActualizarCatSelector() { _asigActualizarCatSelector('nota'); }
+function asigExamActualizarCatSelector() { _asigActualizarCatSelector('exam'); }
 
 function asigRenderFiltros() {
   const row = document.getElementById('asig-filtro-row');
@@ -9511,7 +9487,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 .aj-acc-body {
   display: none;
   padding: 0 0.75rem 0.75rem;
-  display: none;
   flex-direction: column;
   gap: 0.6rem;
   border-top: 1px solid rgba(0,0,0,0.06);
@@ -10637,14 +10612,21 @@ function construirPerfilTexto() {
 }
 
 function renderMarkdown(text) {
-  return text
+  // Agrupar líneas de lista consecutivas en <ul>
+  let result = text
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h2>$1</h2>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '• $1')
-    .replace(/\n{2,}/g, '\n\n');
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Convertir bloques de líneas "- item" en <ul><li>...</li></ul>
+  result = result.replace(/((?:^- .+$\n?)+)/gm, (block) => {
+    const items = block.trim().split('\n').map(l => `<li>${l.replace(/^- /, '')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+
+  return result.replace(/\n{2,}/g, '\n\n');
 }
 
 async function generarPlanIA(tipo) {
