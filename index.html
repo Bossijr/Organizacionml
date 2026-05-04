@@ -1298,6 +1298,26 @@
 
   .cal-hour-cell.festivo-col { background: #fff7ed !important; }
   .cal-dia-wrap.festivo-day .cal-dia-header { background: #9a3412; }
+
+  /* ── BANNERS TODO EL DÍA ── */
+  .cal-dia-allday-zone {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .cal-dia-allday-zone:empty { display: none; }
+  .cal-dia-allday-banner {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    color: white;
+    letter-spacing: 0.01em;
+    cursor: default;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+  .cal-dia-allday-banner .banner-emoji { font-size: 0.95rem; line-height: 1; }
+  .cal-dia-allday-banner .banner-text  { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .festivo-banner {
     background: #fff7ed; border-left: 3px solid #ea580c;
     color: #9a3412; font-size: 0.78rem; font-weight: 600;
@@ -3023,6 +3043,7 @@
     <div id="cal-view-dia" style="display:none">
       <div class="cal-dia-wrap">
         <div class="cal-dia-header"><div class="cal-dia-title" id="cal-dia-title"></div></div>
+        <div class="cal-dia-allday-zone" id="cal-dia-allday-zone"></div>
         <div class="cal-dia-body" id="cal-dia-body"></div>
       </div>
     </div>
@@ -4350,9 +4371,22 @@ function renderCalDia() {
   if (fest || hasFestivoEv) diaWrap.classList.add('festivo-day');
   else diaWrap.classList.remove('festivo-day');
 
+  // ── Banners todo el día ──
+  const alldayEvts = getEventsFor(key).filter(e => e.allday);
+  const alldayZone = document.getElementById('cal-dia-allday-zone');
+  alldayZone.innerHTML = alldayEvts.map(e => {
+    const tipo = calTipos[e.pri] || calTipos['normal'];
+    const color = tipo.color;
+    const emoji = tipo.emoji;
+    return `<div class="cal-dia-allday-banner" style="background:${color}">
+      <span class="banner-emoji">${emoji}</span>
+      <span class="banner-text">${e.text}</span>
+    </div>`;
+  }).join('');
+
   let html = '';
   for (let h = 6; h <= 23; h++) {
-    const evts = getEventsFor(key).filter(e => e.hora && parseInt(e.hora.split(':')[0]) === h);
+    const evts = getEventsFor(key).filter(e => !e.allday && e.hora && parseInt(e.hora.split(':')[0]) === h);
     const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" style="cursor:pointer" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`).join('');
     html += `<div class="cal-dia-hour-label"><span>${h}:00</span></div>
       <div class="cal-dia-hour-cell" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
