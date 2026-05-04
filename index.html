@@ -1355,8 +1355,26 @@
   .cal-tipos-btn-cancel:hover { border-color: var(--muted); color: var(--ink); }
   .cal-tipos-btn-save { background: var(--gold); color: white; border: none; border-radius: 8px; padding: 0.55rem 1.4rem; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
   .cal-tipos-btn-save:hover { opacity: 0.87; }
+  .cal-tipos-btn-add {
+    width: 100%; margin-top: 0.75rem; padding: 0.55rem;
+    background: transparent; border: 1.5px dashed var(--card-border);
+    border-radius: 9px; color: var(--gold); font-family: 'Inter', sans-serif;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .cal-tipos-btn-add:hover { background: var(--gold-glow); border-color: var(--gold); }
+  .cal-tipo-del-btn {
+    background: none; border: none; cursor: pointer; color: #d1d5db;
+    font-size: 1rem; line-height: 1; padding: 4px; border-radius: 6px;
+    transition: color 0.15s, background 0.15s; flex-shrink: 0;
+  }
+  .cal-tipo-del-btn:hover { color: var(--coral); background: rgba(255,59,48,0.08); }
+  .cal-tipo-del-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .cal-tipo-row-new { animation: tipo-slide-in 0.18s ease; }
+  @keyframes tipo-slide-in { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
   body.dark .cal-tipos-modal-box { background: #2c2c2e; }
   body.dark .cal-tipo-name-input, body.dark .cal-tipo-emoji-input { background: #3a3a3c !important; border-color: rgba(255,255,255,0.12) !important; color: #f5f5f7 !important; }
+  body.dark .cal-tipos-btn-add { border-color: rgba(255,255,255,0.15) !important; }
 
   .cal-ev-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.4rem; }
   .cal-ev-extra-field { display: flex; flex-direction: column; gap: 3px; }
@@ -3377,9 +3395,13 @@
 <!-- MODAL PERSONALIZACIÓN TIPOS CALENDARIO -->
 <div class="cal-tipos-modal-overlay" id="modal-cal-tipos">
   <div class="cal-tipos-modal-box">
-    <div class="cal-tipos-modal-title">Personalizar calendarios</div>
-    <div class="cal-tipos-modal-sub">Edita el nombre, color y emoji de cada tipo de evento.</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.2rem">
+      <div class="cal-tipos-modal-title">Tipos de calendario</div>
+      <button onclick="closeTiposModal()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);line-height:1;padding:2px 4px;margin-top:2px">✕</button>
+    </div>
+    <div class="cal-tipos-modal-sub">Personaliza, añade o elimina tipos de evento.</div>
     <div id="cal-tipos-list"><!-- generado por JS --></div>
+    <button class="cal-tipos-btn-add" onclick="tiposAddRow()">＋ Nuevo tipo</button>
     <div class="cal-tipos-actions">
       <button class="cal-tipos-btn-cancel" onclick="closeTiposModal()">Cancelar</button>
       <button class="cal-tipos-btn-save" onclick="saveTiposModal()">Guardar</button>
@@ -4444,14 +4466,16 @@ const CAL_TIPOS_DEFAULT = {
   festivoev: { nombre: 'Festivo',     color: '#ea580c', emoji: '🎊' },
   rutina:    { nombre: 'Rutina',      color: '#1a5c2a', emoji: '🔄' },
 };
+// Tipos que no se pueden eliminar
+const CAL_TIPOS_LOCKED = new Set(['normal']);
 
 function loadCalTipos() {
   try {
     const raw = localStorage.getItem(CAL_TIPOS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Merge con defaults para que nuevas keys siempre existan
-      return Object.assign({}, CAL_TIPOS_DEFAULT, parsed);
+      // Siempre garantizar que 'normal' exista
+      return Object.assign({ normal: CAL_TIPOS_DEFAULT.normal }, parsed);
     }
   } catch(e) {}
   return Object.assign({}, CAL_TIPOS_DEFAULT);
@@ -4463,24 +4487,37 @@ function saveCalTipos(tipos) {
 
 let calTipos = loadCalTipos();
 
-function applyCalTiposToUI() {
-  // Actualizar botones de tipo en panel de creación y modal de edición
+// Genera una key única para un tipo nuevo
+function generarTipoKey() {
+  let i = 1;
+  while (calTipos['custom' + i] || document.getElementById('tipo-nombre-custom' + i)) i++;
+  return 'custom' + i;
+}
+
+// Reconstruye los botones de tipo en ambos rows (creación + edición)
+function rebuildTypeBtns() {
   ['cal-type-row', 'modal-type-row'].forEach(rowId => {
     const row = document.getElementById(rowId);
     if (!row) return;
-    row.querySelectorAll('.cal-type-btn[data-type]').forEach(btn => {
-      const tipo = btn.dataset.type;
-      if (!calTipos[tipo]) return;
-      const { nombre, color, emoji } = calTipos[tipo];
-      const dot = btn.querySelector('.type-dot');
-      if (dot) dot.style.background = color;
-      // Reconstruir el texto del botón (emoji + nombre)
-      btn.childNodes[btn.childNodes.length - 1].textContent = nombre;
-      // Actualizar CSS variable de color
-      btn.style.setProperty('--tc', color);
+    const isModal = rowId === 'modal-type-row';
+    const fn = isModal ? 'selectModalType' : 'selectCalType';
+    row.innerHTML = '';
+    Object.entries(calTipos).forEach(([tipo, cfg], i) => {
+      const btn = document.createElement('button');
+      btn.className = 'cal-type-btn' + (i === 0 ? ' selected' : '');
+      btn.dataset.type = tipo;
+      btn.setAttribute('onclick', `${fn}('${tipo}',this)`);
+      btn.style.setProperty('--tc', cfg.color);
+      btn.innerHTML = `<span class="type-dot" style="background:${cfg.color}"></span>${cfg.nombre}`;
+      row.appendChild(btn);
     });
+    // Restaurar hidden input si no existe
+    if (!document.getElementById(isModal ? 'modal-ev-pri' : 'cal-ev-pri')) return;
   });
-  // Actualizar estilos de eventos miniatura y bloques semana/día
+}
+
+function applyCalTiposToUI() {
+  rebuildTypeBtns();
   applyCalTiposCSS();
 }
 
@@ -4491,59 +4528,139 @@ function applyCalTiposCSS() {
   let css = '';
   Object.entries(calTipos).forEach(([tipo, cfg]) => {
     if (tipo === 'normal') {
-      css += `.cal-ev-mini { background: ${cfg.color} !important; }`;
-      css += `.cal-ev-block { background: ${cfg.color} !important; }`;
-      css += `.cal-event-item { border-left-color: ${cfg.color} !important; }`;
-      css += `.cal-event-item .ev-time { color: ${cfg.color} !important; }`;
-    } else {
-      css += `.cal-ev-mini.${tipo} { background: ${cfg.color} !important; }`;
-      css += `.cal-ev-block.${tipo} { background: ${cfg.color} !important; }`;
-      css += `.cal-event-item.${tipo} { border-left-color: ${cfg.color} !important; }`;
-      css += `.cal-event-item.${tipo} .ev-time { color: ${cfg.color} !important; }`;
-      css += `.badge-${tipo} { background: color-mix(in srgb, ${cfg.color} 15%, white); color: ${cfg.color}; }`;
+      css += `.cal-ev-mini:not([class*=" "]) { background: ${cfg.color} !important; }`;
+      css += `.cal-ev-block:not([class*=" "]) { background: ${cfg.color} !important; }`;
+      css += `.cal-event-item:not([class*=" "]) { border-left-color: ${cfg.color} !important; }`;
+      css += `.cal-event-item:not([class*=" "]) .ev-time { color: ${cfg.color} !important; }`;
     }
+    css += `.cal-ev-mini.${tipo} { background: ${cfg.color} !important; }`;
+    css += `.cal-ev-block.${tipo} { background: ${cfg.color} !important; }`;
+    css += `.cal-event-item.${tipo} { border-left-color: ${cfg.color} !important; }`;
+    css += `.cal-event-item.${tipo} .ev-time { color: ${cfg.color} !important; }`;
+    css += `.badge-${tipo} { background: color-mix(in srgb, ${cfg.color} 15%, white); color: ${cfg.color}; }`;
   });
   style.textContent = css;
 }
 
+// ── MODAL TIPOS ──
+// Estado temporal mientras el modal está abierto
+let tiposModalState = {}; // { key: { nombre, color, emoji, _new, _deleted } }
+
 function openTiposModal() {
+  // Clonar estado actual
+  tiposModalState = JSON.parse(JSON.stringify(calTipos));
+  renderTiposModal();
+  document.getElementById('modal-cal-tipos').classList.add('open');
+}
+
+function renderTiposModal() {
   const list = document.getElementById('cal-tipos-list');
   list.innerHTML = '';
-  Object.entries(calTipos).forEach(([tipo, cfg]) => {
+  Object.entries(tiposModalState).forEach(([tipo, cfg]) => {
+    if (cfg._deleted) return;
+    const isLocked = CAL_TIPOS_LOCKED.has(tipo);
     const row = document.createElement('div');
-    row.className = 'cal-tipo-row';
+    row.className = 'cal-tipo-row' + (cfg._new ? ' cal-tipo-row-new' : '');
+    row.id = `tipo-row-${tipo}`;
     row.innerHTML = `
-      <div class="cal-tipo-preview" id="tipo-preview-${tipo}" style="background:${cfg.color}20">${cfg.emoji}</div>
+      <div class="cal-tipo-preview" id="tipo-preview-${tipo}" style="background:${cfg.color}20;transition:background 0.2s">${cfg.emoji}</div>
       <div class="cal-tipo-fields">
         <input class="cal-tipo-emoji-input" id="tipo-emoji-${tipo}" value="${cfg.emoji}" maxlength="2" placeholder="📅"
-          oninput="document.getElementById('tipo-preview-${tipo}').textContent=this.value||'📅'" />
-        <input class="cal-tipo-name-input" id="tipo-nombre-${tipo}" value="${cfg.nombre}" maxlength="20" placeholder="Nombre…" />
+          oninput="tiposModalUpdate('${tipo}','emoji',this.value);document.getElementById('tipo-preview-${tipo}').textContent=this.value||'📅'" />
+        <input class="cal-tipo-name-input" id="tipo-nombre-${tipo}" value="${cfg.nombre}" maxlength="20" placeholder="Nombre…"
+          oninput="tiposModalUpdate('${tipo}','nombre',this.value)" />
         <input class="cal-tipo-color-input" id="tipo-color-${tipo}" type="color" value="${cfg.color}"
-          oninput="document.getElementById('tipo-preview-${tipo}').style.background=this.value+'20'" />
-      </div>`;
+          oninput="tiposModalUpdate('${tipo}','color',this.value);document.getElementById('tipo-preview-${tipo}').style.background=this.value+'20'" />
+      </div>
+      <button class="cal-tipo-del-btn" title="${isLocked ? 'No se puede eliminar el tipo Normal' : 'Eliminar tipo'}"
+        onclick="tiposModalDelete('${tipo}')" ${isLocked ? 'disabled' : ''}>🗑</button>`;
     list.appendChild(row);
   });
-  document.getElementById('modal-cal-tipos').classList.add('open');
+}
+
+function tiposModalUpdate(tipo, campo, val) {
+  if (tiposModalState[tipo]) tiposModalState[tipo][campo] = val;
+}
+
+function tiposModalDelete(tipo) {
+  if (CAL_TIPOS_LOCKED.has(tipo)) return;
+  // Contar eventos que usan este tipo
+  let count = 0;
+  Object.values(calEventsDB).forEach(evts => evts.forEach(e => { if (e.pri === tipo) count++; }));
+  const cfg = tiposModalState[tipo];
+  const nombre = cfg ? cfg.nombre : tipo;
+  let msg = `¿Eliminar el tipo "${nombre}"?`;
+  if (count > 0) msg += `\n\nAtención: hay ${count} evento${count>1?'s':''} con este tipo. Pasarán a ser "Normal".`;
+  if (!confirm(msg)) return;
+  const row = document.getElementById(`tipo-row-${tipo}`);
+  if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
+  tiposModalState[tipo] = { ...tiposModalState[tipo], _deleted: true };
+  // Animar salida
+  setTimeout(() => { if (row) row.remove(); }, 200);
+}
+
+function tiposAddRow() {
+  const key = generarTipoKey();
+  const colors = ['#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+  const color = colors[Object.keys(tiposModalState).length % colors.length];
+  tiposModalState[key] = { nombre: '', color, emoji: '⭐', _new: true };
+  renderTiposModal();
+  // Hacer foco en el input de nombre del nuevo tipo
+  setTimeout(() => {
+    const inp = document.getElementById(`tipo-nombre-${key}`);
+    if (inp) inp.focus();
+  }, 50);
 }
 
 function closeTiposModal() {
   document.getElementById('modal-cal-tipos').classList.remove('open');
+  tiposModalState = {};
 }
 
 function saveTiposModal() {
-  Object.keys(calTipos).forEach(tipo => {
+  // Leer valores actuales de los inputs (por si no se disparó oninput)
+  Object.keys(tiposModalState).forEach(tipo => {
+    if (tiposModalState[tipo]._deleted) return;
     const nombre = document.getElementById(`tipo-nombre-${tipo}`)?.value.trim();
     const color  = document.getElementById(`tipo-color-${tipo}`)?.value;
     const emoji  = document.getElementById(`tipo-emoji-${tipo}`)?.value.trim();
-    if (nombre) calTipos[tipo].nombre = nombre;
-    if (color)  calTipos[tipo].color  = color;
-    if (emoji)  calTipos[tipo].emoji  = emoji;
+    if (nombre !== undefined) tiposModalState[tipo].nombre = nombre;
+    if (color)  tiposModalState[tipo].color  = color;
+    if (emoji)  tiposModalState[tipo].emoji  = emoji || '📅';
   });
+
+  // Validar nombres vacíos en tipos nuevos
+  for (const [tipo, cfg] of Object.entries(tiposModalState)) {
+    if (cfg._deleted) continue;
+    if (!cfg.nombre.trim()) {
+      mostrarToast('⚠️ Todos los tipos deben tener nombre');
+      document.getElementById(`tipo-nombre-${tipo}`)?.focus();
+      return;
+    }
+  }
+
+  // Aplicar eliminaciones: mover eventos al tipo 'normal'
+  Object.entries(tiposModalState).forEach(([tipo, cfg]) => {
+    if (!cfg._deleted) return;
+    Object.values(calEventsDB).forEach(evts => evts.forEach(e => {
+      if (e.pri === tipo) e.pri = 'normal';
+    }));
+  });
+
+  // Construir nuevo objeto tipos (sin _deleted, sin flags internos)
+  const nuevoTipos = {};
+  Object.entries(tiposModalState).forEach(([tipo, cfg]) => {
+    if (cfg._deleted) return;
+    nuevoTipos[tipo] = { nombre: cfg.nombre, color: cfg.color, emoji: cfg.emoji };
+  });
+
+  calTipos = nuevoTipos;
   saveCalTipos(calTipos);
+  saveCal(); // guardar eventos si alguno cambió de tipo
   applyCalTiposToUI();
   renderCal(); renderCalPanel();
   closeTiposModal();
-  mostrarToast('✅ Tipos de calendario actualizados');
+  mostrarToast('✅ Tipos de calendario guardados');
 }
 
 document.getElementById('modal-cal-tipos').addEventListener('click', function(e) {
