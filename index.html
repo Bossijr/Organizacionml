@@ -4314,11 +4314,10 @@ function renderCalDia() {
 }
 
 function selectCalDay(key) {
+  const [y,m,d] = key.split('-').map(Number);
+  calDayDate = new Date(y, m-1, d);
   calSelectedKey = key;
-  document.getElementById('cal-ev-fecha').value = key;
-  renderCalMes(); // re-render to show selected
-  renderCalPanel();
-  document.getElementById('cal-ev-text').focus();
+  setCalView('dia', document.querySelectorAll('.cal-view-btn')[2]);
 }
 
 function selectCalDayAndSwitch(key) {
