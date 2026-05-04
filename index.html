@@ -2141,6 +2141,16 @@
       </div>
       <div class="portada-row-chevron">›</div>
     </div>
+    <div class="portada-row" onclick="goArea('nutricion')">
+      <div class="portada-row-icon" style="background:#e8f7ee">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <div class="portada-row-text">
+        <div class="portada-row-title">Nutrición</div>
+        <div class="portada-row-sub">Macros · Timing · Hidratación</div>
+      </div>
+      <div class="portada-row-chevron">›</div>
+    </div>
 
   </div>
 </div>
@@ -2167,7 +2177,6 @@
   <div class="nav-wrap">
     <div class="nav-tabs">
       <div class="nav-tab active" data-tab="programa">Programa</div>
-      <div class="nav-tab" data-tab="nutricion">Nutrición</div>
       <div class="nav-tab" data-tab="progresion">Progresión</div>
       <div class="nav-tab" data-tab="recuperacion">Recuperación</div>
       <div class="nav-tab" data-tab="registro">Mis Cargas</div>
@@ -2186,21 +2195,6 @@
       <div class="week-card" data-day="6"><div class="wc-day">Domingo</div><div class="wc-title">Descanso activo</div><span class="tag tag-descanso">Descanso</span></div>
     </div>
     <div class="day-detail" id="dayDetail"></div>
-  </div>
-
-  <!-- NUTRICIÓN -->
-  <div class="section" id="tab-nutricion">
-    <div class="section-heading">Nutrición</div>
-    <p class="section-sub">Estrategia para perder grasa sin sacrificar músculo ni rendimiento deportivo.</p>
-    <div class="info-grid">
-      <div class="info-card"><div class="info-key">Proteína</div><div class="info-val">2–2.2 g/kg de peso corporal. Prioridad absoluta para preservar músculo en déficit. Fuentes: pollo, huevos, atún, skyr, requesón.</div></div>
-      <div class="info-card"><div class="info-key">Carbohidratos</div><div class="info-val">Ciclados: más en días de entrenamiento intenso, menos en días de descanso. Fuentes: arroz, avena, patata, fruta.</div></div>
-      <div class="info-card"><div class="info-key">Grasas</div><div class="info-val">0.8–1 g/kg. No bajar de este mínimo para no comprometer hormonas. Aguacate, aceite de oliva, nueces, sardinas.</div></div>
-      <div class="info-card"><div class="info-key">Timing pre-entreno</div><div class="info-val">1.5–2h antes: carbohidratos de absorción media + proteína. Evita grasas abundantes justo antes del entreno.</div></div>
-      <div class="info-card"><div class="info-key">Timing post-entreno</div><div class="info-val">Primeros 45 min: 30–40g proteína + carbohidratos de rápida absorción. Ventana anabólica especialmente importante los días de fuerza.</div></div>
-      <div class="info-card"><div class="info-key">Hidratación</div><div class="info-val">2.5–3.5L de agua al día. Añadir electrolitos (sodio, potasio) en días de HIIT o sesiones bajo el sol en playa.</div></div>
-      <div class="info-card"><div class="info-key">Déficit calórico</div><div class="info-val">Máximo 500 kcal/día de déficit. Un déficit mayor acelera la pérdida muscular y destruye el rendimiento deportivo. Paciencia: 0.5–1 kg/semana es el objetivo ideal.</div></div>
-    </div>
   </div>
 
   <!-- PROGRESIÓN -->
@@ -5272,6 +5266,37 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
 <!-- FCM ya está integrado en el bloque Firebase de <head> -->
 
 <!-- ══════════════════════════════════ ÁREA ASIGNATURAS ══════════════════════════════════ -->
+<!-- ══════════════════════════════════ ÁREA NUTRICIÓN ══════════════════════════════════ -->
+<div class="area" id="area-nutricion">
+  <div class="back-bar">
+    <button class="back-btn" onclick="goPortada()">← Portada</button>
+    <span class="back-area-label">Nutrición</span>
+  </div>
+
+  <div class="hero">
+    <div class="hero-label">Estrategia nutricional</div>
+    <h1>NUTRICIÓN<br><span>RENDIMIENTO</span></h1>
+    <p class="hero-desc">Estrategia para perder grasa sin sacrificar músculo ni rendimiento deportivo.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-val">2–2.2</div><div class="stat-lbl">g proteína/kg</div></div>
+      <div class="stat"><div class="stat-val">500</div><div class="stat-lbl">kcal déficit máx.</div></div>
+      <div class="stat"><div class="stat-val">3L</div><div class="stat-lbl">agua/día</div></div>
+    </div>
+  </div>
+
+  <div style="padding:1.5rem 2rem;max-width:900px;margin:0 auto;">
+    <div class="info-grid">
+      <div class="info-card"><div class="info-key">Proteína</div><div class="info-val">2–2.2 g/kg de peso corporal. Prioridad absoluta para preservar músculo en déficit. Fuentes: pollo, huevos, atún, skyr, requesón.</div></div>
+      <div class="info-card"><div class="info-key">Carbohidratos</div><div class="info-val">Ciclados: más en días de entrenamiento intenso, menos en días de descanso. Fuentes: arroz, avena, patata, fruta.</div></div>
+      <div class="info-card"><div class="info-key">Grasas</div><div class="info-val">0.8–1 g/kg. No bajar de este mínimo para no comprometer hormonas. Aguacate, aceite de oliva, nueces, sardinas.</div></div>
+      <div class="info-card"><div class="info-key">Timing pre-entreno</div><div class="info-val">1.5–2h antes: carbohidratos de absorción media + proteína. Evita grasas abundantes justo antes del entreno.</div></div>
+      <div class="info-card"><div class="info-key">Timing post-entreno</div><div class="info-val">Primeros 45 min: 30–40g proteína + carbohidratos de rápida absorción. Ventana anabólica especialmente importante los días de fuerza.</div></div>
+      <div class="info-card"><div class="info-key">Hidratación</div><div class="info-val">2.5–3.5L de agua al día. Añadir electrolitos (sodio, potasio) en días de HIIT o sesiones bajo el sol en playa.</div></div>
+      <div class="info-card"><div class="info-key">Déficit calórico</div><div class="info-val">Máximo 500 kcal/día de déficit. Un déficit mayor acelera la pérdida muscular y destruye el rendimiento deportivo. Paciencia: 0.5–1 kg/semana es el objetivo ideal.</div></div>
+    </div>
+  </div>
+</div>
+
 <div class="area" id="area-asignaturas">
   <div class="back-bar">
     <button class="back-btn" onclick="goPortada()">← Portada</button>
