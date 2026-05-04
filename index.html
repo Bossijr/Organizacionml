@@ -9585,6 +9585,20 @@ function ajSheetAbrir(key) {
   if (key === 'edad') {
     const val = _ajPerfil['edad'] || '';
     html = `<div class="aj-field"><label class="aj-label">Edad (años)</label><input class="aj-input" id="aj-generic-input" type="number" min="12" max="90" value="${val}" placeholder="Ej: 19"></div>`;
+  } else if (key === 'sexo') {
+    const current = _ajPerfil['sexo'];
+    const opciones = [
+      { label: 'Hombre',        value: 'hombre' },
+      { label: 'Mujer',         value: 'mujer' },
+      { label: 'No binario',    value: 'no_binario' },
+      { label: 'Prefiero no indicarlo', value: 'no_indicar' },
+    ];
+    html = `<div class="aj-chips" id="aj-generic-chips">`;
+    opciones.forEach(opt => {
+      const on = current === opt.value ? ' on' : '';
+      html += `<div class="aj-chip${on}" onclick="ajChipToggle(this,'${opt.value}','false')" data-value="${opt.value}">${opt.label}</div>`;
+    });
+    html += `</div>`;
   } else if (stepDef) {
     const isMulti = stepDef.type === 'multi';
     const current = _ajPerfil[key];
