@@ -7500,9 +7500,17 @@ function asigRenderNotas() {
   const tabla = document.getElementById('asig-notas-tabla');
   const tbody = document.getElementById('asig-notas-tbody');
 
+  const hoy = new Date().toISOString().slice(0, 10);
+
   const filtradas = (asigFiltroNota === 'todos'
     ? [...notasDB]
     : notasDB.filter(n => n.asigId === asigFiltroNota))
+    .filter(n => {
+      // Siempre mostrar si tiene nota
+      if (n.nota !== null && n.nota !== undefined) return true;
+      // Sin nota (examen pendiente): mostrar solo si la fecha ya pasó o es hoy
+      return n.fecha && n.fecha <= hoy;
+    })
     .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
   if (!filtradas.length) {
