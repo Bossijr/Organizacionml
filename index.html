@@ -440,8 +440,33 @@
   .pw-skeleton.short { width: 35%; }
 
   /* ── ÁREA WRAPPER ── */
-  .area { display: none; }
+  .area { display: none; opacity: 0; }
   .area.active { display: block; }
+
+  @keyframes page-enter {
+    from { opacity: 0; transform: translateY(14px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+  @keyframes page-exit {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-8px); }
+  }
+  @keyframes portada-enter {
+    from { opacity: 0; transform: translateY(-10px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0)     scale(1);    }
+  }
+  .area.page-enter   { animation: page-enter   0.3s cubic-bezier(.22,.68,0,1.15) both; }
+  .area.page-exit    { animation: page-exit    0.18s ease forwards; }
+  .portada-animating { animation: portada-enter 0.3s cubic-bezier(.22,.68,0,1.15) both; }
+
+  /* Tabs internos (entrenamiento, personal, asignaturas) */
+  .section  { display: none; opacity: 0; }
+  .section.active  { display: block; }
+  .section.tab-enter  { animation: page-enter 0.25s cubic-bezier(.22,.68,0,1.15) both; }
+
+  .pers-section { display: none; opacity: 0; }
+  .pers-section.active { display: block; }
+  .pers-section.tab-enter { animation: page-enter 0.25s cubic-bezier(.22,.68,0,1.15) both; }
 
   /* Global card refinements */
   .day-detail,
@@ -3545,21 +3570,66 @@
 <script>
 // ══════════════════════════════ NAVEGACIÓN PORTADA ══════════════════════════════
 function goArea(area) {
-  document.getElementById('portada').style.display = 'none';
-  document.querySelectorAll('.area').forEach(a => a.classList.remove('active'));
-  document.getElementById('area-' + area).classList.add('active');
-  window.scrollTo(0,0);
-  const fab = document.getElementById('fab-ajustes');
-  if (fab) fab.style.display = 'none';
+  const portada = document.getElementById('portada');
+  const target  = document.getElementById('area-' + area);
+  const fab     = document.getElementById('fab-ajustes');
+
+  // Fade out portada
+  portada.style.transition = 'opacity 0.18s ease';
+  portada.style.opacity = '0';
+
+  setTimeout(() => {
+    portada.style.display = 'none';
+    portada.style.opacity = '';
+    portada.style.transition = '';
+
+    document.querySelectorAll('.area').forEach(a => {
+      a.classList.remove('active', 'page-enter', 'page-exit');
+      a.style.display = 'none';
+    });
+
+    target.style.display = 'block';
+    target.classList.add('active');
+    // Forzar reflow
+    void target.offsetWidth;
+    target.classList.add('page-enter');
+    target.addEventListener('animationend', () => target.classList.remove('page-enter'), { once: true });
+
+    window.scrollTo(0, 0);
+    if (fab) fab.style.display = 'none';
+  }, 160);
 }
+
 function goPortada() {
-  document.querySelectorAll('.area').forEach(a => a.classList.remove('active'));
-  document.getElementById('portada').style.display = 'flex';
-  window.scrollTo(0,0);
-  pwRefreshAll();
-  if (typeof timerSyncVisibility === 'function') setTimeout(timerSyncVisibility, 50);
-  const fab = document.getElementById('fab-ajustes');
-  if (fab) fab.style.display = 'flex';
+  const portada = document.getElementById('portada');
+  const fab     = document.getElementById('fab-ajustes');
+
+  // Fade out área activa
+  const active = document.querySelector('.area.active');
+  if (active) {
+    active.classList.add('page-exit');
+    setTimeout(() => {
+      active.classList.remove('active', 'page-exit');
+      active.style.display = 'none';
+      showPortada();
+    }, 160);
+  } else {
+    showPortada();
+  }
+
+  function showPortada() {
+    portada.style.display = 'flex';
+    portada.style.opacity = '0';
+    void portada.offsetWidth;
+    portada.classList.add('portada-animating');
+    portada.style.opacity = '';
+    portada.addEventListener('animationend', () => portada.classList.remove('portada-animating'), { once: true });
+
+    window.scrollTo(0, 0);
+    pwRefreshAll();
+    if (typeof timerSyncVisibility === 'function') setTimeout(timerSyncVisibility, 50);
+    if (fab) fab.style.display = 'flex';
+  }
 }
 
 // ══════════════════════════════ PORTADA WIDGETS ══════════════════════════════
@@ -3651,9 +3721,19 @@ window.addEventListener('load', () => setTimeout(pwRefreshAll, 500));
 document.querySelectorAll('.nav-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => {
+      s.classList.remove('active', 'tab-enter');
+      s.style.display = 'none';
+    });
     tab.classList.add('active');
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    const target = document.getElementById('tab-' + tab.dataset.tab);
+    if (target) {
+      target.style.display = 'block';
+      target.classList.add('active');
+      void target.offsetWidth;
+      target.classList.add('tab-enter');
+      target.addEventListener('animationend', () => target.classList.remove('tab-enter'), { once: true });
+    }
   });
 });
 
@@ -3661,9 +3741,19 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
 document.querySelectorAll('.pers-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.pers-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.pers-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.pers-section').forEach(s => {
+      s.classList.remove('active', 'tab-enter');
+      s.style.display = 'none';
+    });
     tab.classList.add('active');
-    document.getElementById('ptab-' + tab.dataset.ptab).classList.add('active');
+    const target = document.getElementById('ptab-' + tab.dataset.ptab);
+    if (target) {
+      target.style.display = 'block';
+      target.classList.add('active');
+      void target.offsetWidth;
+      target.classList.add('tab-enter');
+      target.addEventListener('animationend', () => target.classList.remove('tab-enter'), { once: true });
+    }
   });
 });
 
