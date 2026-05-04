@@ -6713,6 +6713,10 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
               <label class="reg-label">Fecha</label>
               <input class="reg-input" id="asig-exam-fecha" type="date" />
             </div>
+            <div class="reg-field">
+              <label class="reg-label">Hora <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+              <input class="reg-input" id="asig-exam-hora" type="time" />
+            </div>
           </div>
           <!-- Añadir al calendario -->
           <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;padding:0.6rem 0.9rem;background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;font-size:0.85rem">
@@ -7127,6 +7131,7 @@ function asigAddExamen() {
   const tipo   = 'examen';
   const desc   = document.getElementById('asig-exam-desc').value.trim();
   const fecha  = document.getElementById('asig-exam-fecha').value;
+  const hora   = document.getElementById('asig-exam-hora')?.value || '';
   const nota   = null;
   const peso   = 100;
   const addCal = document.getElementById('asig-exam-addcal').checked;
@@ -7157,19 +7162,28 @@ function asigAddExamen() {
   notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
   asigSyncAll();
   asigRender();
-  mostrarToast('Examen registrado');
 
   // Añadir al calendario si está marcado y hay fecha
   if (addCal && fecha) {
     const nombre = asig ? asig.nombre : 'Asignatura';
     const textoEv = `Examen: ${nombre}${desc ? ' — ' + desc : ''}`;
     if (!calEventsDB[fecha]) calEventsDB[fecha] = [];
-    calEventsDB[fecha].push({ id: Date.now() + '_asig', text: textoEv, pri: 'examen', allDay: true });
+    calEventsDB[fecha].push({
+      id: Date.now() + '_asig',
+      text: textoEv,
+      pri: 'examen',
+      allday: !hora,       // todo el día si no hay hora
+      hora: hora || '',
+    });
     saveCal();
-    mostrarToast('Añadido al Calendario como examen');
+    mostrarToast('Examen registrado y añadido al Calendario');
+  } else {
+    mostrarToast('Examen registrado');
   }
 
   document.getElementById('asig-exam-desc').value = '';
+  document.getElementById('asig-exam-fecha').value = '';
+  if (document.getElementById('asig-exam-hora')) document.getElementById('asig-exam-hora').value = '';
   closeFormCollapse('registrar-examen');
 }
 
