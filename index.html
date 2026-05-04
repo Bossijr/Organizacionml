@@ -491,6 +491,76 @@
   /* ── REGISTRO ── */
   .reg-form-card { background: var(--surface2); border: 1.5px solid var(--card-border); border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
   .reg-form-title { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; letter-spacing: 0.05em; color: var(--ink); margin-bottom: 1rem; }
+
+  /* ── FORM COLLAPSE ── */
+  .form-collapse-wrap {
+    background: var(--surface2);
+    border: 1.5px solid var(--card-border);
+    border-radius: 12px;
+    margin-bottom: 1.2rem;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .form-collapse-wrap.open {
+    box-shadow: 0 4px 20px rgba(0,113,227,0.07);
+    border-color: rgba(0,113,227,0.2);
+  }
+  .form-collapse-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s;
+    text-align: left;
+    gap: 0.5rem;
+  }
+  .form-collapse-trigger:hover { background: rgba(0,113,227,0.03); }
+  .form-collapse-trigger:active { background: rgba(0,113,227,0.06); }
+  .form-collapse-wrap.open .form-collapse-trigger {
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    background: rgba(0,113,227,0.02);
+  }
+  .form-collapse-trigger-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  .form-collapse-trigger-icon {
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .form-collapse-trigger-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .form-collapse-arrow {
+    width: 18px;
+    height: 18px;
+    color: rgba(0,0,0,0.3);
+    flex-shrink: 0;
+    transition: transform 0.25s cubic-bezier(.4,0,.2,1), color 0.15s;
+  }
+  .form-collapse-wrap.open .form-collapse-arrow {
+    transform: rotate(180deg);
+    color: var(--gold);
+  }
+  .form-collapse-body {
+    display: none;
+    padding: 1.2rem 1.1rem 1.1rem;
+    flex-direction: column;
+    gap: 0;
+  }
+  .form-collapse-wrap.open .form-collapse-body {
+    display: flex;
+  }
   .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
   @media (max-width: 500px) { .reg-grid { grid-template-columns: 1fr; } }
   .reg-field { display: flex; flex-direction: column; gap: 4px; }
@@ -2544,40 +2614,48 @@
       <div class="reg-stat-card"><div class="reg-stat-val" id="stat-semana">0</div><div class="reg-stat-lbl">Esta semana</div></div>
       <div class="reg-stat-card"><div class="reg-stat-val" id="stat-prs">0</div><div class="reg-stat-lbl">Records (PR)</div></div>
     </div>
-    <div class="reg-form-card">
-      <div class="reg-form-title">Nuevo Registro</div>
-      <div class="reg-grid">
-        <div class="reg-field"><label class="reg-label">Fecha</label><input type="date" class="reg-input" id="reg-fecha"></div>
-        <div class="reg-field"><label class="reg-label">Día / Sesión</label>
-          <select class="reg-select" id="reg-dia">
-            <option value="">Selecciona día...</option>
-            <option value="Lunes — Fuerza Inf.">Lunes — Fuerza Inf.</option>
-            <option value="Martes — Cardio Surf">Martes — Cardio Surf</option>
-            <option value="Miércoles — Potencia">Miércoles — Potencia</option>
-            <option value="Jueves — Fuerza Sup.">Jueves — Fuerza Sup.</option>
-            <option value="Viernes — Fútbol">Viernes — Fútbol</option>
-            <option value="Sábado — HIIT Core">Sábado — HIIT Core</option>
-            <option value="Domingo — Descanso">Domingo — Descanso</option>
-          </select>
+    <div class="form-collapse-wrap" id="fc-nuevo-registro">
+      <button class="form-collapse-trigger" onclick="toggleFormCollapse('nuevo-registro')">
+        <span class="form-collapse-trigger-left">
+          <span class="form-collapse-trigger-icon">＋</span>
+          <span class="form-collapse-trigger-label">Nuevo Registro</span>
+        </span>
+        <svg class="form-collapse-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="form-collapse-body" id="fc-body-nuevo-registro">
+        <div class="reg-grid">
+          <div class="reg-field"><label class="reg-label">Fecha</label><input type="date" class="reg-input" id="reg-fecha"></div>
+          <div class="reg-field"><label class="reg-label">Día / Sesión</label>
+            <select class="reg-select" id="reg-dia">
+              <option value="">Selecciona día...</option>
+              <option value="Lunes — Fuerza Inf.">Lunes — Fuerza Inf.</option>
+              <option value="Martes — Cardio Surf">Martes — Cardio Surf</option>
+              <option value="Miércoles — Potencia">Miércoles — Potencia</option>
+              <option value="Jueves — Fuerza Sup.">Jueves — Fuerza Sup.</option>
+              <option value="Viernes — Fútbol">Viernes — Fútbol</option>
+              <option value="Sábado — HIIT Core">Sábado — HIIT Core</option>
+              <option value="Domingo — Descanso">Domingo — Descanso</option>
+            </select>
+          </div>
+          <div class="reg-field"><label class="reg-label">Ejercicio</label><input type="text" class="reg-input" id="reg-ejercicio" placeholder="ej. Sentadilla trasera"></div>
+          <div class="reg-field"><label class="reg-label">Semana del programa</label>
+            <select class="reg-select" id="reg-semana">
+              <option value="">Semana...</option>
+              <option>S1</option><option>S2</option><option>S3</option><option>S4</option>
+              <option>S5</option><option>S6</option><option>S7</option><option>S8</option>
+              <option>S9</option><option>S10</option><option>S11</option><option>S12</option>
+            </select>
+          </div>
+          <div class="reg-field"><label class="reg-label">Series × Reps</label><input type="text" class="reg-input" id="reg-series" placeholder="ej. 4×6"></div>
+          <div class="reg-field"><label class="reg-label">Carga (kg)</label><input type="number" class="reg-input" id="reg-carga" placeholder="ej. 80" step="0.5" min="0"></div>
+          <div class="reg-field"><label class="reg-label">RPE (1–10)</label><input type="number" class="reg-input" id="reg-rpe" placeholder="ej. 8" min="1" max="10"></div>
+          <div class="reg-field"><label class="reg-label">¿Marca personal?</label>
+            <select class="reg-select" id="reg-pr"><option value="no">No</option><option value="si">🏆 Sí, nuevo PR</option></select>
+          </div>
+          <div class="reg-field full"><label class="reg-label">Notas</label><textarea class="reg-textarea" id="reg-notas" placeholder="Sensaciones, ajustes, lesiones, contexto..."></textarea></div>
         </div>
-        <div class="reg-field"><label class="reg-label">Ejercicio</label><input type="text" class="reg-input" id="reg-ejercicio" placeholder="ej. Sentadilla trasera"></div>
-        <div class="reg-field"><label class="reg-label">Semana del programa</label>
-          <select class="reg-select" id="reg-semana">
-            <option value="">Semana...</option>
-            <option>S1</option><option>S2</option><option>S3</option><option>S4</option>
-            <option>S5</option><option>S6</option><option>S7</option><option>S8</option>
-            <option>S9</option><option>S10</option><option>S11</option><option>S12</option>
-          </select>
-        </div>
-        <div class="reg-field"><label class="reg-label">Series × Reps</label><input type="text" class="reg-input" id="reg-series" placeholder="ej. 4×6"></div>
-        <div class="reg-field"><label class="reg-label">Carga (kg)</label><input type="number" class="reg-input" id="reg-carga" placeholder="ej. 80" step="0.5" min="0"></div>
-        <div class="reg-field"><label class="reg-label">RPE (1–10)</label><input type="number" class="reg-input" id="reg-rpe" placeholder="ej. 8" min="1" max="10"></div>
-        <div class="reg-field"><label class="reg-label">¿Marca personal?</label>
-          <select class="reg-select" id="reg-pr"><option value="no">No</option><option value="si">🏆 Sí, nuevo PR</option></select>
-        </div>
-        <div class="reg-field full"><label class="reg-label">Notas</label><textarea class="reg-textarea" id="reg-notas" placeholder="Sensaciones, ajustes, lesiones, contexto..."></textarea></div>
+        <button class="reg-btn" onclick="guardarRegistro()">Guardar registro</button>
       </div>
-      <button class="reg-btn" onclick="guardarRegistro()">Guardar registro</button>
     </div>
     <div class="reg-history-wrap">
       <div class="reg-history-header">
@@ -3415,6 +3493,17 @@ function _fbDeleteRegistro(id) {
 }
 function setFechaPorDefecto() { document.getElementById('reg-fecha').value = new Date().toISOString().split('T')[0]; }
 
+// ── Form Collapse ──
+function toggleFormCollapse(id) {
+  const wrap = document.getElementById('fc-' + id);
+  if (!wrap) return;
+  wrap.classList.toggle('open');
+}
+function closeFormCollapse(id) {
+  const wrap = document.getElementById('fc-' + id);
+  if (wrap) wrap.classList.remove('open');
+}
+
 function guardarRegistro() {
   const fecha = document.getElementById('reg-fecha').value;
   const dia = document.getElementById('reg-dia').value;
@@ -3434,6 +3523,7 @@ function guardarRegistro() {
   document.getElementById('reg-rpe').value = '';
   document.getElementById('reg-pr').value = 'no';
   document.getElementById('reg-notas').value = '';
+  closeFormCollapse('nuevo-registro');
 }
 function eliminarRegistro(id) {
   const idx = registros.findIndex(r => r.id === id);
@@ -5651,59 +5741,67 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
       <p class="section-sub">Añade tus asignaturas y configura el peso de cada una en la nota final.</p>
 
       <!-- Formulario nueva asignatura -->
-      <div class="reg-form-card" style="margin-bottom:1.5rem">
-        <div class="reg-form-title">➕ Nueva Asignatura</div>
-        <div class="reg-grid">
-          <div class="reg-field">
-            <label class="reg-label">Nombre</label>
-            <input class="reg-input" id="asig-input-nombre" type="text" placeholder="Ej. Matemáticas" maxlength="60" />
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Abreviatura</label>
-            <input class="reg-input" id="asig-input-abrev" type="text" placeholder="MAT" maxlength="6" />
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Créditos / Peso</label>
-            <input class="reg-input" id="asig-input-creditos" type="number" min="1" max="12" placeholder="6" />
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Color</label>
-            <select class="reg-select" id="asig-input-color">
-              <option value="ocean">🔵 Azul</option>
-              <option value="grass">Verde</option>
-              <option value="coral">Rojo</option>
-              <option value="amber">Naranja</option>
-              <option value="purple">🟣 Morado</option>
-              <option value="pink">🩷 Rosa</option>
-            </select>
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Nota mínima para aprobar</label>
-            <input class="reg-input" id="asig-input-minimo" type="number" min="0" max="10" step="0.1" placeholder="5" />
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Profesor/a (opcional)</label>
-            <input class="reg-input" id="asig-input-profe" type="text" placeholder="Nombre del profesor" maxlength="60" />
-          </div>
-        </div>
-
-        <!-- Constructor dinámico de porcentajes -->
-        <div style="margin-top:1.2rem">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem">
-            <div>
-              <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Porcentajes de evaluación</span>
-              <span style="font-size:0.68rem;color:var(--muted);margin-left:0.4rem">(opcional — deben sumar 100%)</span>
+      <div class="form-collapse-wrap" id="fc-nueva-asignatura">
+        <button class="form-collapse-trigger" onclick="toggleFormCollapse('nueva-asignatura')">
+          <span class="form-collapse-trigger-left">
+            <span class="form-collapse-trigger-icon">➕</span>
+            <span class="form-collapse-trigger-label">Nueva Asignatura</span>
+          </span>
+          <svg class="form-collapse-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="form-collapse-body" id="fc-body-nueva-asignatura">
+          <div class="reg-grid">
+            <div class="reg-field">
+              <label class="reg-label">Nombre</label>
+              <input class="reg-input" id="asig-input-nombre" type="text" placeholder="Ej. Matemáticas" maxlength="60" />
             </div>
-            <button type="button" class="asig-pct-add-cat-btn" onclick="asigPctAddCategoria()">＋ Añadir categoría</button>
+            <div class="reg-field">
+              <label class="reg-label">Abreviatura</label>
+              <input class="reg-input" id="asig-input-abrev" type="text" placeholder="MAT" maxlength="6" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Créditos / Peso</label>
+              <input class="reg-input" id="asig-input-creditos" type="number" min="1" max="12" placeholder="6" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Color</label>
+              <select class="reg-select" id="asig-input-color">
+                <option value="ocean">🔵 Azul</option>
+                <option value="grass">Verde</option>
+                <option value="coral">Rojo</option>
+                <option value="amber">Naranja</option>
+                <option value="purple">🟣 Morado</option>
+                <option value="pink">🩷 Rosa</option>
+              </select>
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Nota mínima para aprobar</label>
+              <input class="reg-input" id="asig-input-minimo" type="number" min="0" max="10" step="0.1" placeholder="5" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Profesor/a (opcional)</label>
+              <input class="reg-input" id="asig-input-profe" type="text" placeholder="Nombre del profesor" maxlength="60" />
+            </div>
           </div>
-          <div id="asig-pct-builder" style="display:flex;flex-direction:column;gap:0.5rem"></div>
-          <div id="asig-pct-total-row" style="display:none;margin-top:0.5rem;padding:0.45rem 0.9rem;border-radius:8px;font-size:0.78rem;font-weight:700;display:flex;align-items:center;gap:0.5rem">
-            <span>Total:</span><span id="asig-pct-total-val">0</span>%
-            <span id="asig-pct-total-msg" style="font-weight:400"></span>
-          </div>
-        </div>
 
-        <button class="reg-btn" onclick="asigAddAsignatura()" style="margin-top:1rem">＋ Añadir asignatura</button>
+          <!-- Constructor dinámico de porcentajes -->
+          <div style="margin-top:1.2rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem">
+              <div>
+                <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Porcentajes de evaluación</span>
+                <span style="font-size:0.68rem;color:var(--muted);margin-left:0.4rem">(opcional — deben sumar 100%)</span>
+              </div>
+              <button type="button" class="asig-pct-add-cat-btn" onclick="asigPctAddCategoria()">＋ Añadir categoría</button>
+            </div>
+            <div id="asig-pct-builder" style="display:flex;flex-direction:column;gap:0.5rem"></div>
+            <div id="asig-pct-total-row" style="display:none;margin-top:0.5rem;padding:0.45rem 0.9rem;border-radius:8px;font-size:0.78rem;font-weight:700;display:flex;align-items:center;gap:0.5rem">
+              <span>Total:</span><span id="asig-pct-total-val">0</span>%
+              <span id="asig-pct-total-msg" style="font-weight:400"></span>
+            </div>
+          </div>
+
+          <button class="reg-btn" onclick="asigAddAsignatura()" style="margin-top:1rem">＋ Añadir asignatura</button>
+        </div>
       </div>
 
       <!-- Lista de asignaturas -->
@@ -5719,55 +5817,62 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
       <p class="section-sub">Registra cada examen o evaluación con su nota y peso en la asignatura.</p>
 
       <!-- Formulario nueva nota -->
-      <div class="reg-form-card" style="margin-bottom:1.5rem">
-        <div class="reg-form-title">📝 Registrar Nota</div>
-        <div class="reg-grid">
-          <div class="reg-field">
-            <label class="reg-label">Asignatura</label>
-            <select class="reg-select" id="asig-nota-asig" onchange="asigNotaActualizarCatSelector()">
-              <option value="">— Selecciona asignatura —</option>
-            </select>
+      <div class="form-collapse-wrap" id="fc-registrar-nota">
+        <button class="form-collapse-trigger" onclick="toggleFormCollapse('registrar-nota')">
+          <span class="form-collapse-trigger-left">
+            <span class="form-collapse-trigger-icon">📝</span>
+            <span class="form-collapse-trigger-label">Registrar Nota</span>
+          </span>
+          <svg class="form-collapse-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="form-collapse-body" id="fc-body-registrar-nota">
+          <div class="reg-grid">
+            <div class="reg-field">
+              <label class="reg-label">Asignatura</label>
+              <select class="reg-select" id="asig-nota-asig" onchange="asigNotaActualizarCatSelector()">
+                <option value="">— Selecciona asignatura —</option>
+              </select>
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Tipo de evaluación</label>
+              <select class="reg-select" id="asig-nota-tipo">
+                <option value="examen">Examen</option>
+                <option value="parcial">Parcial</option>
+                <option value="practica">Práctica</option>
+                <option value="trabajo">Trabajo</option>
+                <option value="oral">Oral</option>
+                <option value="test">Test</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <!-- Selector de categoría (aparece si la asig tiene árbol de pcts) -->
+            <div class="reg-field" id="asig-nota-cat-field" style="display:none">
+              <label class="reg-label">Categoría de evaluación</label>
+              <select class="reg-select" id="asig-nota-cat">
+                <option value="">— Selecciona categoría —</option>
+              </select>
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Descripción</label>
+              <input class="reg-input" id="asig-nota-desc" type="text" placeholder="Ej. Tema 3 — Álgebra" maxlength="80" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Fecha</label>
+              <input class="reg-input" id="asig-nota-fecha" type="date" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Nota (0–10)</label>
+              <input class="reg-input" id="asig-nota-nota" type="number" min="0" max="10" step="0.01" placeholder="7.5" />
+            </div>
           </div>
-          <div class="reg-field">
-            <label class="reg-label">Tipo de evaluación</label>
-            <select class="reg-select" id="asig-nota-tipo">
-              <option value="examen">Examen</option>
-              <option value="parcial">Parcial</option>
-              <option value="practica">Práctica</option>
-              <option value="trabajo">Trabajo</option>
-              <option value="oral">Oral</option>
-              <option value="test">Test</option>
-              <option value="otro">Otro</option>
-            </select>
+          <!-- Añadir al calendario -->
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;padding:0.6rem 0.9rem;background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;font-size:0.85rem">
+            <input type="checkbox" id="asig-nota-addcal" style="width:16px;height:16px;cursor:pointer" checked />
+            <label for="asig-nota-addcal" style="cursor:pointer;color:#1d1d1f;font-weight:600">Añadir automáticamente al Calendario</label>
+            <span style="font-size:0.75rem;color:var(--muted);font-weight:400">(tipo Examen, con la fecha y descripción)</span>
           </div>
-          <!-- Selector de categoría (aparece si la asig tiene árbol de pcts) -->
-          <div class="reg-field" id="asig-nota-cat-field" style="display:none">
-            <label class="reg-label">Categoría de evaluación</label>
-            <select class="reg-select" id="asig-nota-cat">
-              <option value="">— Selecciona categoría —</option>
-            </select>
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Descripción</label>
-            <input class="reg-input" id="asig-nota-desc" type="text" placeholder="Ej. Tema 3 — Álgebra" maxlength="80" />
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Fecha</label>
-            <input class="reg-input" id="asig-nota-fecha" type="date" />
-          </div>
-          <div class="reg-field">
-            <label class="reg-label">Nota (0–10)</label>
-            <input class="reg-input" id="asig-nota-nota" type="number" min="0" max="10" step="0.01" placeholder="7.5" />
-          </div>
-
+          <button class="reg-btn" onclick="asigAddNota()">＋ Registrar nota / examen</button>
         </div>
-        <!-- Añadir al calendario -->
-        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;padding:0.6rem 0.9rem;background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;font-size:0.85rem">
-          <input type="checkbox" id="asig-nota-addcal" style="width:16px;height:16px;cursor:pointer" checked />
-          <label for="asig-nota-addcal" style="cursor:pointer;color:#1d1d1f;font-weight:600">Añadir automáticamente al Calendario</label>
-          <span style="font-size:0.75rem;color:var(--muted);font-weight:400">(tipo Examen, con la fecha y descripción)</span>
-        </div>
-        <button class="reg-btn" onclick="asigAddNota()">＋ Registrar nota / examen</button>
       </div>
 
       <!-- Filtro por asignatura -->
@@ -6105,6 +6210,7 @@ function asigAddAsignatura() {
   // Limpiar builder
   asigPctArbol = [];
   asigPctRenderBuilder();
+  closeFormCollapse('nueva-asignatura');
 }
 
 // ── Eliminar asignatura ──
@@ -6170,6 +6276,7 @@ function asigAddNota() {
 
   document.getElementById('asig-nota-nota').value = '';
   document.getElementById('asig-nota-desc').value = '';
+  closeFormCollapse('registrar-nota');
 }
 
 // Buscar nodo por id en el árbol
