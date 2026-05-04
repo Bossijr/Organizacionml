@@ -3964,11 +3964,14 @@ let registros = [];
 let filtroActivo = 'todos';
 
 function cargarDatos() {
+  // Mostrar localStorage como caché mientras llega Firebase
   try { const raw = localStorage.getItem(STORAGE_KEY); registros = raw ? JSON.parse(raw) : []; } catch(e) { registros = []; }
   renderTabla(); actualizarStats();
   const startRegistrosListener = () => {
     window._fbListen('registros', docs => {
-      registros = Object.values(docs).sort((a,b) => b.id - a.id);
+      const fbData = Object.values(docs).sort((a,b) => b.id - a.id);
+      // Solo sobreescribir si Firebase tiene datos O si el uid coincide
+      registros = fbData;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
       renderTabla(); actualizarStats();
     });
@@ -4755,7 +4758,30 @@ function loadCalTipos() {
 
 function saveCalTipos(tipos) {
   try { localStorage.setItem(CAL_TIPOS_KEY, JSON.stringify(tipos)); } catch(e) {}
+  // Sincronizar con Firebase
+  if (window._fbReady) window._fbSet('config', 'cal_tipos', { tipos: JSON.stringify(tipos) });
+  else window.addEventListener('firebase-ready', () => window._fbSet('config', 'cal_tipos', { tipos: JSON.stringify(tipos) }), { once: true });
 }
+
+function loadCalTiposFromFirebase() {
+  if (!window._fbListen) return;
+  window._fbListen('config', docs => {
+    if (docs && docs['cal_tipos'] && docs['cal_tipos'].tipos) {
+      try {
+        const parsed = JSON.parse(docs['cal_tipos'].tipos);
+        if (parsed && Object.keys(parsed).length > 0) {
+          calTipos = parsed;
+          try { localStorage.setItem(CAL_TIPOS_KEY, JSON.stringify(calTipos)); } catch(e) {}
+          applyCalTiposToUI();
+          renderCal();
+        }
+      } catch(e) {}
+    }
+  });
+}
+
+// Cargar tipos desde Firebase al estar listo
+window.addEventListener('firebase-ready', loadCalTiposFromFirebase, { once: true });
 
 let calTipos = loadCalTipos();
 
@@ -8676,6 +8702,18 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   onAuthStateChanged(auth, user => {
     document.getElementById('loading-screen').style.display = 'none';
     if (user) {
+      // Si cambió de cuenta, limpiar localStorage para no mezclar datos
+      const prevUid = localStorage.getItem('_app_uid');
+      if (prevUid && prevUid !== user.uid) {
+        const keysToClean = [
+          'rutina_surf_cargas_v1', 'rutina_tareas_v1', 'mi_calendario_v1',
+          'mi_lista_compra_v1', 'ob_perfil_v1', 'cal_tipos_v1',
+          'plan_ia_entreno', 'plan_ia_nutri', 'cal_reminders_v1'
+        ];
+        keysToClean.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+      }
+      localStorage.setItem('_app_uid', user.uid);
+
       _currentUid = user.uid;
       const n = document.getElementById('portada-user-name');
       if (n) n.textContent = user.displayName || user.email.split('@')[0];
@@ -8683,7 +8721,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       document.getElementById('app-root').style.display   = 'block';
       window._fbReady = true;
       window.dispatchEvent(new Event('firebase-ready'));
-      // Lanzar onboarding si es primer acceso o registro nuevo
       setTimeout(() => {
         if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
       }, 400);
