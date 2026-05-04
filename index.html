@@ -8082,6 +8082,28 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       </div>
     </div>
 
+    <!-- PREFERENCIAS -->
+    <div>
+      <div class="aj-section-label">Preferencias</div>
+      <div class="aj-group">
+        <div class="aj-row" onclick="ajSheetAbrir('idioma')">
+          <div class="aj-row-icon" style="background:#e8f0fe">🌐</div>
+          <div class="aj-row-info"><div class="aj-row-title">Idioma</div><div class="aj-row-val" id="aj-val-idioma">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('pais')">
+          <div class="aj-row-icon" style="background:#e8f7ee">📍</div>
+          <div class="aj-row-info"><div class="aj-row-title">País</div><div class="aj-row-val" id="aj-val-pais">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+        <div class="aj-row" onclick="ajSheetAbrir('areas')">
+          <div class="aj-row-icon" style="background:#fff4e0">📱</div>
+          <div class="aj-row-info"><div class="aj-row-title">Secciones activas</div><div class="aj-row-val" id="aj-val-areas">—</div></div>
+          <div class="aj-row-chev">›</div>
+        </div>
+      </div>
+    </div>
+
     <!-- PERFIL FÍSICO -->
     <div>
       <div class="aj-section-label">Perfil físico</div>
@@ -8276,6 +8298,9 @@ const AJ_LABELS = {
   deporte:             { futbol:'Fútbol',surf:'Surf',basket:'Baloncesto',padel:'Pádel',natacion:'Natación',ciclismo:'Ciclismo',running:'Running',ninguno:'Ninguno' },
   lesiones:            { ninguna:'Ninguna',rodilla:'Rodilla',espalda:'Espalda',hombro:'Hombro',tobillo:'Tobillo',otra:'Otra' },
   sueno:               { '<5h':'<5h','5-6h':'5–6h','6-7h':'6–7h','7-8h':'7–8h','>8h':'>8h' },
+  idioma:              { es:'Español',en:'English',fr:'Français',de:'Deutsch',it:'Italiano',pt:'Português' },
+  pais:                { ES:'España',MX:'México',AR:'Argentina',CO:'Colombia',GB:'United Kingdom',US:'United States',FR:'France',DE:'Germany',IT:'Italy',PT:'Portugal',OTHER:'Otro' },
+  areas:               { entrenamiento:'Entrenamiento',calendario:'Calendario',personal:'Personal',tiempo:'Tiempo',asignaturas:'Asignaturas',nutricion:'Nutrición' },
 };
 
 function ajValLabel(key, val) {
@@ -8334,12 +8359,12 @@ function ajCargarPerfil(cb) {
 
 function ajRellenarUI() {
   const p = _ajPerfil;
-  const campos = ['sexo','edad','nivel','lesiones','frecuencia_ejercicio','tiempo_disponible','objetivo','material','deporte','sueno'];
+  const campos = ['sexo','edad','nivel','lesiones','frecuencia_ejercicio','tiempo_disponible','objetivo','material','deporte','sueno','idioma','pais','areas'];
   campos.forEach(k => {
     const el = document.getElementById('aj-val-' + k);
     if (!el) return;
     const val = p[k];
-    if (val === undefined || val === null) { el.textContent = 'No configurado'; return; }
+    if (val === undefined || val === null || (Array.isArray(val) && val.length === 0)) { el.textContent = 'No configurado'; return; }
     if (k === 'edad') { el.textContent = val + ' años'; return; }
     el.textContent = ajValLabel(k, val);
   });
@@ -8371,6 +8396,7 @@ function ajSheetAbrir(key) {
     frecuencia_ejercicio:'Frecuencia de entreno', tiempo_disponible:'Tiempo por sesión',
     objetivo:'Objetivo principal', material:'Material disponible',
     deporte:'Deportes', sueno:'Horas de sueño',
+    idioma:'Idioma', pais:'País', areas:'Secciones activas',
   };
   document.getElementById('aj-generic-title').textContent = titles[key] || key;
   ajMsgLimpiar('generic');
@@ -8518,6 +8544,10 @@ async function ajGuardarGeneric() {
     if (window._fbSet) await window._fbSet('perfil', 'datos', _ajPerfil);
     try { localStorage.setItem('ob_perfil_v1', JSON.stringify(_ajPerfil)); } catch(e2) {}
     ajRellenarUI();
+    // Si se modifican las áreas, aplicar cambio inmediatamente
+    if (key === 'areas' && typeof applyAreas === 'function') {
+      applyAreas(Array.isArray(newVal) ? newVal : [newVal]);
+    }
     ajMsgShow('generic', '✓ Guardado correctamente.', 'ok');
     setTimeout(() => ajSheetCerrarGeneric(), 1200);
     if (typeof mostrarToast === 'function') mostrarToast('Perfil actualizado');
