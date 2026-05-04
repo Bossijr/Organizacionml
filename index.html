@@ -4551,15 +4551,14 @@ const CAL_TIPOS_DEFAULT = {
   rutina:    { nombre: 'Rutina',      color: '#1a5c2a' },
 };
 // Tipos que no se pueden eliminar
-const CAL_TIPOS_LOCKED = new Set(['normal']);
+const CAL_TIPOS_LOCKED = new Set(); // Ningún tipo está bloqueado
 
 function loadCalTipos() {
   try {
     const raw = localStorage.getItem(CAL_TIPOS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Siempre garantizar que 'normal' exista
-      return Object.assign({ normal: CAL_TIPOS_DEFAULT.normal }, parsed);
+      if (parsed && Object.keys(parsed).length > 0) return parsed;
     }
   } catch(e) {}
   return Object.assign({}, CAL_TIPOS_DEFAULT);
@@ -4665,19 +4664,23 @@ function tiposModalUpdate(tipo, campo, val) {
 }
 
 function tiposModalDelete(tipo) {
-  if (CAL_TIPOS_LOCKED.has(tipo)) return;
+  // Contar cuántos tipos quedan activos (sin eliminar)
+  const activos = Object.entries(tiposModalState).filter(([k,v]) => !v._deleted);
+  if (activos.length <= 1) {
+    mostrarToast('⚠️ Debe haber al menos un tipo de calendario');
+    return;
+  }
   // Contar eventos que usan este tipo
   let count = 0;
   Object.values(calEventsDB).forEach(evts => evts.forEach(e => { if (e.pri === tipo) count++; }));
   const cfg = tiposModalState[tipo];
   const nombre = cfg ? cfg.nombre : tipo;
   let msg = `¿Eliminar el tipo "${nombre}"?`;
-  if (count > 0) msg += `\n\nAtención: hay ${count} evento${count>1?'s':''} con este tipo. Pasarán a ser "Normal".`;
+  if (count > 0) msg += `\n\nAtención: hay ${count} evento${count>1?'s':''} con este tipo. Pasarán al primer tipo disponible.`;
   if (!confirm(msg)) return;
   const row = document.getElementById(`tipo-row-${tipo}`);
   if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
   tiposModalState[tipo] = { ...tiposModalState[tipo], _deleted: true };
-  // Animar salida
   setTimeout(() => { if (row) row.remove(); }, 200);
 }
 
@@ -4719,11 +4722,13 @@ function saveTiposModal() {
     }
   }
 
-  // Aplicar eliminaciones: mover eventos al tipo 'normal'
+  // Aplicar eliminaciones: mover eventos al primer tipo restante
+  const tiposRestantes = Object.entries(tiposModalState).filter(([,v]) => !v._deleted).map(([k]) => k);
+  const fallback = tiposRestantes[0] || 'normal';
   Object.entries(tiposModalState).forEach(([tipo, cfg]) => {
     if (!cfg._deleted) return;
     Object.values(calEventsDB).forEach(evts => evts.forEach(e => {
-      if (e.pri === tipo) e.pri = 'normal';
+      if (e.pri === tipo) e.pri = fallback;
     }));
   });
 
