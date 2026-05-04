@@ -5987,7 +5987,7 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
       <div class="section-heading">Notas y Exámenes</div>
       <p class="section-sub">Registra cada examen o evaluación con su nota y peso en la asignatura.</p>
 
-      <!-- Formulario nueva nota -->
+      <!-- Formulario: Registrar Nota -->
       <div class="form-collapse-wrap" id="fc-registrar-nota">
         <button class="form-collapse-trigger" onclick="toggleFormCollapse('registrar-nota')">
           <span class="form-collapse-trigger-left">
@@ -6007,7 +6007,6 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
             <div class="reg-field">
               <label class="reg-label">Tipo de evaluación</label>
               <select class="reg-select" id="asig-nota-tipo">
-                <option value="examen">Examen</option>
                 <option value="parcial">Parcial</option>
                 <option value="practica">Práctica</option>
                 <option value="trabajo">Trabajo</option>
@@ -6036,13 +6035,54 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
               <input class="reg-input" id="asig-nota-nota" type="number" min="0" max="10" step="0.01" placeholder="7.5" />
             </div>
           </div>
+          <button class="reg-btn" onclick="asigAddNota()">＋ Registrar nota</button>
+        </div>
+      </div>
+
+      <!-- Formulario: Registrar Examen -->
+      <div class="form-collapse-wrap" id="fc-registrar-examen">
+        <button class="form-collapse-trigger" onclick="toggleFormCollapse('registrar-examen')">
+          <span class="form-collapse-trigger-left">
+            <span class="form-collapse-trigger-icon">📋</span>
+            <span class="form-collapse-trigger-label">Registrar Examen</span>
+          </span>
+          <svg class="form-collapse-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="form-collapse-body" id="fc-body-registrar-examen">
+          <div class="reg-grid">
+            <div class="reg-field">
+              <label class="reg-label">Asignatura</label>
+              <select class="reg-select" id="asig-exam-asig" onchange="asigExamActualizarCatSelector()">
+                <option value="">— Selecciona asignatura —</option>
+              </select>
+            </div>
+            <!-- Selector de categoría (aparece si la asig tiene árbol de pcts) -->
+            <div class="reg-field" id="asig-exam-cat-field" style="display:none">
+              <label class="reg-label">Categoría de evaluación</label>
+              <select class="reg-select" id="asig-exam-cat">
+                <option value="">— Selecciona categoría —</option>
+              </select>
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Descripción</label>
+              <input class="reg-input" id="asig-exam-desc" type="text" placeholder="Ej. Parcial 1 — Tema 3" maxlength="80" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Fecha</label>
+              <input class="reg-input" id="asig-exam-fecha" type="date" />
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Nota (0–10)</label>
+              <input class="reg-input" id="asig-exam-nota" type="number" min="0" max="10" step="0.01" placeholder="7.5" />
+            </div>
+          </div>
           <!-- Añadir al calendario -->
           <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;padding:0.6rem 0.9rem;background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;font-size:0.85rem">
-            <input type="checkbox" id="asig-nota-addcal" style="width:16px;height:16px;cursor:pointer" checked />
-            <label for="asig-nota-addcal" style="cursor:pointer;color:#1d1d1f;font-weight:600">Añadir automáticamente al Calendario</label>
+            <input type="checkbox" id="asig-exam-addcal" style="width:16px;height:16px;cursor:pointer" checked />
+            <label for="asig-exam-addcal" style="cursor:pointer;color:#1d1d1f;font-weight:600">Añadir automáticamente al Calendario</label>
             <span style="font-size:0.75rem;color:var(--muted);font-weight:400">(tipo Examen, con la fecha y descripción)</span>
           </div>
-          <button class="reg-btn" onclick="asigAddNota()">＋ Registrar nota / examen</button>
+          <button class="reg-btn" onclick="asigAddExamen()">＋ Registrar examen</button>
         </div>
       </div>
 
@@ -6402,7 +6442,6 @@ function asigAddNota() {
   const fecha  = document.getElementById('asig-nota-fecha').value;
   const nota   = parseFloat(document.getElementById('asig-nota-nota').value);
   const peso   = 100;
-  const addCal = document.getElementById('asig-nota-addcal').checked;
 
   if (!asigId) { mostrarToast('Selecciona una asignatura'); return; }
   if (isNaN(nota) || nota < 0 || nota > 10) { mostrarToast('La nota debe ser entre 0 y 10'); return; }
@@ -6433,21 +6472,62 @@ function asigAddNota() {
   asigRender();
   mostrarToast('Nota registrada: ' + nota.toFixed(2));
 
+  document.getElementById('asig-nota-nota').value = '';
+  document.getElementById('asig-nota-desc').value = '';
+  closeFormCollapse('registrar-nota');
+}
+
+function asigAddExamen() {
+  const asigId = document.getElementById('asig-exam-asig').value;
+  const tipo   = 'examen';
+  const desc   = document.getElementById('asig-exam-desc').value.trim();
+  const fecha  = document.getElementById('asig-exam-fecha').value;
+  const nota   = parseFloat(document.getElementById('asig-exam-nota').value);
+  const peso   = 100;
+  const addCal = document.getElementById('asig-exam-addcal').checked;
+
+  if (!asigId) { mostrarToast('Selecciona una asignatura'); return; }
+  if (isNaN(nota) || nota < 0 || nota > 10) { mostrarToast('La nota debe ser entre 0 y 10'); return; }
+
+  const asig = asigDB.find(a => a.id === asigId);
+
+  // Categoría del árbol (si la asig la tiene y el campo es visible)
+  const catField = document.getElementById('asig-exam-cat-field');
+  const catSel   = document.getElementById('asig-exam-cat');
+  const catFieldVisible = catField && catField.style.display !== 'none';
+  const catId = catFieldVisible && catSel ? catSel.value : '';
+
+  // Si la asig tiene árbol de pcts, requerir que se seleccione categoría hoja
+  if (asig && asig.pcts && asig.pcts.length > 0 && !catId) {
+    mostrarToast('Selecciona la categoría de evaluación');
+    return;
+  }
+
+  // Encontrar nombre de categoría para label
+  let catNombre = 'Examen';
+  if (catId && asig && asig.pcts) {
+    const found = asigPctBuscarNodo(asig.pcts, catId);
+    if (found) catNombre = found.nombre || 'Examen';
+  }
+
+  notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
+  asigSyncAll();
+  asigRender();
+  mostrarToast('Examen registrado: ' + nota.toFixed(2));
+
   // Añadir al calendario si está marcado y hay fecha
   if (addCal && fecha) {
     const nombre = asig ? asig.nombre : 'Asignatura';
-    const tipoLabel = catNombre || ({'examen':'Examen','parcial':'Parcial','practica':'Práctica','trabajo':'Trabajo','oral':'Oral','test':'Test','otro':'Evaluación'}[tipo] || tipo);
-    const textoEv = `${tipoLabel}: ${nombre}${desc ? ' — ' + desc : ''}`;
-
+    const textoEv = `Examen: ${nombre}${desc ? ' — ' + desc : ''}`;
     if (!calEventsDB[fecha]) calEventsDB[fecha] = [];
     calEventsDB[fecha].push({ id: Date.now() + '_asig', text: textoEv, pri: 'examen', allDay: true });
     saveCal();
     mostrarToast('Añadido al Calendario como examen');
   }
 
-  document.getElementById('asig-nota-nota').value = '';
-  document.getElementById('asig-nota-desc').value = '';
-  closeFormCollapse('registrar-nota');
+  document.getElementById('asig-exam-nota').value = '';
+  document.getElementById('asig-exam-desc').value = '';
+  closeFormCollapse('registrar-examen');
 }
 
 // Buscar nodo por id en el árbol
@@ -6650,11 +6730,21 @@ function asigRenderLista() {
 }
 
 function asigRenderSelectNota() {
+  // Selector de Registrar Nota
   const sel = document.getElementById('asig-nota-asig');
   const cur = sel.value;
   sel.innerHTML = '<option value="">— Selecciona asignatura —</option>' +
     asigDB.map(a => `<option value="${a.id}" ${a.id === cur ? 'selected' : ''}>${a.nombre}</option>`).join('');
   asigNotaActualizarCatSelector();
+
+  // Selector de Registrar Examen
+  const selEx = document.getElementById('asig-exam-asig');
+  const curEx = selEx ? selEx.value : '';
+  if (selEx) {
+    selEx.innerHTML = '<option value="">— Selecciona asignatura —</option>' +
+      asigDB.map(a => `<option value="${a.id}" ${a.id === curEx ? 'selected' : ''}>${a.nombre}</option>`).join('');
+    asigExamActualizarCatSelector();
+  }
 }
 
 function asigNotaActualizarCatSelector() {
@@ -6665,7 +6755,35 @@ function asigNotaActualizarCatSelector() {
 
   if (asig && asig.pcts && asig.pcts.length > 0) {
     catField.style.display = '';
-    // Construir opciones planas del árbol (solo hojas o nodos con sub)
+    const opts = ['<option value="">— Selecciona categoría —</option>'];
+    function recorrer(nodos, prefix) {
+      nodos.forEach(n => {
+        const label = prefix + (n.nombre || 'Sin nombre') + ' (' + n.pct + '%)';
+        if (n.sub && n.sub.length > 0) {
+          opts.push(`<optgroup label="${label}">`);
+          recorrer(n.sub, '  ');
+          opts.push('</optgroup>');
+        } else {
+          opts.push(`<option value="${n.id}">${label}</option>`);
+        }
+      });
+    }
+    recorrer(asig.pcts, '');
+    catSel.innerHTML = opts.join('');
+  } else {
+    catField.style.display = 'none';
+    catSel.innerHTML = '';
+  }
+}
+
+function asigExamActualizarCatSelector() {
+  const asigId = document.getElementById('asig-exam-asig').value;
+  const asig = asigDB.find(a => a.id === asigId);
+  const catField = document.getElementById('asig-exam-cat-field');
+  const catSel   = document.getElementById('asig-exam-cat');
+
+  if (asig && asig.pcts && asig.pcts.length > 0) {
+    catField.style.display = '';
     const opts = ['<option value="">— Selecciona categoría —</option>'];
     function recorrer(nodos, prefix) {
       nodos.forEach(n => {
