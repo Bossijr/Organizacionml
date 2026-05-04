@@ -2326,7 +2326,58 @@
 
 <!-- ══ APP ══ -->
 <div id="app-root" style="display:none">
-  <button id="btn-logout" onclick="_authLogout()" style="position:absolute;top:1.2rem;right:1.2rem;z-index:10;background:transparent;border:1px solid rgba(0,113,227,0.25);color:rgba(0,113,227,0.6);border-radius:8px;padding:0.4rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:0.75rem;font-weight:600;cursor:pointer">Cerrar sesión</button>
+  <button id="btn-logout" onclick="_authLogout()" style="position:absolute;top:1.2rem;right:1.2rem;z-index:10;background:transparent;border:1px solid rgba(0,113,227,0.25);color:rgba(0,113,227,0.6);border-radius:8px;padding:0.4rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:0.75rem;font-weight:600;cursor:pointer;display:none">Cerrar sesión</button>
+
+  <!-- Botón flotante de ajustes -->
+  <button id="fab-ajustes" onclick="ajustesAbrir()" aria-label="Ajustes" title="Ajustes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+  <style>
+    #fab-ajustes {
+      position: fixed;
+      bottom: calc(1.4rem + env(safe-area-inset-bottom));
+      right: 1.4rem;
+      z-index: 500;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #636366;
+      transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background 0.2s;
+      padding: 0;
+    }
+    #fab-ajustes svg {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    #fab-ajustes:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      color: #0071e3;
+      background: rgba(255,255,255,0.97);
+      transform: scale(1.07);
+    }
+    #fab-ajustes:hover svg {
+      transform: rotate(60deg);
+    }
+    #fab-ajustes:active {
+      transform: scale(0.94);
+    }
+    /* Ocultar cuando no estamos en portada */
+    .area.active ~ #fab-ajustes,
+    body.fab-hidden #fab-ajustes { display: none; }
+  </style>
 
 <!-- ══════════════════════════════════ PORTADA ══════════════════════════════════ -->
 <div id="portada">
@@ -2406,16 +2457,6 @@
       <div class="portada-row-chevron">›</div>
     </div>
 
-    <div class="portada-row" onclick="ajustesAbrir()">
-      <div class="portada-row-icon" style="background:#f0f0f2">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </div>
-      <div class="portada-row-text">
-        <div class="portada-row-title">Ajustes</div>
-        <div class="portada-row-sub">Perfil · Cuenta · Preferencias</div>
-      </div>
-      <div class="portada-row-chevron">›</div>
-    </div>
 
   </div>
 </div>
@@ -3120,6 +3161,8 @@ function goArea(area) {
   document.querySelectorAll('.area').forEach(a => a.classList.remove('active'));
   document.getElementById('area-' + area).classList.add('active');
   window.scrollTo(0,0);
+  const fab = document.getElementById('fab-ajustes');
+  if (fab) fab.style.display = 'none';
 }
 function goPortada() {
   document.querySelectorAll('.area').forEach(a => a.classList.remove('active'));
@@ -3127,6 +3170,8 @@ function goPortada() {
   window.scrollTo(0,0);
   pwRefreshAll();
   if (typeof timerSyncVisibility === 'function') setTimeout(timerSyncVisibility, 50);
+  const fab = document.getElementById('fab-ajustes');
+  if (fab) fab.style.display = 'flex';
 }
 
 // ══════════════════════════════ PORTADA WIDGETS ══════════════════════════════
