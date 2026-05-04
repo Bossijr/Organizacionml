@@ -3742,9 +3742,9 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
 });
 
 // ══════════════════════════════ TABS PERSONAL ══════════════════════════════
-document.querySelectorAll('.pers-tab').forEach(tab => {
+document.querySelectorAll('.pers-tab[data-ptab]').forEach(tab => {
   tab.addEventListener('click', () => {
-    document.querySelectorAll('.pers-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.pers-tab[data-ptab]').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.pers-section').forEach(s => {
       s.classList.remove('active', 'tab-enter');
       s.style.display = 'none';
@@ -6651,6 +6651,7 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
 /* ── ÁREA ASIGNATURAS ── */
 .asig-section { display:none }
 .asig-section.active { display:block }
+.asig-section.tab-enter { animation: page-enter 0.25s cubic-bezier(.22,.68,0,1.15) both; }
 
 .asig-card {
   background:white;border:1.5px solid var(--border);border-radius:16px;
@@ -7445,9 +7446,19 @@ function asigRenderResumen() {
 document.querySelectorAll('[data-asig-tab]').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('[data-asig-tab]').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.asig-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.asig-section').forEach(s => {
+      s.classList.remove('active', 'tab-enter');
+      s.style.display = 'none';
+    });
     tab.classList.add('active');
-    document.getElementById('asig-tab-' + tab.dataset.asigTab).classList.add('active');
+    const target = document.getElementById('asig-tab-' + tab.dataset.asigTab);
+    if (target) {
+      target.style.display = 'block';
+      target.classList.add('active');
+      void target.offsetWidth;
+      target.classList.add('tab-enter');
+      target.addEventListener('animationend', () => target.classList.remove('tab-enter'), { once: true });
+    }
     if (tab.dataset.asigTab === 'calculadora') calcRender();
   });
 });
