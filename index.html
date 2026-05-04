@@ -440,7 +440,7 @@
   .pw-skeleton.short { width: 35%; }
 
   /* ── ÁREA WRAPPER ── */
-  .area { display: none; opacity: 0; }
+  .area { display: none; }
   .area.active { display: block; }
 
   @keyframes page-enter {
@@ -460,11 +460,11 @@
   .portada-animating { animation: portada-enter 0.3s cubic-bezier(.22,.68,0,1.15) both; }
 
   /* Tabs internos (entrenamiento, personal, asignaturas) */
-  .section  { display: none; opacity: 0; }
-  .section.active  { display: block; }
-  .section.tab-enter  { animation: page-enter 0.25s cubic-bezier(.22,.68,0,1.15) both; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .section.tab-enter { animation: page-enter 0.25s cubic-bezier(.22,.68,0,1.15) both; }
 
-  .pers-section { display: none; opacity: 0; }
+  .pers-section { display: none; }
   .pers-section.active { display: block; }
   .pers-section.tab-enter { animation: page-enter 0.25s cubic-bezier(.22,.68,0,1.15) both; }
 
@@ -3588,9 +3588,13 @@ function goArea(area) {
       a.style.display = 'none';
     });
 
+    // Asegurar que las secciones activas dentro del área sean visibles
+    target.querySelectorAll('.section.active, .pers-section.active, .asig-section.active').forEach(s => {
+      s.style.display = 'block';
+    });
+
     target.style.display = 'block';
     target.classList.add('active');
-    // Forzar reflow
     void target.offsetWidth;
     target.classList.add('page-enter');
     target.addEventListener('animationend', () => target.classList.remove('page-enter'), { once: true });
