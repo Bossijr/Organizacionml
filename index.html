@@ -6503,35 +6503,36 @@ function asigMedia(asigId) {
   return notas.reduce((s, n) => s + n.nota, 0) / notas.length;
 }
 
-// Calcula la media ponderada de un nivel del árbol
-// Cada nodo: { id, nombre, pct, min, sub: [] }
-// Si tiene sub: su nota = media ponderada de sus hijos (sub suman 100% entre ellos)
-// Si no tiene sub: busca notas cuyo campo 'catId' === nodo.id
-function asigMediaNivel(nodos, notas, minimo) {
-  let sumaTotal = 0, sumaPctUsado = 0;
+// Calcula la media ponderada de un nivel del árbol.
+// pctPadre: peso absoluto heredado del padre (100 en la raíz).
+// Los pct de los nodos son RELATIVOS entre hermanos (suman 100% en su nivel).
+// Peso absoluto real de cada nodo = (nodo.pct / 100) * pctPadre (igual que calcHojas).
+function asigMediaNivel(nodos, notas, minimo, pctPadre) {
+  if (pctPadre === undefined) pctPadre = 100;
+  let sumaTotal = 0, pctRellenado = 0;
   nodos.forEach(nodo => {
-    const pct = nodo.pct || 0;
-    if (pct <= 0) return;
+    const pctRel = nodo.pct || 0;
+    if (pctRel <= 0) return;
+    const pctAbs = (pctRel / 100) * pctPadre; // peso absoluto de este nodo
     let mediaNodo = null;
     if (nodo.sub && nodo.sub.length > 0) {
-      // Tiene subcategorías: calcular recursivamente (sub suman 100%)
-      mediaNodo = asigMediaNivel(nodo.sub, notas, minimo);
+      // Subcategorías: recursivo propagando el peso absoluto del padre
+      mediaNodo = asigMediaNivel(nodo.sub, notas, minimo, pctAbs);
     } else {
-      // Hoja: buscar notas asignadas a esta categoría
+      // Hoja: media aritmética de las notas asignadas a esta categoría
       const ns = notas.filter(n => n.catId === nodo.id);
       if (ns.length > 0) {
-        // Media aritmética simple: el peso ya está definido en el árbol (pct del nodo)
         mediaNodo = ns.reduce((s, n) => s + n.nota, 0) / ns.length;
       }
     }
     if (mediaNodo !== null) {
-      sumaTotal += mediaNodo * pct;
-      sumaPctUsado += pct;
+      sumaTotal    += mediaNodo * pctAbs;
+      pctRellenado += pctAbs;
     }
   });
-  if (sumaPctUsado === 0) return null;
-  // Normalizar al porcentaje usado (si faltan categorías sin notas)
-  return sumaTotal / sumaPctUsado;
+  if (pctRellenado === 0) return null;
+  // Normalizar solo por el peso evaluado (nota sobre lo que se ha registrado)
+  return sumaTotal / pctRellenado;
 }
 
 // Devuelve true si algún nodo (con o sin hijos) con nota mínima configurada NO la supera
