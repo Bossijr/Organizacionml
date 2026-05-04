@@ -10166,12 +10166,51 @@ const OB_STEPS = [
     ]
   },
   {
+    id: 'sexo',
+    question: '¿Cuál es tu sexo biológico?',
+    sub: 'Se usa para calcular métricas como el TDEE y ajustar el plan nutricional.',
+    type: 'chips',
+    options: [
+      { icon: '', label: 'Masculino', value: 'masculino' },
+      { icon: '', label: 'Femenino',  value: 'femenino' },
+    ]
+  },
+  {
     id: 'edad',
     question: '¿Cuántos años tienes?',
     sub: 'La edad permite ajustar la intensidad y los tiempos de recuperación.',
     type: 'number',
     placeholder: 'Ej: 25',
     min: 12, max: 90,
+  },
+  {
+    id: 'peso',
+    question: '¿Cuánto pesas? (kg)',
+    sub: 'Necesario para calcular calorías y cargas de entrenamiento.',
+    type: 'number',
+    placeholder: 'Ej: 75',
+    min: 30, max: 250,
+  },
+  {
+    id: 'altura',
+    question: '¿Cuánto mides? (cm)',
+    sub: 'Junto al peso permite calcular tu IMC y el TDEE.',
+    type: 'number',
+    placeholder: 'Ej: 178',
+    min: 100, max: 230,
+  },
+  {
+    id: 'actividad_diaria',
+    question: '¿Cómo es tu actividad en el día a día?',
+    sub: 'Al margen del entrenamiento, ¿cuánto te mueves?',
+    type: 'chips',
+    options: [
+      { icon: '', label: 'Sedentario (escritorio)',   value: 'sedentario' },
+      { icon: '', label: 'Ligero (camino algo)',       value: 'ligero' },
+      { icon: '', label: 'Moderado (estoy de pie)',    value: 'moderado' },
+      { icon: '', label: 'Activo (trabajo físico)',    value: 'activo' },
+      { icon: '', label: 'Muy activo (trabajo duro)',  value: 'muy_activo' },
+    ]
   },
   {
     id: 'frecuencia_ejercicio',
@@ -10282,6 +10321,49 @@ const OB_STEPS = [
       { icon: '', label: '6–7h',         value: '6-7h' },
       { icon: '', label: '7–8h',         value: '7-8h' },
       { icon: '', label: 'Más de 8h',    value: '>8h' },
+    ]
+  },
+  {
+    id: 'restricciones',
+    question: '¿Tienes alguna restricción alimentaria?',
+    sub: 'Permite adaptar el plan nutricional. Puedes marcar varios.',
+    type: 'multi',
+    options: [
+      { icon: '', label: 'Ninguna',       value: 'ninguna' },
+      { icon: '', label: 'Vegetariano',   value: 'vegetariano' },
+      { icon: '', label: 'Vegano',        value: 'vegano' },
+      { icon: '', label: 'Sin gluten',    value: 'sin_gluten' },
+      { icon: '', label: 'Sin lactosa',   value: 'sin_lactosa' },
+      { icon: '', label: 'Halal',         value: 'halal' },
+      { icon: '', label: 'Kosher',        value: 'kosher' },
+    ]
+  },
+  {
+    id: 'alergias',
+    question: '¿Tienes alguna alergia alimentaria?',
+    sub: 'Se evitarán estos alimentos en el plan. Puedes marcar varios.',
+    type: 'multi',
+    options: [
+      { icon: '', label: 'Ninguna',       value: 'ninguna' },
+      { icon: '', label: 'Frutos secos',  value: 'frutos_secos' },
+      { icon: '', label: 'Lácteos',       value: 'lacteos' },
+      { icon: '', label: 'Huevo',         value: 'huevo' },
+      { icon: '', label: 'Marisco',       value: 'marisco' },
+      { icon: '', label: 'Soja',          value: 'soja' },
+      { icon: '', label: 'Gluten',        value: 'gluten' },
+    ]
+  },
+  {
+    id: 'comidas_dia',
+    question: '¿Cuántas comidas haces al día?',
+    sub: 'Permite distribuir las calorías de forma adecuada.',
+    type: 'chips',
+    options: [
+      { icon: '', label: '2 comidas', value: '2' },
+      { icon: '', label: '3 comidas', value: '3' },
+      { icon: '', label: '4 comidas', value: '4' },
+      { icon: '', label: '5 comidas', value: '5' },
+      { icon: '', label: '6 o más',   value: '6+' },
     ]
   },
 ];
@@ -10544,7 +10626,6 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
   // Habilitar botón de acceso
   const btn = document.getElementById('ob-ia-acceder-btn');
   if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
-  // Ocultar "saltar"
   const skip = document.querySelector('[onclick="obEnterApp()"][style*="underline"]');
   if (skip) skip.parentElement.style.display = 'none';
 }
