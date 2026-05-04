@@ -4377,9 +4377,7 @@ function renderCalDia() {
   alldayZone.innerHTML = alldayEvts.map(e => {
     const tipo = calTipos[e.pri] || calTipos['normal'];
     const color = tipo.color;
-    const emoji = tipo.emoji;
     return `<div class="cal-dia-allday-banner" style="background:${color}">
-      <span class="banner-emoji">${emoji}</span>
       <span class="banner-text">${e.text}</span>
     </div>`;
   }).join('');
@@ -4545,12 +4543,12 @@ document.getElementById('cal-ev-text').addEventListener('keydown', e => { if (e.
 // ══════════════════════════════ PERSONALIZACIÓN TIPOS CALENDARIO ══════════════════════════════
 const CAL_TIPOS_KEY = 'cal_tipos_v1';
 const CAL_TIPOS_DEFAULT = {
-  normal:    { nombre: 'Normal',      color: '#3b82f6', emoji: '📅' },
-  cumple:    { nombre: 'Cumpleaños',  color: '#db2777', emoji: '🎂' },
-  examen:    { nombre: 'Examen',      color: '#7c3aed', emoji: '📝' },
-  evento:    { nombre: 'Evento',      color: '#c96a00', emoji: '🎉' },
-  festivoev: { nombre: 'Festivo',     color: '#ea580c', emoji: '🎊' },
-  rutina:    { nombre: 'Rutina',      color: '#1a5c2a', emoji: '🔄' },
+  normal:    { nombre: 'Normal',      color: '#3b82f6' },
+  cumple:    { nombre: 'Cumpleaños',  color: '#db2777' },
+  examen:    { nombre: 'Examen',      color: '#7c3aed' },
+  evento:    { nombre: 'Evento',      color: '#c96a00' },
+  festivoev: { nombre: 'Festivo',     color: '#ea580c' },
+  rutina:    { nombre: 'Rutina',      color: '#1a5c2a' },
 };
 // Tipos que no se pueden eliminar
 const CAL_TIPOS_LOCKED = new Set(['normal']);
@@ -4649,10 +4647,8 @@ function renderTiposModal() {
     row.className = 'cal-tipo-row' + (cfg._new ? ' cal-tipo-row-new' : '');
     row.id = `tipo-row-${tipo}`;
     row.innerHTML = `
-      <div class="cal-tipo-preview" id="tipo-preview-${tipo}" style="background:${cfg.color}20;transition:background 0.2s">${cfg.emoji}</div>
+      <div class="cal-tipo-preview" id="tipo-preview-${tipo}" style="background:${cfg.color}20;width:18px;height:18px;border-radius:50%;transition:background 0.2s"></div>
       <div class="cal-tipo-fields">
-        <input class="cal-tipo-emoji-input" id="tipo-emoji-${tipo}" value="${cfg.emoji}" maxlength="2" placeholder="📅"
-          oninput="tiposModalUpdate('${tipo}','emoji',this.value);document.getElementById('tipo-preview-${tipo}').textContent=this.value||'📅'" />
         <input class="cal-tipo-name-input" id="tipo-nombre-${tipo}" value="${cfg.nombre}" maxlength="20" placeholder="Nombre…"
           oninput="tiposModalUpdate('${tipo}','nombre',this.value)" />
         <input class="cal-tipo-color-input" id="tipo-color-${tipo}" type="color" value="${cfg.color}"
@@ -4689,7 +4685,7 @@ function tiposAddRow() {
   const key = generarTipoKey();
   const colors = ['#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
   const color = colors[Object.keys(tiposModalState).length % colors.length];
-  tiposModalState[key] = { nombre: '', color, emoji: '⭐', _new: true };
+  tiposModalState[key] = { nombre: '', color, _new: true };
   renderTiposModal();
   // Hacer foco en el input de nombre del nuevo tipo
   setTimeout(() => {
@@ -4709,10 +4705,8 @@ function saveTiposModal() {
     if (tiposModalState[tipo]._deleted) return;
     const nombre = document.getElementById(`tipo-nombre-${tipo}`)?.value.trim();
     const color  = document.getElementById(`tipo-color-${tipo}`)?.value;
-    const emoji  = document.getElementById(`tipo-emoji-${tipo}`)?.value.trim();
     if (nombre !== undefined) tiposModalState[tipo].nombre = nombre;
     if (color)  tiposModalState[tipo].color  = color;
-    if (emoji)  tiposModalState[tipo].emoji  = emoji || '📅';
   });
 
   // Validar nombres vacíos en tipos nuevos
@@ -4737,7 +4731,7 @@ function saveTiposModal() {
   const nuevoTipos = {};
   Object.entries(tiposModalState).forEach(([tipo, cfg]) => {
     if (cfg._deleted) return;
-    nuevoTipos[tipo] = { nombre: cfg.nombre, color: cfg.color, emoji: cfg.emoji };
+    nuevoTipos[tipo] = { nombre: cfg.nombre, color: cfg.color };
   });
 
   calTipos = nuevoTipos;
