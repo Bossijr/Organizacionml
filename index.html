@@ -1304,6 +1304,60 @@
   .cal-type-btn[data-type="rutina"]    { --tc:#14532d; }
   .cal-type-btn.selected { background: color-mix(in srgb, var(--tc) 12%, white); color: var(--tc); border-color: var(--tc); }
 
+  /* ── PERSONALIZACIÓN TIPOS CALENDARIO ── */
+  .cal-tipos-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 4000;
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .cal-tipos-modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .cal-tipos-modal-box {
+    background: var(--surface2); border-radius: 18px; width: 100%; max-width: 420px;
+    max-height: 80vh; overflow-y: auto; padding: 1.5rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    transform: scale(0.95) translateY(10px); transition: transform 0.2s;
+  }
+  .cal-tipos-modal-overlay.open .cal-tipos-modal-box { transform: scale(1) translateY(0); }
+  .cal-tipos-modal-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 300;
+    letter-spacing: 0.05em; color: var(--ink); margin-bottom: 0.25rem;
+  }
+  .cal-tipos-modal-sub { font-size: 0.78rem; color: var(--muted); margin-bottom: 1.2rem; font-weight: 300; }
+  .cal-tipo-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.7rem 0; border-bottom: 1px solid var(--border);
+  }
+  .cal-tipo-row:last-child { border-bottom: none; }
+  .cal-tipo-preview {
+    width: 32px; height: 32px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+  }
+  .cal-tipo-fields { flex: 1; display: flex; gap: 0.5rem; align-items: center; }
+  .cal-tipo-name-input {
+    flex: 1; font-family: 'Inter', sans-serif; font-size: 0.85rem;
+    padding: 0.4rem 0.65rem; border: 1.5px solid var(--card-border); border-radius: 7px;
+    background: var(--surface); color: var(--ink); outline: none; transition: border-color 0.2s;
+  }
+  .cal-tipo-name-input:focus { border-color: var(--gold); background: var(--surface2); }
+  .cal-tipo-color-input {
+    width: 36px; height: 34px; border: 1.5px solid var(--card-border); border-radius: 7px;
+    padding: 2px; cursor: pointer; background: none; outline: none;
+  }
+  .cal-tipo-emoji-input {
+    width: 44px; font-family: 'Inter', sans-serif; font-size: 1rem;
+    padding: 0.3rem 0.4rem; border: 1.5px solid var(--card-border); border-radius: 7px;
+    background: var(--surface); color: var(--ink); outline: none; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .cal-tipo-emoji-input:focus { border-color: var(--gold); }
+  .cal-tipos-actions { display: flex; gap: 0.6rem; margin-top: 1.4rem; justify-content: flex-end; }
+  .cal-tipos-btn-cancel { background: transparent; border: 1.5px solid var(--card-border); color: var(--muted); border-radius: 8px; padding: 0.55rem 1.2rem; font-family: 'Inter', sans-serif; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+  .cal-tipos-btn-cancel:hover { border-color: var(--muted); color: var(--ink); }
+  .cal-tipos-btn-save { background: var(--gold); color: white; border: none; border-radius: 8px; padding: 0.55rem 1.4rem; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+  .cal-tipos-btn-save:hover { opacity: 0.87; }
+  body.dark .cal-tipos-modal-box { background: #2c2c2e; }
+  body.dark .cal-tipo-name-input, body.dark .cal-tipo-emoji-input { background: #3a3a3c !important; border-color: rgba(255,255,255,0.12) !important; color: #f5f5f7 !important; }
+
   .cal-ev-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.4rem; }
   .cal-ev-extra-field { display: flex; flex-direction: column; gap: 3px; }
   .cal-ev-extra-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
@@ -2885,6 +2939,7 @@
         <button class="cal-period-btn" id="cal-period-btn" onclick="calOpenPicker()"></button>
         <button class="cal-nav-btn" onclick="calNav(1)">›</button>
         <button class="cal-today-btn" onclick="calGoToday()">Hoy</button>
+        <button class="cal-today-btn" onclick="openTiposModal()" title="Personalizar tipos de evento" style="font-size:0.75rem;padding:0 0.6rem;letter-spacing:0.01em">🎨</button>
       </div>
     </div>
 
@@ -3319,9 +3374,26 @@
   </div>
   <footer>Datos meteorológicos — Open-Meteo (gratuito, sin API key)</footer>
 </div>
+<!-- MODAL PERSONALIZACIÓN TIPOS CALENDARIO -->
+<div class="cal-tipos-modal-overlay" id="modal-cal-tipos">
+  <div class="cal-tipos-modal-box">
+    <div class="cal-tipos-modal-title">Personalizar calendarios</div>
+    <div class="cal-tipos-modal-sub">Edita el nombre, color y emoji de cada tipo de evento.</div>
+    <div id="cal-tipos-list"><!-- generado por JS --></div>
+    <div class="cal-tipos-actions">
+      <button class="cal-tipos-btn-cancel" onclick="closeTiposModal()">Cancelar</button>
+      <button class="cal-tipos-btn-save" onclick="saveTiposModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-edit-event">
   <div class="modal-box" style="max-width:480px">
     <div class="modal-title">Editar Evento</div>
+    <div class="modal-field">
+      <label class="modal-label">Fecha del evento</label>
+      <input class="modal-input" id="modal-ev-fecha" type="date" style="width:100%" />
+    </div>
     <div class="modal-field">
       <label class="modal-label">Nombre del evento</label>
       <input class="modal-input" id="modal-ev-text" type="text" maxlength="120" />
@@ -4362,6 +4434,126 @@ function deleteCalEvent(idx) {
 
 document.getElementById('cal-ev-text').addEventListener('keydown', e => { if (e.key==='Enter') addCalEvent(); });
 
+// ══════════════════════════════ PERSONALIZACIÓN TIPOS CALENDARIO ══════════════════════════════
+const CAL_TIPOS_KEY = 'cal_tipos_v1';
+const CAL_TIPOS_DEFAULT = {
+  normal:    { nombre: 'Normal',      color: '#3b82f6', emoji: '📅' },
+  cumple:    { nombre: 'Cumpleaños',  color: '#db2777', emoji: '🎂' },
+  examen:    { nombre: 'Examen',      color: '#7c3aed', emoji: '📝' },
+  evento:    { nombre: 'Evento',      color: '#c96a00', emoji: '🎉' },
+  festivoev: { nombre: 'Festivo',     color: '#ea580c', emoji: '🎊' },
+  rutina:    { nombre: 'Rutina',      color: '#1a5c2a', emoji: '🔄' },
+};
+
+function loadCalTipos() {
+  try {
+    const raw = localStorage.getItem(CAL_TIPOS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Merge con defaults para que nuevas keys siempre existan
+      return Object.assign({}, CAL_TIPOS_DEFAULT, parsed);
+    }
+  } catch(e) {}
+  return Object.assign({}, CAL_TIPOS_DEFAULT);
+}
+
+function saveCalTipos(tipos) {
+  try { localStorage.setItem(CAL_TIPOS_KEY, JSON.stringify(tipos)); } catch(e) {}
+}
+
+let calTipos = loadCalTipos();
+
+function applyCalTiposToUI() {
+  // Actualizar botones de tipo en panel de creación y modal de edición
+  ['cal-type-row', 'modal-type-row'].forEach(rowId => {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    row.querySelectorAll('.cal-type-btn[data-type]').forEach(btn => {
+      const tipo = btn.dataset.type;
+      if (!calTipos[tipo]) return;
+      const { nombre, color, emoji } = calTipos[tipo];
+      const dot = btn.querySelector('.type-dot');
+      if (dot) dot.style.background = color;
+      // Reconstruir el texto del botón (emoji + nombre)
+      btn.childNodes[btn.childNodes.length - 1].textContent = nombre;
+      // Actualizar CSS variable de color
+      btn.style.setProperty('--tc', color);
+    });
+  });
+  // Actualizar estilos de eventos miniatura y bloques semana/día
+  applyCalTiposCSS();
+}
+
+function applyCalTiposCSS() {
+  const styleId = 'cal-tipos-dynamic-css';
+  let style = document.getElementById(styleId);
+  if (!style) { style = document.createElement('style'); style.id = styleId; document.head.appendChild(style); }
+  let css = '';
+  Object.entries(calTipos).forEach(([tipo, cfg]) => {
+    if (tipo === 'normal') {
+      css += `.cal-ev-mini { background: ${cfg.color} !important; }`;
+      css += `.cal-ev-block { background: ${cfg.color} !important; }`;
+      css += `.cal-event-item { border-left-color: ${cfg.color} !important; }`;
+      css += `.cal-event-item .ev-time { color: ${cfg.color} !important; }`;
+    } else {
+      css += `.cal-ev-mini.${tipo} { background: ${cfg.color} !important; }`;
+      css += `.cal-ev-block.${tipo} { background: ${cfg.color} !important; }`;
+      css += `.cal-event-item.${tipo} { border-left-color: ${cfg.color} !important; }`;
+      css += `.cal-event-item.${tipo} .ev-time { color: ${cfg.color} !important; }`;
+      css += `.badge-${tipo} { background: color-mix(in srgb, ${cfg.color} 15%, white); color: ${cfg.color}; }`;
+    }
+  });
+  style.textContent = css;
+}
+
+function openTiposModal() {
+  const list = document.getElementById('cal-tipos-list');
+  list.innerHTML = '';
+  Object.entries(calTipos).forEach(([tipo, cfg]) => {
+    const row = document.createElement('div');
+    row.className = 'cal-tipo-row';
+    row.innerHTML = `
+      <div class="cal-tipo-preview" id="tipo-preview-${tipo}" style="background:${cfg.color}20">${cfg.emoji}</div>
+      <div class="cal-tipo-fields">
+        <input class="cal-tipo-emoji-input" id="tipo-emoji-${tipo}" value="${cfg.emoji}" maxlength="2" placeholder="📅"
+          oninput="document.getElementById('tipo-preview-${tipo}').textContent=this.value||'📅'" />
+        <input class="cal-tipo-name-input" id="tipo-nombre-${tipo}" value="${cfg.nombre}" maxlength="20" placeholder="Nombre…" />
+        <input class="cal-tipo-color-input" id="tipo-color-${tipo}" type="color" value="${cfg.color}"
+          oninput="document.getElementById('tipo-preview-${tipo}').style.background=this.value+'20'" />
+      </div>`;
+    list.appendChild(row);
+  });
+  document.getElementById('modal-cal-tipos').classList.add('open');
+}
+
+function closeTiposModal() {
+  document.getElementById('modal-cal-tipos').classList.remove('open');
+}
+
+function saveTiposModal() {
+  Object.keys(calTipos).forEach(tipo => {
+    const nombre = document.getElementById(`tipo-nombre-${tipo}`)?.value.trim();
+    const color  = document.getElementById(`tipo-color-${tipo}`)?.value;
+    const emoji  = document.getElementById(`tipo-emoji-${tipo}`)?.value.trim();
+    if (nombre) calTipos[tipo].nombre = nombre;
+    if (color)  calTipos[tipo].color  = color;
+    if (emoji)  calTipos[tipo].emoji  = emoji;
+  });
+  saveCalTipos(calTipos);
+  applyCalTiposToUI();
+  renderCal(); renderCalPanel();
+  closeTiposModal();
+  mostrarToast('✅ Tipos de calendario actualizados');
+}
+
+document.getElementById('modal-cal-tipos').addEventListener('click', function(e) {
+  if (e.target === this) closeTiposModal();
+});
+
+// Aplicar al cargar
+document.addEventListener('DOMContentLoaded', () => { applyCalTiposToUI(); });
+setTimeout(() => applyCalTiposToUI(), 100);
+
 // ── SELECTOR DE TIPO CON COLOR ──
 function selectCalType(type, btn) {
   document.querySelectorAll('#cal-type-row .cal-type-btn').forEach(b => b.classList.remove('selected'));
@@ -4478,6 +4670,7 @@ function openEditModal(idx) {
   const ev = sorted[idx];
   if (ev._readOnly) { mostrarToast('ℹ️ Edita el evento en su fecha original'); return; }
   editingEventId = ev.id;
+  document.getElementById('modal-ev-fecha').value = calSelectedKey;
   document.getElementById('modal-ev-text').value = ev.text;
   document.getElementById('modal-ev-hora').value = ev.hora || '';
   // Type
@@ -4513,6 +4706,8 @@ function saveEditEvent() {
   if (!editingEventId) return;
   const text = document.getElementById('modal-ev-text').value.trim();
   if (!text) { mostrarToast('El nombre no puede estar vacío'); return; }
+  const newDate = document.getElementById('modal-ev-fecha').value;
+  if (!newDate) { mostrarToast('La fecha no puede estar vacía'); return; }
   const allday = document.getElementById('modal-ev-allday').checked;
   const hora = allday ? '' : document.getElementById('modal-ev-hora').value;
   const pri = document.getElementById('modal-ev-pri').value;
@@ -4522,16 +4717,38 @@ function saveEditEvent() {
     : (durSel ? parseInt(durSel) : '');
   const repeat = document.getElementById('modal-ev-repeat').value;
   const reminder = document.getElementById('modal-ev-reminder').value;
-  const list = calEventsDB[calSelectedKey];
-  if (!list) return;
-  const idx = list.findIndex(e => e.id === editingEventId);
-  if (idx === -1) return;
-  list[idx] = { ...list[idx], text, hora, pri, allday, duracion, repeat, reminder };
-  // Cancel old reminder and reschedule if needed
+
+  // Buscar el evento en su fecha original
+  const origKey = calSelectedKey;
+  let foundKey = null;
+  let foundIdx = -1;
+  // Buscar en todas las fechas (por si acaso)
+  for (const [k, evts] of Object.entries(calEventsDB)) {
+    const idx = evts.findIndex(e => e.id === editingEventId);
+    if (idx !== -1) { foundKey = k; foundIdx = idx; break; }
+  }
+  if (foundKey === null) return;
+
+  const updatedEv = { ...calEventsDB[foundKey][foundIdx], text, hora, pri, allday, duracion, repeat, reminder };
+
+  if (newDate !== foundKey) {
+    // Mover evento a nueva fecha
+    calEventsDB[foundKey].splice(foundIdx, 1);
+    if (!calEventsDB[foundKey].length) delete calEventsDB[foundKey];
+    if (!calEventsDB[newDate]) calEventsDB[newDate] = [];
+    calEventsDB[newDate].push(updatedEv);
+    calSelectedKey = newDate;
+    // Actualizar vista al mes de la nueva fecha
+    const [ny, nm] = newDate.split('-').map(Number);
+    calYear = ny; calMonth = nm - 1;
+  } else {
+    calEventsDB[foundKey][foundIdx] = updatedEv;
+  }
+
   cancelReminder(String(editingEventId));
-  if (reminder !== 'none') scheduleEventReminder(editingEventId, text, calSelectedKey, hora, parseInt(reminder));
+  if (reminder !== 'none') scheduleEventReminder(editingEventId, text, newDate, hora, parseInt(reminder));
   saveCal(); renderCal(); renderCalPanel(); closeEditModal();
-  mostrarToast('Evento actualizado' + (reminder !== 'none' ? ' · con recordatorio' : ''));
+  mostrarToast('Evento actualizado' + (newDate !== origKey ? ` · movido al ${newDate}` : '') + (reminder !== 'none' ? ' · con recordatorio' : ''));
 }
 
 // Cerrar modal al hacer click fuera
