@@ -7207,6 +7207,7 @@ function asigAddExamen() {
     }, 2000);
   }
 
+  closeFormCollapse('registrar-examen');
   mostrarToast(addCal ? '✓ Examen registrado y añadido al Calendario' : '✓ Examen registrado');
 }
 
@@ -7581,23 +7582,26 @@ function asigRenderResumen() {
     const estado = m === null ? 'sin-nota' : (m >= minimo && !subMinIncumplido) ? 'aprobado' : 'suspenso';
     const pct    = m !== null ? Math.min(100, (m/10)*100) : 0;
     const notasHtml = notas.length ? notas.map(n => {
-      // Obtener % real de la categoría del árbol
+      const esPendiente = n.nota === null || n.nota === undefined;
       let pctTag = '';
       if (n.catId && a.pcts && a.pcts.length > 0) {
         const nodo = asigPctBuscarNodo(a.pcts, n.catId);
         if (nodo) {
           pctTag = `<span style="font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:8px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
-          if (nodo.min != null) {
+          if (!esPendiente && nodo.min != null) {
             const minOk = n.nota >= nodo.min;
             pctTag += `<span style="font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:8px;background:${minOk ? '#dcfce7' : '#fee2e2'};color:${minOk ? '#15803d' : '#dc2626'}">mín ${nodo.min} ${minOk ? '✓' : '✗'}</span>`;
           }
         }
       }
+      const notaDisplay = esPendiente
+        ? `<span style="font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#fef3c7;color:#d97706">PEND.</span>`
+        : `<span style="font-weight:700;color:${n.nota >= minimo ? 'var(--grass)' : 'var(--coral)'};min-width:36px;text-align:right">${Number(n.nota).toFixed(2)}</span>`;
       return `<div class="asig-nota-item">
         <span class="asig-nota-badge ${n.tipo}">${n.catNombre || n.tipo}</span>
         <span style="flex:1;font-size:0.83rem;color:var(--ink)">${n.desc || '—'} ${n.fecha ? '<span style="color:var(--muted);font-size:0.75rem">· ' + n.fecha + '</span>' : ''}</span>
         ${pctTag}
-        <span style="font-weight:700;color:${n.nota >= minimo ? 'var(--grass)' : 'var(--coral)'};min-width:36px;text-align:right">${n.nota.toFixed(2)}</span>
+        ${notaDisplay}
       </div>`;
     }).join('') : '<div style="text-align:center;padding:0.75rem;color:var(--muted);font-size:0.82rem">Sin notas aún</div>';
 
@@ -8322,12 +8326,14 @@ function calcRenderSinPcts(el, asig, notas, objetivo, minimo) {
       <div class="reg-history-header"><div class="reg-history-title">Notas registradas</div></div>
       <table class="reg-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Nota</th></tr></thead><tbody>`;
     notas.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '')).forEach(n => {
-      const c = n.nota >= minimo ? 'var(--grass)' : 'var(--coral)';
+      const esPend = n.nota === null || n.nota === undefined;
+      const c = esPend ? '#d97706' : (n.nota >= minimo ? 'var(--grass)' : 'var(--coral)');
+      const notaStr = esPend ? 'PEND.' : Number(n.nota).toFixed(2);
       html += `<tr>
         <td style="color:var(--muted);font-size:0.8rem">${n.fecha || '—'}</td>
         <td><span class="asig-nota-badge ${n.tipo}">${n.tipo}</span></td>
         <td style="font-size:0.83rem">${n.desc || '—'}</td>
-        <td style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${c}">${n.nota.toFixed(2)}</td>
+        <td style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${c}">${notaStr}</td>
       </tr>`;
     });
     html += `</tbody></table></div>`;
