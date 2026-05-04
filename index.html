@@ -919,6 +919,27 @@
 
   /* MES */
   .cal-mes-wrap { background: var(--surface2); border: 1.5px solid var(--card-border); border-radius: 10px; overflow: hidden; margin-bottom: 1.2rem; }
+
+  /* ── TRANSICIONES DE VISTA CALENDARIO ── */
+  #cal-view-mes,
+  #cal-view-semana,
+  #cal-view-dia {
+    animation: none;
+  }
+  @keyframes cal-fade-in-up {
+    from { opacity: 0; transform: translateY(10px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+  @keyframes cal-fade-in-down {
+    from { opacity: 0; transform: translateY(-10px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0)     scale(1);    }
+  }
+  @keyframes cal-fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+  .cal-view-enter-up   { animation: cal-fade-in-up   0.28s cubic-bezier(.22,.68,0,1.2) both; }
+  .cal-view-enter-down { animation: cal-fade-in-down 0.28s cubic-bezier(.22,.68,0,1.2) both; }
   .cal-days-header { display: grid; grid-template-columns: repeat(7,1fr); background: var(--surface); border-bottom: 1px solid rgba(0,0,0,0.08); }
   .cal-day-name { text-align: center; padding: 0.5rem 0; font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
   .cal-mes-grid { display: grid; grid-template-columns: repeat(7,1fr); }
@@ -4116,14 +4137,46 @@ function dateKey(d) {
 }
 function todayKey() { return dateKey(new Date()); }
 
+const CAL_VIEW_ORDER = ['mes', 'semana', 'dia'];
+
 function setCalView(v, btn) {
+  const prev = calView;
   calView = v;
   document.querySelectorAll('.cal-view-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('cal-view-mes').style.display = v==='mes' ? '' : 'none';
-  document.getElementById('cal-view-semana').style.display = v==='semana' ? '' : 'none';
-  document.getElementById('cal-view-dia').style.display = v==='dia' ? '' : 'none';
+  if (btn) btn.classList.add('active');
+
+  const views = { mes: 'cal-view-mes', semana: 'cal-view-semana', dia: 'cal-view-dia' };
+  const goingForward = CAL_VIEW_ORDER.indexOf(v) > CAL_VIEW_ORDER.indexOf(prev);
+  const enterClass = goingForward ? 'cal-view-enter-up' : 'cal-view-enter-down';
+
+  // Ocultar la vista anterior con fade rápido
+  const prevEl = document.getElementById(views[prev]);
+  if (prevEl && prev !== v) {
+    prevEl.style.transition = 'opacity 0.15s';
+    prevEl.style.opacity = '0';
+    setTimeout(() => {
+      prevEl.style.display = 'none';
+      prevEl.style.opacity = '';
+      prevEl.style.transition = '';
+    }, 150);
+  }
+
+  // Renderizar antes de mostrar para evitar flash
   renderCal();
+
+  // Mostrar nueva vista con animación
+  const nextEl = document.getElementById(views[v]);
+  if (nextEl) {
+    nextEl.style.display = '';
+    nextEl.classList.remove('cal-view-enter-up', 'cal-view-enter-down');
+    // Forzar reflow para reiniciar animación
+    void nextEl.offsetWidth;
+    nextEl.classList.add(enterClass);
+    // Limpiar clase al terminar
+    nextEl.addEventListener('animationend', () => {
+      nextEl.classList.remove('cal-view-enter-up', 'cal-view-enter-down');
+    }, { once: true });
+  }
 }
 
 function calGoToday() {
