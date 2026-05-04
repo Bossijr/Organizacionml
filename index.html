@@ -7137,34 +7137,32 @@ function asigAddExamen() {
   const addCal = document.getElementById('asig-exam-addcal').checked;
 
   if (!asigId) { mostrarToast('Selecciona una asignatura'); return; }
+  if (!fecha)  { mostrarToast('Introduce la fecha del examen'); return; }
 
   const asig = asigDB.find(a => a.id === asigId);
 
-  // Categoría del árbol (si la asig la tiene y el campo es visible)
+  // Categoría del árbol — leer ANTES de cualquier re-render
   const catField = document.getElementById('asig-exam-cat-field');
   const catSel   = document.getElementById('asig-exam-cat');
   const catFieldVisible = catField && catField.style.display !== 'none';
   const catId = catFieldVisible && catSel ? catSel.value : '';
 
-  // Si la asig tiene árbol de pcts, requerir que se seleccione categoría hoja
   if (asig && asig.pcts && asig.pcts.length > 0 && !catId) {
     mostrarToast('Selecciona la categoría de evaluación');
     return;
   }
 
-  // Encontrar nombre de categoría para label
   let catNombre = 'Examen';
   if (catId && asig && asig.pcts) {
     const found = asigPctBuscarNodo(asig.pcts, catId);
     if (found) catNombre = found.nombre || 'Examen';
   }
 
+  // Añadir la nota ANTES de sincronizar
   notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
-  asigSyncAll();
-  asigRender();
 
-  // Añadir al calendario si está marcado y hay fecha
-  if (addCal && fecha) {
+  // Añadir al calendario si está marcado
+  if (addCal) {
     const nombre = asig ? asig.nombre : 'Asignatura';
     const textoEv = `Examen: ${nombre}${desc ? ' — ' + desc : ''}`;
     if (!calEventsDB[fecha]) calEventsDB[fecha] = [];
@@ -7172,19 +7170,22 @@ function asigAddExamen() {
       id: Date.now() + '_asig',
       text: textoEv,
       pri: 'examen',
-      allday: !hora,       // todo el día si no hay hora
+      allday: !hora,
       hora: hora || '',
     });
     saveCal();
-    mostrarToast('Examen registrado y añadido al Calendario');
-  } else {
-    mostrarToast('Examen registrado');
   }
 
+  // Limpiar campos ANTES de re-render para que el render no restaure valores viejos
   document.getElementById('asig-exam-desc').value = '';
   document.getElementById('asig-exam-fecha').value = '';
   if (document.getElementById('asig-exam-hora')) document.getElementById('asig-exam-hora').value = '';
+
+  // Sincronizar y re-renderizar AL FINAL
+  asigSyncAll();
+  asigRender();
   closeFormCollapse('registrar-examen');
+  mostrarToast(addCal ? 'Examen registrado y añadido al Calendario' : 'Examen registrado');
 }
 
 // Buscar nodo por id en el árbol
@@ -7397,10 +7398,15 @@ function asigRenderSelectNota() {
   // Selector de Registrar Examen
   const selEx = document.getElementById('asig-exam-asig');
   const curEx = selEx ? selEx.value : '';
+  // Preservar también la categoría seleccionada del examen
+  const curExCat = document.getElementById('asig-exam-cat')?.value || '';
   if (selEx) {
     selEx.innerHTML = '<option value="">— Selecciona asignatura —</option>' +
       asigDB.map(a => `<option value="${a.id}" ${a.id === curEx ? 'selected' : ''}>${a.nombre}</option>`).join('');
     asigExamActualizarCatSelector();
+    // Restaurar la categoría si sigue existiendo
+    const catSel = document.getElementById('asig-exam-cat');
+    if (catSel && curExCat) catSel.value = curExCat;
   }
 }
 
