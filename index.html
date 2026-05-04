@@ -7085,7 +7085,6 @@ function asigDelAsignatura(id) {
 
 // ── Añadir nota ──
 function asigAddNota() {
-function asigAddNota() {
   const asigId = document.getElementById('asig-nota-asig').value;
   const tipo   = document.getElementById('asig-nota-tipo').value;
   const desc   = document.getElementById('asig-nota-desc').value.trim();
@@ -7113,13 +7112,11 @@ function asigAddNota() {
     if (found) catNombre = found.nombre || tipo;
   }
 
-  // Limpiar campos ANTES del re-render
   document.getElementById('asig-nota-nota').value = '';
   document.getElementById('asig-nota-desc').value = '';
 
   notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
 
-  // Solo re-render las partes necesarias
   asigSyncAll();
   asigRenderStats();
   asigRenderNotas();
@@ -7128,7 +7125,6 @@ function asigAddNota() {
 
   mostrarToast('✓ Nota registrada: ' + nota.toFixed(2));
   closeFormCollapse('registrar-nota');
-}
 }
 
 function asigAddExamen() {
