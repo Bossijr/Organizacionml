@@ -2025,6 +2025,260 @@
   <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 </div>
 
+<!-- ══ ONBOARDING SCREEN ══ -->
+<div id="onboarding-screen" style="display:none;position:fixed;inset:0;z-index:9998;background:#f5f5f7;overflow-y:auto">
+  <style>
+    .ob-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem 1.2rem 4rem;
+    }
+    .ob-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      width: 100%;
+      max-width: 520px;
+    }
+    .ob-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 8vw, 3rem);
+      letter-spacing: 0.08em;
+      color: #1d1d1f;
+      font-weight: 300;
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+    .ob-brand span { color: #0071e3; }
+    .ob-subtitle {
+      font-size: 0.88rem;
+      color: rgba(29,29,31,0.5);
+      font-weight: 300;
+    }
+    /* Progress bar */
+    .ob-progress-wrap {
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 2rem;
+    }
+    .ob-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #86868b;
+      margin-bottom: 0.5rem;
+    }
+    .ob-progress-track {
+      height: 3px;
+      background: rgba(0,0,0,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .ob-progress-bar {
+      height: 100%;
+      background: #0071e3;
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    /* Card de pregunta */
+    .ob-card {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 16px;
+      padding: 2rem 1.8rem;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      animation: ob-fadein 0.35s ease;
+    }
+    @keyframes ob-fadein {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ob-step-num {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #0071e3;
+      margin-bottom: 0.5rem;
+    }
+    .ob-question {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
+      font-weight: 400;
+      letter-spacing: 0.03em;
+      color: #1d1d1f;
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+    }
+    .ob-question-sub {
+      font-size: 0.82rem;
+      color: rgba(29,29,31,0.45);
+      font-weight: 300;
+      margin-bottom: 1.5rem;
+    }
+    /* Opciones tipo chip */
+    .ob-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .ob-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      border: 1.5px solid rgba(0,0,0,0.1);
+      border-radius: 10px;
+      background: #f5f5f7;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: #1d1d1f;
+      transition: all 0.15s;
+      user-select: none;
+      flex: 1 1 calc(50% - 0.3rem);
+      min-width: 130px;
+    }
+    .ob-option:hover { background: #ebebed; border-color: rgba(0,113,227,0.2); }
+    .ob-option.selected {
+      background: #0071e3;
+      border-color: #0071e3;
+      color: #ffffff;
+    }
+    .ob-option-icon { font-size: 1.1rem; flex-shrink: 0; }
+    /* Input numérico / texto */
+    .ob-input {
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid rgba(0,0,0,0.1);
+      border-radius: 10px;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      outline: none;
+      margin-bottom: 1.5rem;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .ob-input:focus { border-color: #0071e3; background: #ffffff; }
+    /* Multi-select label */
+    .ob-multi-hint {
+      font-size: 0.72rem;
+      color: #86868b;
+      margin-bottom: 0.7rem;
+      font-style: italic;
+    }
+    /* Botones navegación */
+    .ob-nav {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .ob-btn-back {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1.5px solid rgba(0,0,0,0.12);
+      border-radius: 10px;
+      background: transparent;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #1d1d1f;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ob-btn-back:hover { background: rgba(0,0,0,0.04); }
+    .ob-btn-next {
+      flex: 2;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 10px;
+      background: #0071e3;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .ob-btn-next:disabled { opacity: 0.45; cursor: not-allowed; }
+    .ob-btn-next:not(:disabled):hover { opacity: 0.88; }
+    /* Animación salida */
+    .ob-card.ob-slide-out {
+      animation: ob-slideout 0.25s ease forwards;
+    }
+    @keyframes ob-slideout {
+      to { opacity: 0; transform: translateY(-8px); }
+    }
+    /* Pantalla final */
+    .ob-finish-wrap {
+      text-align: center;
+      padding: 1rem 0 0.5rem;
+    }
+    .ob-finish-emoji {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    .ob-finish-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      color: #1d1d1f;
+      margin-bottom: 0.5rem;
+      font-weight: 400;
+    }
+    .ob-finish-sub {
+      font-size: 0.88rem;
+      color: rgba(29,29,31,0.5);
+      font-weight: 300;
+      margin-bottom: 1.8rem;
+      line-height: 1.6;
+    }
+    .ob-skip-btn {
+      font-size: 0.75rem;
+      color: rgba(29,29,31,0.35);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      margin-top: 1.2rem;
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: underline;
+    }
+    .ob-skip-btn:hover { color: rgba(29,29,31,0.6); }
+  </style>
+
+  <div class="ob-wrap">
+    <div class="ob-header">
+      <div class="ob-brand">MI <span>PERFIL</span></div>
+      <div class="ob-subtitle">Cuéntanos sobre ti para personalizar tu experiencia</div>
+    </div>
+    <div class="ob-progress-wrap">
+      <div class="ob-progress-label">
+        <span id="ob-prog-text">Paso 1 de 10</span>
+        <span id="ob-prog-pct">10%</span>
+      </div>
+      <div class="ob-progress-track"><div class="ob-progress-bar" id="ob-progress-bar" style="width:10%"></div></div>
+    </div>
+    <div id="ob-card-container" class="ob-card">
+      <!-- Contenido generado por JS -->
+    </div>
+    <button class="ob-skip-btn" onclick="obSkip()">Saltar configuración</button>
+  </div>
+</div>
+
 <!-- ══ AUTH SCREEN ══ -->
 <div id="auth-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:#f5f5f7;align-items:center;justify-content:center;padding:1.5rem">
   <div style="background:#ffffff;border:1px solid rgba(0,0,0,0.1);border-radius:16px;padding:2.2rem 2rem;width:100%;max-width:380px;position:relative;z-index:1;box-shadow:0 8px 40px rgba(0,0,0,0.08)">
@@ -7328,6 +7582,10 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       document.getElementById('app-root').style.display   = 'block';
       window._fbReady = true;
       window.dispatchEvent(new Event('firebase-ready'));
+      // Lanzar onboarding si es primer acceso o registro nuevo
+      setTimeout(() => {
+        if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
+      }, 400);
     } else {
       _currentUid = null;
       window._fbReady = false;
@@ -7467,5 +7725,345 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   });
 </script>
 
+<script>
+// ══════════════════════════════ ONBOARDING ══════════════════════════════
+// Pasos del wizard. type: 'chips' (single), 'multi' (multi-select), 'number', 'text'
+const OB_STEPS = [
+  {
+    id: 'sexo',
+    question: '¿Cuál es tu sexo?',
+    sub: 'Nos ayuda a personalizar tus planes de entrenamiento y nutrición.',
+    type: 'chips',
+    options: [
+      { icon: '♂️', label: 'Masculino', value: 'masculino' },
+      { icon: '♀️', label: 'Femenino',  value: 'femenino' },
+      { icon: '⚧️', label: 'Otro',       value: 'otro' },
+    ]
+  },
+  {
+    id: 'edad',
+    question: '¿Cuántos años tienes?',
+    sub: 'Usamos tu edad para ajustar la intensidad y recuperación.',
+    type: 'number',
+    placeholder: 'Ej: 19',
+    min: 12, max: 90,
+  },
+  {
+    id: 'frecuencia_ejercicio',
+    question: '¿Con qué frecuencia entrenas actualmente?',
+    sub: 'Tu punto de partida real, sin presiones.',
+    type: 'chips',
+    options: [
+      { icon: '😴', label: 'Casi nunca',        value: 'nunca' },
+      { icon: '🚶', label: '1–2 días / semana',  value: '1-2d' },
+      { icon: '🏃', label: '3–4 días / semana',  value: '3-4d' },
+      { icon: '💪', label: '5–6 días / semana',  value: '5-6d' },
+      { icon: '🔥', label: 'Cada día',           value: '7d' },
+    ]
+  },
+  {
+    id: 'tiempo_disponible',
+    question: '¿Cuánto tiempo tienes para entrenar al día?',
+    sub: 'El tiempo que realmente puedes dedicar, sin contar desplazamientos.',
+    type: 'chips',
+    options: [
+      { icon: '⚡', label: 'Menos de 30 min',  value: '<30m' },
+      { icon: '🕐', label: '30–45 min',         value: '30-45m' },
+      { icon: '🕑', label: '45–60 min',         value: '45-60m' },
+      { icon: '🕒', label: '60–90 min',         value: '60-90m' },
+      { icon: '🕓', label: 'Más de 90 min',     value: '>90m' },
+    ]
+  },
+  {
+    id: 'objetivo',
+    question: '¿Cuál es tu objetivo principal?',
+    sub: 'Lo que más te motiva a ponerte en movimiento.',
+    type: 'chips',
+    options: [
+      { icon: '🏋️', label: 'Ganar fuerza',        value: 'fuerza' },
+      { icon: '🔥', label: 'Perder grasa',         value: 'perder_grasa' },
+      { icon: '💪', label: 'Ganar músculo',         value: 'ganar_musculo' },
+      { icon: '❤️', label: 'Mejorar resistencia',  value: 'resistencia' },
+      { icon: '🤸', label: 'Flexibilidad / movilidad', value: 'flexibilidad' },
+      { icon: '⚽', label: 'Rendimiento deportivo', value: 'deporte' },
+      { icon: '🧘', label: 'Salud general / bienestar', value: 'salud' },
+    ]
+  },
+  {
+    id: 'material',
+    question: '¿Con qué material cuentas para entrenar?',
+    sub: 'Puedes marcar varias opciones.',
+    type: 'multi',
+    options: [
+      { icon: '🏠', label: 'Sin material (cuerpo libre)', value: 'sin_material' },
+      { icon: '🏋️', label: 'Gimnasio completo',           value: 'gimnasio' },
+      { icon: '🔵', label: 'Mancuernas / pesas',          value: 'mancuernas' },
+      { icon: '🟡', label: 'Bandas elásticas',             value: 'bandas' },
+      { icon: '⬜', label: 'Barras y sentadillas',         value: 'barras' },
+      { icon: '🌊', label: 'Al aire libre / playa',        value: 'exterior' },
+      { icon: '🚴', label: 'Bici / cinta / cardio',        value: 'cardio_maquina' },
+    ]
+  },
+  {
+    id: 'deporte',
+    question: '¿Practicas algún deporte de forma habitual?',
+    sub: 'Puedes seleccionar varios.',
+    type: 'multi',
+    options: [
+      { icon: '⚽', label: 'Fútbol',     value: 'futbol' },
+      { icon: '🏄', label: 'Surf',        value: 'surf' },
+      { icon: '🏀', label: 'Baloncesto',  value: 'basket' },
+      { icon: '🎾', label: 'Pádel / Tenis', value: 'padel' },
+      { icon: '🏊', label: 'Natación',    value: 'natacion' },
+      { icon: '🚴', label: 'Ciclismo',    value: 'ciclismo' },
+      { icon: '🏃', label: 'Running',     value: 'running' },
+      { icon: '❌', label: 'Ninguno',     value: 'ninguno' },
+    ]
+  },
+  {
+    id: 'nivel',
+    question: '¿Cómo valorarías tu nivel físico actual?',
+    sub: 'Sé honesto, es para tu propio beneficio.',
+    type: 'chips',
+    options: [
+      { icon: '🌱', label: 'Principiante',    value: 'principiante' },
+      { icon: '📈', label: 'Intermedio',      value: 'intermedio' },
+      { icon: '💪', label: 'Avanzado',        value: 'avanzado' },
+      { icon: '🏆', label: 'Atleta / Élite',  value: 'elite' },
+    ]
+  },
+  {
+    id: 'lesiones',
+    question: '¿Tienes alguna lesión o limitación física?',
+    sub: 'Puedes seleccionar varios. Te ayudará a evitar ejercicios contraindicados.',
+    type: 'multi',
+    options: [
+      { icon: '✅', label: 'Ninguna',          value: 'ninguna' },
+      { icon: '🦵', label: 'Rodilla / menisco', value: 'rodilla' },
+      { icon: '🦴', label: 'Espalda / lumbar',  value: 'espalda' },
+      { icon: '💪', label: 'Hombro',            value: 'hombro' },
+      { icon: '🦶', label: 'Tobillo / pie',     value: 'tobillo' },
+      { icon: '🩺', label: 'Otra',              value: 'otra' },
+    ]
+  },
+  {
+    id: 'sueno',
+    question: '¿Cuántas horas duermes de media?',
+    sub: 'El sueño es parte del entrenamiento. Sin presiones, solo dinos la realidad.',
+    type: 'chips',
+    options: [
+      { icon: '😵', label: 'Menos de 5h', value: '<5h' },
+      { icon: '😐', label: '5–6h',         value: '5-6h' },
+      { icon: '😊', label: '6–7h',         value: '6-7h' },
+      { icon: '😴', label: '7–8h',         value: '7-8h' },
+      { icon: '🌟', label: 'Más de 8h',    value: '>8h' },
+    ]
+  },
+];
+
+let obStep = 0;
+let obAnswers = {};
+
+function obInit() {
+  obStep = 0;
+  obAnswers = {};
+  obRender();
+  document.getElementById('onboarding-screen').style.display = 'block';
+}
+
+function obRender() {
+  const total = OB_STEPS.length;
+  const pct   = Math.round(((obStep + 1) / total) * 100);
+  document.getElementById('ob-progress-bar').style.width = pct + '%';
+  document.getElementById('ob-prog-text').textContent = `Paso ${obStep + 1} de ${total}`;
+  document.getElementById('ob-prog-pct').textContent  = pct + '%';
+
+  const step    = OB_STEPS[obStep];
+  const current = obAnswers[step.id];
+  const isFirst = obStep === 0;
+
+  let optionsHtml = '';
+  if (step.type === 'chips' || step.type === 'multi') {
+    if (step.type === 'multi') {
+      optionsHtml += `<div class="ob-multi-hint">Puedes elegir varias opciones</div>`;
+    }
+    optionsHtml += `<div class="ob-options" id="ob-options">`;
+    step.options.forEach(opt => {
+      let sel = '';
+      if (step.type === 'chips' && current === opt.value) sel = ' selected';
+      if (step.type === 'multi' && Array.isArray(current) && current.includes(opt.value)) sel = ' selected';
+      optionsHtml += `<div class="ob-option${sel}" onclick="obSelect(this,'${opt.value}')" data-value="${opt.value}">
+        <span class="ob-option-icon">${opt.icon}</span>${opt.label}
+      </div>`;
+    });
+    optionsHtml += `</div>`;
+  } else if (step.type === 'number' || step.type === 'text') {
+    const val = current !== undefined ? current : '';
+    optionsHtml = `<input class="ob-input" id="ob-text-input" type="${step.type === 'number' ? 'number' : 'text'}"
+      placeholder="${step.placeholder || ''}" value="${val}"
+      ${step.min !== undefined ? `min="${step.min}"` : ''}
+      ${step.max !== undefined ? `max="${step.max}"` : ''}
+      oninput="obCheckNext()" />`;
+  }
+
+  const card = document.getElementById('ob-card-container');
+  card.innerHTML = `
+    <div class="ob-step-num">Pregunta ${obStep + 1}</div>
+    <div class="ob-question">${step.question}</div>
+    <div class="ob-question-sub">${step.sub}</div>
+    ${optionsHtml}
+    <div class="ob-nav">
+      ${!isFirst ? `<button class="ob-btn-back" onclick="obBack()">← Atrás</button>` : ''}
+      <button class="ob-btn-next" id="ob-next-btn" onclick="obNext()" ${!current && step.type !== 'number' && step.type !== 'text' ? 'disabled' : ''}>
+        ${obStep === total - 1 ? '¡Empezar! 🚀' : 'Continuar →'}
+      </button>
+    </div>`;
+
+  // Si ya hay respuesta en tipo text/number, habilitar botón
+  if ((step.type === 'number' || step.type === 'text') && current) {
+    document.getElementById('ob-next-btn').disabled = false;
+  }
+  if (step.type === 'number' || step.type === 'text') {
+    setTimeout(() => {
+      const inp = document.getElementById('ob-text-input');
+      if (inp) { inp.focus(); inp.addEventListener('keydown', e => { if (e.key === 'Enter') obNext(); }); }
+    }, 50);
+  }
+}
+
+function obSelect(el, value) {
+  const step = OB_STEPS[obStep];
+  if (step.type === 'chips') {
+    document.querySelectorAll('#ob-options .ob-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    obAnswers[step.id] = value;
+  } else {
+    // multi
+    el.classList.toggle('selected');
+    const selected = [...document.querySelectorAll('#ob-options .ob-option.selected')].map(o => o.dataset.value);
+    obAnswers[step.id] = selected;
+  }
+  document.getElementById('ob-next-btn').disabled = false;
+}
+
+function obCheckNext() {
+  const step = OB_STEPS[obStep];
+  const inp  = document.getElementById('ob-text-input');
+  if (!inp) return;
+  const v = inp.value.trim();
+  document.getElementById('ob-next-btn').disabled = !v;
+  if (v) obAnswers[step.id] = step.type === 'number' ? Number(v) : v;
+}
+
+function obNext() {
+  const step = OB_STEPS[obStep];
+  // Guardar respuesta de inputs texto/número
+  if (step.type === 'number' || step.type === 'text') {
+    const inp = document.getElementById('ob-text-input');
+    if (inp) {
+      const v = inp.value.trim();
+      if (!v) return;
+      obAnswers[step.id] = step.type === 'number' ? Number(v) : v;
+    }
+  }
+  // Validar que hay respuesta
+  const ans = obAnswers[step.id];
+  if (ans === undefined || ans === null || ans === '' || (Array.isArray(ans) && ans.length === 0)) {
+    // Sólo los chips/multi son obligatorios
+    if (step.type === 'chips') return;
+  }
+
+  if (obStep < OB_STEPS.length - 1) {
+    obStep++;
+    obRender();
+  } else {
+    obFinish();
+  }
+}
+
+function obBack() {
+  if (obStep > 0) { obStep--; obRender(); }
+}
+
+function obFinish() {
+  const card = document.getElementById('ob-card-container');
+  card.innerHTML = `
+    <div class="ob-finish-wrap">
+      <span class="ob-finish-emoji">🎉</span>
+      <div class="ob-finish-title">¡Todo listo!</div>
+      <div class="ob-finish-sub">Tu perfil ha sido guardado.<br>Tu experiencia estará personalizada para ti.</div>
+      <button class="ob-btn-next" style="width:100%;max-width:280px;margin:0 auto;display:block" onclick="obEnterApp()">Entrar a la app →</button>
+    </div>`;
+  document.getElementById('ob-progress-bar').style.width = '100%';
+  document.getElementById('ob-prog-text').textContent = 'Completado';
+  document.getElementById('ob-prog-pct').textContent  = '100%';
+
+  // Guardar en Firestore
+  obSaveToFirestore();
+}
+
+function obSaveToFirestore() {
+  const saveData = {
+    ...obAnswers,
+    completado: true,
+    fecha: new Date().toISOString(),
+  };
+  const doSave = () => {
+    if (window._fbSet) window._fbSet('perfil', 'datos', saveData);
+  };
+  if (window._fbReady) doSave();
+  else window.addEventListener('firebase-ready', doSave, { once: true });
+  // También en localStorage como caché
+  try { localStorage.setItem('ob_perfil_v1', JSON.stringify(saveData)); } catch(e) {}
+}
+
+function obEnterApp() {
+  document.getElementById('onboarding-screen').style.display = 'none';
+}
+
+function obSkip() {
+  if (!confirm('¿Seguro que quieres saltar la configuración? Podrás completarla más tarde.')) return;
+  try { localStorage.setItem('ob_skipped', '1'); } catch(e) {}
+  document.getElementById('onboarding-screen').style.display = 'none';
+}
+
+// Verificar si el usuario ya completó el onboarding
+window._checkOnboarding = function() {
+  // 1. Comprobar caché local primero (respuesta inmediata)
+  try {
+    const local = localStorage.getItem('ob_perfil_v1');
+    if (local) { const d = JSON.parse(local); if (d && d.completado) return; }
+    const skipped = localStorage.getItem('ob_skipped');
+    if (skipped) return;
+  } catch(e) {}
+
+  // 2. Consultar Firestore
+  if (window._fbReady && window._fbListen) {
+    window._fbListen('perfil', docs => {
+      if (docs['datos'] && docs['datos'].completado) {
+        // Ya tiene perfil, cachear y no mostrar
+        try { localStorage.setItem('ob_perfil_v1', JSON.stringify(docs['datos'])); } catch(e) {}
+        document.getElementById('onboarding-screen').style.display = 'none';
+      } else {
+        // Sin perfil → mostrar onboarding
+        obInit();
+      }
+    });
+  } else {
+    // Firebase no listo aún → esperar
+    window.addEventListener('firebase-ready', () => window._checkOnboarding(), { once: true });
+  }
+};
+
+// Hook: lanzar onboarding cuando el usuario hace login por primera vez (registro)
+window._onboardingPendiente = false;
+var _origAuthRegistrar = window._authRegistrar;
+if (_origAuthRegistrar) {
+  window._authRegistrar = async function(nombre, email, pw) {
+    window._onboardingPendiente = true;
+    await _origAuthRegistrar(nombre, email, pw);
+  };
+}
+</script>
 </body>
 </html>
