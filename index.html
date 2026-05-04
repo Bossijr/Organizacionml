@@ -7123,7 +7123,18 @@ function asigAddNota() {
   );
 
   if (pendienteIdx !== -1) {
-    notasDB[pendienteIdx] = { ...notasDB[pendienteIdx], nota, tipo, desc: desc || notasDB[pendienteIdx].desc };
+    const pendiente = notasDB[pendienteIdx];
+    notasDB[pendienteIdx] = { ...pendiente, nota, tipo, desc: desc || pendiente.desc };
+
+    // Eliminar el evento del calendario si existía
+    if (pendiente.calEventId && pendiente.fecha) {
+      const dayEvents = calEventsDB[pendiente.fecha];
+      if (dayEvents) {
+        calEventsDB[pendiente.fecha] = dayEvents.filter(e => String(e.id) !== String(pendiente.calEventId));
+        if (!calEventsDB[pendiente.fecha].length) delete calEventsDB[pendiente.fecha];
+        saveCal();
+      }
+    }
   } else {
     notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
   }
@@ -7151,9 +7162,12 @@ function asigAddExamen() {
   if (!asigId) { mostrarToast('Selecciona una asignatura'); return; }
   if (!fecha)  { mostrarToast('Introduce la fecha del examen'); return; }
 
+  // No permitir fechas pasadas
+  const hoy = new Date().toISOString().slice(0, 10);
+  if (fecha < hoy) { mostrarToast('⚠️ No puedes registrar un examen en una fecha pasada'); return; }
+
   const asig = asigDB.find(a => a.id === asigId);
 
-  // Categoría del árbol — leer ANTES de cualquier re-render
   const catField = document.getElementById('asig-exam-cat-field');
   const catSel   = document.getElementById('asig-exam-cat');
   const catFieldVisible = catField && catField.style.display !== 'none';
@@ -7170,16 +7184,15 @@ function asigAddExamen() {
     if (found) catNombre = found.nombre || 'Examen';
   }
 
-  // Añadir la nota ANTES de sincronizar
-  notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
-
-  // Añadir al calendario si está marcado
+  // Generar id del evento de calendario para poder eliminarlo luego
+  let calEventId = null;
   if (addCal) {
+    calEventId = Date.now() + '_asig';
     const nombre = asig ? asig.nombre : 'Asignatura';
     const textoEv = `Examen: ${nombre}${desc ? ' — ' + desc : ''}`;
     if (!calEventsDB[fecha]) calEventsDB[fecha] = [];
     calEventsDB[fecha].push({
-      id: Date.now() + '_asig',
+      id: calEventId,
       text: textoEv,
       pri: 'examen',
       allday: !hora,
@@ -7188,30 +7201,26 @@ function asigAddExamen() {
     saveCal();
   }
 
-  // Limpiar campos ANTES de re-render para que el render no restaure valores viejos
+  // Guardar calEventId en la nota para poder eliminarlo al registrar la nota
+  notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso, calEventId });
+
   document.getElementById('asig-exam-desc').value = '';
   document.getElementById('asig-exam-fecha').value = '';
   if (document.getElementById('asig-exam-hora')) document.getElementById('asig-exam-hora').value = '';
 
-  // Sincronizar y re-renderizar solo lo necesario (no tocar los selectores del formulario)
   asigSyncAll();
   asigRenderStats();
   asigRenderNotas();
   asigRenderResumen();
   if (document.getElementById('asig-tab-calculadora')?.classList.contains('active')) calcRender();
 
-  // Feedback visual en el botón
   const btn = document.querySelector('#fc-body-registrar-examen .reg-btn');
   if (btn) {
     const orig = btn.textContent;
     btn.textContent = '✓ Registrado';
     btn.style.background = 'var(--grass, #16a34a)';
     btn.disabled = true;
-    setTimeout(() => {
-      btn.textContent = orig;
-      btn.style.background = '';
-      btn.disabled = false;
-    }, 2000);
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 2000);
   }
 
   closeFormCollapse('registrar-examen');
