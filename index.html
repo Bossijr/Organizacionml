@@ -8518,7 +8518,16 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
-    } catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
+    } catch(e) {
+      authSetLoading(false);
+      if (e.code === 'auth/email-already-in-use') {
+        // Cambiar al tab de login automáticamente
+        authSwitchTab('login');
+        authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
+      } else {
+        authSetError(traducirError(e.code));
+      }
+    }
   };
   window._authLogout = async () => {
     await signOut(auth);
