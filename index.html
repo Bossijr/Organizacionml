@@ -2749,7 +2749,7 @@
     <div style="font-family:'Cormorant Garamond',serif;font-size:2.4rem;letter-spacing:0.06em;color:#1d1d1f;text-align:center;line-height:1;margin-bottom:0.3rem">MI <span style="color:#0071e3">APP</span></div>
     <div style="font-size:0.78rem;color:rgba(29,29,31,0.45);text-align:center;margin-bottom:1.8rem;font-weight:300">Entrenamiento · Calendario · Organización</div>
     <div style="display:flex;background:rgba(0,0,0,0.06);border-radius:10px;padding:3px;margin-bottom:1.5rem">
-      <div id="auth-tab-login" onclick="authSwitchTab('login')" style="flex:1;text-align:center;padding:0.5rem;font-size:0.82rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border-radius:8px;background:#ffffff;color:#0071e3;box-shadow:0 1px 4px rgba(0,0,0,0.1)">Entrar</div>
+      <div id="auth-tab-login" class="auth-tab-active" onclick="authSwitchTab('login')" style="flex:1;text-align:center;padding:0.5rem;font-size:0.82rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border-radius:8px;background:#ffffff;color:#0071e3;box-shadow:0 1px 4px rgba(0,0,0,0.1)">Entrar</div>
       <div id="auth-tab-registro" onclick="authSwitchTab('registro')" style="flex:1;text-align:center;padding:0.5rem;font-size:0.82rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border-radius:8px;color:rgba(29,29,31,0.4)">Registro</div>
     </div>
     <div id="auth-field-nombre" style="display:none;margin-bottom:0.9rem">
@@ -10416,50 +10416,68 @@ function obFinish() {
   document.getElementById('ob-prog-text').textContent = 'Completado';
   document.getElementById('ob-prog-pct').textContent  = '100%';
 
-  // Guardar en Firestore y localStorage
+  // Guardar perfil (Firestore + localStorage) ANTES de generar los planes
   obSaveToFirestore();
 
-  // Mostrar pantalla de generación de planes
-  card.innerHTML = `
-    <div class="ob-finish-wrap" id="ob-ia-wrap">
-      <div class="ob-finish-title">✅ Perfil guardado</div>
-      <div class="ob-finish-sub" style="margin-bottom:1.5rem">Generando tu plan personalizado con IA…</div>
-
-      <div id="ob-ia-entreno-status" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,113,227,0.06);border-radius:10px;margin-bottom:0.6rem;font-size:0.88rem;color:var(--ink,#1d1d1f)">
-        <span id="ob-ia-entreno-icon" style="font-size:1.2rem">⏳</span>
-        <span>Plan de entrenamiento</span>
-        <span id="ob-ia-entreno-lbl" style="margin-left:auto;font-size:0.75rem;color:#86868b">Generando…</span>
-      </div>
-      <div id="ob-ia-nutri-status" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,113,227,0.06);border-radius:10px;margin-bottom:1.5rem;font-size:0.88rem;color:var(--ink,#1d1d1f)">
-        <span id="ob-ia-nutri-icon" style="font-size:1.2rem">⏳</span>
-        <span>Plan nutricional</span>
-        <span id="ob-ia-nutri-lbl" style="margin-left:auto;font-size:0.75rem;color:#86868b">En cola…</span>
-      </div>
-
-      <button class="ob-btn-next" id="ob-ia-acceder-btn" style="width:100%;max-width:280px;margin:0 auto;display:block;opacity:0.4;pointer-events:none" onclick="obEnterApp()">
-        Acceder a la app
-      </button>
-      <div id="ob-ia-skip" style="text-align:center;margin-top:0.75rem">
-        <span onclick="obEnterApp()" style="font-size:0.78rem;color:#86868b;cursor:pointer;text-decoration:underline">Saltar y entrar ahora</span>
-      </div>
-    </div>`;
-
-  // Generar los planes en segundo plano
-  obGenerarPlanesAuto();
-}
-
-async function obGenerarPlanesAuto() {
-  // Asegurar que _ajPerfil está cargado con los datos recién guardados
+  // Sincronizar _ajPerfil con los datos recién guardados para que construirPerfilTexto() funcione
   try {
     const local = localStorage.getItem('ob_perfil_v1');
     if (local) _ajPerfil = JSON.parse(local) || {};
   } catch(e) {}
 
-  const prompts = {
+  // Mostrar pantalla de generación automática
+  card.innerHTML = `
+    <div class="ob-finish-wrap">
+      <div class="ob-finish-title">✅ Perfil guardado</div>
+      <div class="ob-finish-sub" style="margin-bottom:1.5rem">Generando tu plan personalizado con IA…</div>
+
+      <div id="ob-ia-entreno-status" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,113,227,0.06);border-radius:10px;margin-bottom:0.6rem;font-size:0.88rem;color:#1d1d1f">
+        <span id="ob-ia-entreno-icon" style="font-size:1.2rem">⏳</span>
+        <span>Plan de entrenamiento</span>
+        <span id="ob-ia-entreno-lbl" style="margin-left:auto;font-size:0.75rem;color:#86868b">Generando…</span>
+      </div>
+      <div id="ob-ia-nutri-status" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,113,227,0.06);border-radius:10px;margin-bottom:1.5rem;font-size:0.88rem;color:#1d1d1f">
+        <span id="ob-ia-nutri-icon" style="font-size:1.2rem">⏳</span>
+        <span>Plan nutricional</span>
+        <span id="ob-ia-nutri-lbl" style="margin-left:auto;font-size:0.75rem;color:#86868b">En cola…</span>
+      </div>
+
+      <button class="ob-btn-next" id="ob-ia-acceder-btn"
+        style="width:100%;max-width:280px;margin:0 auto;display:block;opacity:0.4;pointer-events:none"
+        onclick="obEnterApp()">Acceder a la app</button>
+      <div style="text-align:center;margin-top:0.75rem">
+        <span onclick="obEnterApp()" style="font-size:0.78rem;color:#86868b;cursor:pointer;text-decoration:underline">Saltar y entrar ahora</span>
+      </div>
+    </div>`;
+
+  // Lanzar la generación en segundo plano
+  obGenerarPlanesAuto();
+}
+
+function obSaveToFirestore() {
+  const saveData = {
+    ...obAnswers,
+    completado: true,
+    fecha: new Date().toISOString(),
+  };
+  const doSave = () => {
+    if (window._fbSet) window._fbSet('perfil', 'datos', saveData);
+  };
+  if (window._fbReady) doSave();
+  else window.addEventListener('firebase-ready', doSave, { once: true });
+  // También en localStorage como caché
+  try { localStorage.setItem('ob_perfil_v1', JSON.stringify(saveData)); } catch(e) {}
+}
+
+async function obGenerarPlanesAuto() {
+  // _ajPerfil ya fue sincronizado en obFinish justo antes de llamar esta función
+  const perfil = construirPerfilTexto();
+
+  const PROMPTS = {
     entreno: `Eres un entrenador personal experto en alto rendimiento deportivo. Basándote en el siguiente perfil del usuario, crea una rutina de entrenamiento semanal detallada y personalizada.
 
 PERFIL DEL USUARIO:
-${construirPerfilTexto()}
+${perfil}
 
 Genera un plan de entrenamiento semanal completo con:
 - Distribución de días (qué se trabaja cada día)
@@ -10474,7 +10492,7 @@ Sé específico, práctico y adapta todo al perfil del usuario. Usa formato con 
     nutri: `Eres un nutricionista deportivo experto. Basándote en el siguiente perfil del usuario, crea un plan nutricional detallado y personalizado.
 
 PERFIL DEL USUARIO:
-${construirPerfilTexto()}
+${perfil}
 
 Genera un plan nutricional completo con:
 - Calorías diarias recomendadas (calcula el TDEE según el perfil)
@@ -10504,7 +10522,7 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1800,
-          messages: [{ role: 'user', content: prompts[tipo] }],
+          messages: [{ role: 'user', content: PROMPTS[tipo] }],
         }),
       });
       if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -10513,40 +10531,23 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
       if (!texto) throw new Error('Sin respuesta');
       try { localStorage.setItem('plan_ia_' + tipo, texto); } catch(e) {}
       setStatus(tipo, '✅', 'Listo', '#34c759');
-      return true;
     } catch(err) {
-      setStatus(tipo, '⚠️', 'Error (puedes regenerarlo luego)', '#ff9500');
-      return false;
+      setStatus(tipo, '⚠️', 'Error — podrás regenerarlo desde la app', '#ff9500');
     }
   }
 
-  // Lanzar entrenamiento; cuando termine, nutri
-  setStatus('nutri', '⏳', 'En cola…', '#86868b');
+  // Generar entrenamiento primero, luego nutrición
   await generarUno('entreno');
+  setStatus('nutri', '⏳', 'Generando…', '#86868b');
   await generarUno('nutri');
 
   // Habilitar botón de acceso
   const btn = document.getElementById('ob-ia-acceder-btn');
   if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
-  const skip = document.getElementById('ob-ia-skip');
-  if (skip) skip.style.display = 'none';
+  // Ocultar "saltar"
+  const skip = document.querySelector('[onclick="obEnterApp()"][style*="underline"]');
+  if (skip) skip.parentElement.style.display = 'none';
 }
-
-function obSaveToFirestore() {
-  const saveData = {
-    ...obAnswers,
-    completado: true,
-    fecha: new Date().toISOString(),
-  };
-  const doSave = () => {
-    if (window._fbSet) window._fbSet('perfil', 'datos', saveData);
-  };
-  if (window._fbReady) doSave();
-  else window.addEventListener('firebase-ready', doSave, { once: true });
-  // También en localStorage como caché
-  try { localStorage.setItem('ob_perfil_v1', JSON.stringify(saveData)); } catch(e) {}
-}
-
 
 function obEnterApp() {
   document.getElementById('onboarding-screen').style.display = 'none';
@@ -10555,13 +10556,12 @@ function obEnterApp() {
     const local = localStorage.getItem('ob_perfil_v1');
     if (local) { const d = JSON.parse(local); if (d && d.areas) applyAreas(d.areas); }
   } catch(e) {}
-  // Cargar los planes generados automáticamente en la sección de entrenamiento/nutrición
+  // Cargar planes ya generados en la sección de entrenamiento/nutrición
   ['entreno', 'nutri'].forEach(tipo => {
     try {
       const saved = localStorage.getItem('plan_ia_' + tipo);
       if (!saved) return;
-      const resultId = tipo === 'entreno' ? 'resultado-entreno' : 'resultado-nutri';
-      const el = document.getElementById(resultId);
+      const el = document.getElementById(tipo === 'entreno' ? 'resultado-entreno' : 'resultado-nutri');
       if (el) { el.innerHTML = renderMarkdown(saved); el.classList.add('visible'); }
     } catch(e) {}
   });
