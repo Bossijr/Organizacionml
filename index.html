@@ -8082,114 +8082,195 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       </div>
     </div>
 
-    <!-- PREFERENCIAS -->
-    <div>
-      <div class="aj-section-label">Preferencias</div>
-      <div class="aj-group">
-        <div class="aj-row" onclick="ajSheetAbrir('idioma')">
-          <div class="aj-row-icon" style="background:#e8f0fe">🌐</div>
-          <div class="aj-row-info"><div class="aj-row-title">Idioma</div><div class="aj-row-val" id="aj-val-idioma">—</div></div>
-          <div class="aj-row-chev">›</div>
+    <!-- PREFERENCIAS (colapsable) -->
+    <div class="aj-accordion" id="aj-acc-preferencias">
+      <div class="aj-acc-header" onclick="ajAccToggle('preferencias')">
+        <div class="aj-acc-header-left">
+          <div class="aj-acc-icon" style="background:#e8f0fe">🌐</div>
+          <span class="aj-acc-title">Preferencias</span>
         </div>
-        <div class="aj-row" onclick="ajSheetAbrir('pais')">
-          <div class="aj-row-icon" style="background:#e8f7ee">📍</div>
-          <div class="aj-row-info"><div class="aj-row-title">País</div><div class="aj-row-val" id="aj-val-pais">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
-        <div class="aj-row" onclick="ajSheetAbrir('areas')">
-          <div class="aj-row-icon" style="background:#fff4e0">📱</div>
-          <div class="aj-row-info"><div class="aj-row-title">Secciones activas</div><div class="aj-row-val" id="aj-val-areas">—</div></div>
-          <div class="aj-row-chev">›</div>
+        <svg class="aj-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="aj-acc-body" id="aj-acc-body-preferencias">
+        <div class="aj-group">
+          <div class="aj-row" onclick="ajSheetAbrir('idioma')">
+            <div class="aj-row-icon" style="background:#e8f0fe">🌐</div>
+            <div class="aj-row-info"><div class="aj-row-title">Idioma</div><div class="aj-row-val" id="aj-val-idioma">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('pais')">
+            <div class="aj-row-icon" style="background:#e8f7ee">📍</div>
+            <div class="aj-row-info"><div class="aj-row-title">País</div><div class="aj-row-val" id="aj-val-pais">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('areas')">
+            <div class="aj-row-icon" style="background:#fff4e0">📱</div>
+            <div class="aj-row-info"><div class="aj-row-title">Secciones activas</div><div class="aj-row-val" id="aj-val-areas">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- PERFIL FÍSICO -->
-    <div>
-      <div class="aj-section-label">Perfil físico</div>
-      <div class="aj-group">
-        <div class="aj-row" onclick="ajSheetAbrir('sexo')">
-          <div class="aj-row-icon" style="background:#f0e8fe">⚧️</div>
-          <div class="aj-row-info"><div class="aj-row-title">Sexo</div><div class="aj-row-val" id="aj-val-sexo">—</div></div>
-          <div class="aj-row-chev">›</div>
+    <!-- PERFIL FÍSICO (colapsable, incluye entrenamiento y hábitos) -->
+    <div class="aj-accordion" id="aj-acc-perfil">
+      <div class="aj-acc-header" onclick="ajAccToggle('perfil')">
+        <div class="aj-acc-header-left">
+          <div class="aj-acc-icon" style="background:#e8f7ee">💪</div>
+          <span class="aj-acc-title">Perfil físico</span>
         </div>
-        <div class="aj-row" onclick="ajSheetAbrir('edad')">
-          <div class="aj-row-icon" style="background:#fff4e0">🎂</div>
-          <div class="aj-row-info"><div class="aj-row-title">Edad</div><div class="aj-row-val" id="aj-val-edad">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
-        <div class="aj-row" onclick="ajSheetAbrir('nivel')">
-          <div class="aj-row-icon" style="background:#e8f7ee">💪</div>
-          <div class="aj-row-info"><div class="aj-row-title">Nivel físico</div><div class="aj-row-val" id="aj-val-nivel">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
-        <div class="aj-row" onclick="ajSheetAbrir('lesiones')">
-          <div class="aj-row-icon" style="background:#fce8e8">🩺</div>
-          <div class="aj-row-info"><div class="aj-row-title">Lesiones</div><div class="aj-row-val" id="aj-val-lesiones">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
+        <svg class="aj-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
-    </div>
+      <div class="aj-acc-body" id="aj-acc-body-perfil">
 
-    <!-- ENTRENAMIENTO -->
-    <div>
-      <div class="aj-section-label">Entrenamiento</div>
-      <div class="aj-group">
-        <div class="aj-row" onclick="ajSheetAbrir('frecuencia_ejercicio')">
-          <div class="aj-row-icon" style="background:#e8f0fe">🏃</div>
-          <div class="aj-row-info"><div class="aj-row-title">Frecuencia de entreno</div><div class="aj-row-val" id="aj-val-frecuencia_ejercicio">—</div></div>
-          <div class="aj-row-chev">›</div>
+        <div class="aj-acc-sublabel">General</div>
+        <div class="aj-group">
+          <div class="aj-row" onclick="ajSheetAbrir('sexo')">
+            <div class="aj-row-icon" style="background:#f0e8fe">⚧️</div>
+            <div class="aj-row-info"><div class="aj-row-title">Sexo</div><div class="aj-row-val" id="aj-val-sexo">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('edad')">
+            <div class="aj-row-icon" style="background:#fff4e0">🎂</div>
+            <div class="aj-row-info"><div class="aj-row-title">Edad</div><div class="aj-row-val" id="aj-val-edad">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('nivel')">
+            <div class="aj-row-icon" style="background:#e8f7ee">💪</div>
+            <div class="aj-row-info"><div class="aj-row-title">Nivel físico</div><div class="aj-row-val" id="aj-val-nivel">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('lesiones')">
+            <div class="aj-row-icon" style="background:#fce8e8">🩺</div>
+            <div class="aj-row-info"><div class="aj-row-title">Lesiones</div><div class="aj-row-val" id="aj-val-lesiones">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
         </div>
-        <div class="aj-row" onclick="ajSheetAbrir('tiempo_disponible')">
-          <div class="aj-row-icon" style="background:#fff4e0">⏱️</div>
-          <div class="aj-row-info"><div class="aj-row-title">Tiempo por sesión</div><div class="aj-row-val" id="aj-val-tiempo_disponible">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
-        <div class="aj-row" onclick="ajSheetAbrir('objetivo')">
-          <div class="aj-row-icon" style="background:#e8f7ee">🎯</div>
-          <div class="aj-row-info"><div class="aj-row-title">Objetivo principal</div><div class="aj-row-val" id="aj-val-objetivo">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
-        <div class="aj-row" onclick="ajSheetAbrir('material')">
-          <div class="aj-row-icon" style="background:#f0e8fe">🏋️</div>
-          <div class="aj-row-info"><div class="aj-row-title">Material disponible</div><div class="aj-row-val" id="aj-val-material">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
-        <div class="aj-row" onclick="ajSheetAbrir('deporte')">
-          <div class="aj-row-icon" style="background:#e8f0fe">⚽</div>
-          <div class="aj-row-info"><div class="aj-row-title">Deportes</div><div class="aj-row-val" id="aj-val-deporte">—</div></div>
-          <div class="aj-row-chev">›</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- HÁBITOS -->
-    <div>
-      <div class="aj-section-label">Hábitos</div>
-      <div class="aj-group">
-        <div class="aj-row" onclick="ajSheetAbrir('sueno')">
-          <div class="aj-row-icon" style="background:#f0e8fe">😴</div>
-          <div class="aj-row-info"><div class="aj-row-title">Horas de sueño</div><div class="aj-row-val" id="aj-val-sueno">—</div></div>
-          <div class="aj-row-chev">›</div>
+        <div class="aj-acc-sublabel">Entrenamiento</div>
+        <div class="aj-group">
+          <div class="aj-row" onclick="ajSheetAbrir('frecuencia_ejercicio')">
+            <div class="aj-row-icon" style="background:#e8f0fe">🏃</div>
+            <div class="aj-row-info"><div class="aj-row-title">Frecuencia de entreno</div><div class="aj-row-val" id="aj-val-frecuencia_ejercicio">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('tiempo_disponible')">
+            <div class="aj-row-icon" style="background:#fff4e0">⏱️</div>
+            <div class="aj-row-info"><div class="aj-row-title">Tiempo por sesión</div><div class="aj-row-val" id="aj-val-tiempo_disponible">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('objetivo')">
+            <div class="aj-row-icon" style="background:#e8f7ee">🎯</div>
+            <div class="aj-row-info"><div class="aj-row-title">Objetivo principal</div><div class="aj-row-val" id="aj-val-objetivo">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('material')">
+            <div class="aj-row-icon" style="background:#f0e8fe">🏋️</div>
+            <div class="aj-row-info"><div class="aj-row-title">Material disponible</div><div class="aj-row-val" id="aj-val-material">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+          <div class="aj-row" onclick="ajSheetAbrir('deporte')">
+            <div class="aj-row-icon" style="background:#e8f0fe">⚽</div>
+            <div class="aj-row-info"><div class="aj-row-title">Deportes</div><div class="aj-row-val" id="aj-val-deporte">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- ZONA PELIGROSA -->
-    <div>
-      <div class="aj-section-label">Zona peligrosa</div>
-      <div class="aj-group">
-        <div class="aj-row aj-row-danger" onclick="ajSheetAbrir('reset_perfil')">
-          <div class="aj-row-icon" style="background:#fce8e8"><svg viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg></div>
-          <div class="aj-row-info"><div class="aj-row-title">Resetear perfil</div><div class="aj-row-val">Vuelve a mostrar el wizard de configuración</div></div>
-          <div class="aj-row-chev">›</div>
+        <div class="aj-acc-sublabel">Hábitos</div>
+        <div class="aj-group">
+          <div class="aj-row" onclick="ajSheetAbrir('sueno')">
+            <div class="aj-row-icon" style="background:#f0e8fe">😴</div>
+            <div class="aj-row-info"><div class="aj-row-title">Horas de sueño</div><div class="aj-row-val" id="aj-val-sueno">—</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
         </div>
+
+        <div class="aj-acc-sublabel" style="color:#ff3b30;opacity:0.7">Zona peligrosa</div>
+        <div class="aj-group">
+          <div class="aj-row aj-row-danger" onclick="ajSheetAbrir('reset_perfil')">
+            <div class="aj-row-icon" style="background:#fce8e8"><svg viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg></div>
+            <div class="aj-row-info"><div class="aj-row-title">Resetear perfil</div><div class="aj-row-val">Vuelve a mostrar el wizard de configuración</div></div>
+            <div class="aj-row-chev">›</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
   </div>
 </div>
 </div>
+
+<style>
+/* ── Accordion ── */
+.aj-accordion {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.07);
+  overflow: hidden;
+}
+.aj-acc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.95rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+  min-height: 54px;
+}
+.aj-acc-header:active { background: rgba(0,0,0,0.04); }
+@media (hover:hover) { .aj-acc-header:hover { background: rgba(0,0,0,0.025); } }
+.aj-acc-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.aj-acc-icon {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.aj-acc-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+.aj-acc-arrow {
+  width: 18px; height: 18px;
+  color: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+.aj-accordion.open .aj-acc-arrow {
+  transform: rotate(180deg);
+}
+.aj-acc-body {
+  display: none;
+  padding: 0 0.75rem 0.75rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+.aj-accordion.open .aj-acc-body {
+  display: flex;
+}
+.aj-acc-sublabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #86868b;
+  padding: 0.55rem 0.1rem 0.1rem;
+}
+/* Override aj-group margin inside accordion */
+.aj-acc-body .aj-group {
+  margin: 0;
+}
+</style>
 
 <!-- SHEETS (bottom drawers) -->
 <div id="aj-sheet-nombre" class="aj-sheet" onclick="if(event.target===this)ajSheetCerrar('nombre')">
@@ -8337,6 +8418,12 @@ function ajustesCerrar() {
   document.body.style.overflow = '';
   // Cerrar todos los sheets
   document.querySelectorAll('.aj-sheet').forEach(s => s.classList.remove('open'));
+}
+
+function ajAccToggle(id) {
+  const acc = document.getElementById('aj-acc-' + id);
+  if (!acc) return;
+  acc.classList.toggle('open');
 }
 
 function ajCargarPerfil(cb) {
