@@ -2389,20 +2389,20 @@
   <p class="portada-sub">Selecciona un área para empezar</p>
 
   <!-- LISTA DE NAVEGACIÓN -->
-  <div class="portada-list">
+  <div class="portada-list" id="portada-list">
 
-    <div class="portada-row" onclick="goArea('entrenamiento')">
+    <div class="portada-row" data-area="entrenamiento" onclick="goArea('entrenamiento')" style="display:none">
       <div class="portada-row-icon" style="background:#e8f0fe">
         <svg viewBox="0 0 24 24" fill="none" stroke="#3b6be8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
       </div>
       <div class="portada-row-text">
         <div class="portada-row-title">Entrenamiento</div>
-        <div class="portada-row-sub">Surf · Fútbol · Cargas · Progresión</div>
+        <div class="portada-row-sub">Rutinas · Cargas · Progresión</div>
       </div>
       <div class="portada-row-chevron">›</div>
     </div>
 
-    <div class="portada-row" onclick="goArea('calendario')">
+    <div class="portada-row" data-area="calendario" onclick="goArea('calendario')" style="display:none">
       <div class="portada-row-icon" style="background:#fce8e8">
         <svg viewBox="0 0 24 24" fill="none" stroke="#d94040" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </div>
@@ -2413,7 +2413,7 @@
       <div class="portada-row-chevron">›</div>
     </div>
 
-    <div class="portada-row" onclick="goArea('personal')">
+    <div class="portada-row" data-area="personal" onclick="goArea('personal')" style="display:none">
       <div class="portada-row-icon" style="background:#e8f7ee">
         <svg viewBox="0 0 24 24" fill="none" stroke="#2d9e5f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       </div>
@@ -2425,7 +2425,7 @@
       <div class="portada-row-chevron">›</div>
     </div>
 
-    <div class="portada-row" onclick="goArea('tiempo')">
+    <div class="portada-row" data-area="tiempo" onclick="goArea('tiempo')" style="display:none">
       <div class="portada-row-icon" style="background:#fff4e0">
         <svg viewBox="0 0 24 24" fill="none" stroke="#e07b00" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       </div>
@@ -2439,7 +2439,7 @@
       <div class="portada-row-chevron">›</div>
     </div>
 
-    <div class="portada-row" onclick="goArea('asignaturas')">
+    <div class="portada-row" data-area="asignaturas" onclick="goArea('asignaturas')" style="display:none">
       <div class="portada-row-icon" style="background:#f0e8fe">
         <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
       </div>
@@ -2449,7 +2449,8 @@
       </div>
       <div class="portada-row-chevron">›</div>
     </div>
-    <div class="portada-row" onclick="goArea('nutricion')">
+
+    <div class="portada-row" data-area="nutricion" onclick="goArea('nutricion')" style="display:none">
       <div class="portada-row-icon" style="background:#e8f7ee">
         <svg viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
       </div>
@@ -2459,7 +2460,6 @@
       </div>
       <div class="portada-row-chevron">›</div>
     </div>
-
 
   </div>
 </div>
@@ -8588,7 +8588,52 @@ async function ajResetPerfil() {
 // Pasos del wizard. type: 'chips' (single), 'multi' (multi-select), 'number', 'text'
 const OB_STEPS = [
   {
-    id: 'sexo',
+    id: 'idioma',
+    question: '¿En qué idioma prefieres usar la app?',
+    sub: 'Puedes cambiarlo más adelante desde ajustes.',
+    type: 'chips',
+    options: [
+      { icon: '', label: 'Español', value: 'es' },
+      { icon: '', label: 'English', value: 'en' },
+      { icon: '', label: 'Français', value: 'fr' },
+      { icon: '', label: 'Deutsch', value: 'de' },
+      { icon: '', label: 'Italiano', value: 'it' },
+      { icon: '', label: 'Português', value: 'pt' },
+    ]
+  },
+  {
+    id: 'pais',
+    question: '¿En qué país te encuentras?',
+    sub: 'Se utiliza para festivos del calendario y configuración regional.',
+    type: 'chips',
+    options: [
+      { icon: '', label: 'España', value: 'ES' },
+      { icon: '', label: 'México', value: 'MX' },
+      { icon: '', label: 'Argentina', value: 'AR' },
+      { icon: '', label: 'Colombia', value: 'CO' },
+      { icon: '', label: 'United Kingdom', value: 'GB' },
+      { icon: '', label: 'United States', value: 'US' },
+      { icon: '', label: 'France', value: 'FR' },
+      { icon: '', label: 'Germany', value: 'DE' },
+      { icon: '', label: 'Italy', value: 'IT' },
+      { icon: '', label: 'Portugal', value: 'PT' },
+      { icon: '', label: 'Otro', value: 'OTHER' },
+    ]
+  },
+  {
+    id: 'areas',
+    question: '¿Qué secciones quieres activar?',
+    sub: 'Solo verás en la pantalla de inicio las que selecciones aquí.',
+    type: 'multi',
+    options: [
+      { icon: '', label: 'Entrenamiento', value: 'entrenamiento' },
+      { icon: '', label: 'Calendario', value: 'calendario' },
+      { icon: '', label: 'Personal', value: 'personal' },
+      { icon: '', label: 'Tiempo', value: 'tiempo' },
+      { icon: '', label: 'Asignaturas', value: 'asignaturas' },
+      { icon: '', label: 'Nutrición', value: 'nutricion' },
+    ]
+  },
     question: '¿Cuál es tu sexo biológico?',
     sub: 'Se utiliza para personalizar los planes de entrenamiento y nutrición.',
     type: 'chips',
@@ -8874,14 +8919,34 @@ function obSaveToFirestore() {
   try { localStorage.setItem('ob_perfil_v1', JSON.stringify(saveData)); } catch(e) {}
 }
 
+
 function obEnterApp() {
   document.getElementById('onboarding-screen').style.display = 'none';
+  // Aplicar áreas seleccionadas
+  try {
+    const local = localStorage.getItem('ob_perfil_v1');
+    if (local) { const d = JSON.parse(local); if (d && d.areas) applyAreas(d.areas); }
+  } catch(e) {}
 }
 
 function obSkip() {
-  if (!confirm('¿Seguro que quieres saltar la configuración? Podrás completarla más tarde.')) return;
+  if (!confirm('¿Seguro que quieres omitir la configuración? Podrás completarla más tarde desde ajustes.')) return;
   try { localStorage.setItem('ob_skipped', '1'); } catch(e) {}
   document.getElementById('onboarding-screen').style.display = 'none';
+  // Sin perfil: mostrar todas las áreas por defecto
+  applyAreas(['entrenamiento','calendario','personal','tiempo','asignaturas','nutricion']);
+}
+
+// Muestra u oculta las filas de portada según las áreas elegidas
+function applyAreas(areas) {
+  if (!areas || !Array.isArray(areas) || areas.length === 0) {
+    // fallback: mostrar todo
+    document.querySelectorAll('.portada-row[data-area]').forEach(r => r.style.display = 'flex');
+    return;
+  }
+  document.querySelectorAll('.portada-row[data-area]').forEach(r => {
+    r.style.display = areas.includes(r.dataset.area) ? 'flex' : 'none';
+  });
 }
 
 // Verificar si el usuario ya completó el onboarding
@@ -8889,18 +8954,28 @@ window._checkOnboarding = function() {
   // 1. Comprobar caché local primero (respuesta inmediata)
   try {
     const local = localStorage.getItem('ob_perfil_v1');
-    if (local) { const d = JSON.parse(local); if (d && d.completado) return; }
+    if (local) {
+      const d = JSON.parse(local);
+      if (d && d.completado) {
+        applyAreas(d.areas);
+        return;
+      }
+    }
     const skipped = localStorage.getItem('ob_skipped');
-    if (skipped) return;
+    if (skipped) {
+      applyAreas(['entrenamiento','calendario','personal','tiempo','asignaturas','nutricion']);
+      return;
+    }
   } catch(e) {}
 
   // 2. Consultar Firestore
   if (window._fbReady && window._fbListen) {
     window._fbListen('perfil', docs => {
       if (docs['datos'] && docs['datos'].completado) {
-        // Ya tiene perfil, cachear y no mostrar
+        // Ya tiene perfil, cachear y aplicar áreas
         try { localStorage.setItem('ob_perfil_v1', JSON.stringify(docs['datos'])); } catch(e) {}
         document.getElementById('onboarding-screen').style.display = 'none';
+        applyAreas(docs['datos'].areas);
       } else {
         // Sin perfil → mostrar onboarding
         obInit();
