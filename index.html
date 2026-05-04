@@ -8634,15 +8634,6 @@ const OB_STEPS = [
       { icon: '', label: 'Nutrición', value: 'nutricion' },
     ]
   },
-    question: '¿Cuál es tu sexo biológico?',
-    sub: 'Se utiliza para personalizar los planes de entrenamiento y nutrición.',
-    type: 'chips',
-    options: [
-      { icon: '', label: 'Masculino', value: 'masculino' },
-      { icon: '', label: 'Femenino',  value: 'femenino' },
-      { icon: '', label: 'Otro',       value: 'otro' },
-    ]
-  },
   {
     id: 'edad',
     question: '¿Cuántos años tienes?',
@@ -8939,13 +8930,10 @@ function obSkip() {
 
 // Muestra u oculta las filas de portada según las áreas elegidas
 function applyAreas(areas) {
-  if (!areas || !Array.isArray(areas) || areas.length === 0) {
-    // fallback: mostrar todo
-    document.querySelectorAll('.portada-row[data-area]').forEach(r => r.style.display = 'flex');
-    return;
-  }
+  const ALL = ['entrenamiento','calendario','personal','tiempo','asignaturas','nutricion'];
+  const toShow = (areas && Array.isArray(areas) && areas.length > 0) ? areas : ALL;
   document.querySelectorAll('.portada-row[data-area]').forEach(r => {
-    r.style.display = areas.includes(r.dataset.area) ? 'flex' : 'none';
+    r.style.display = toShow.includes(r.dataset.area) ? 'flex' : 'none';
   });
 }
 
@@ -8957,13 +8945,19 @@ window._checkOnboarding = function() {
     if (local) {
       const d = JSON.parse(local);
       if (d && d.completado) {
-        applyAreas(d.areas);
-        return;
+        // Si el perfil antiguo no tiene areas → resetear para que pase por el wizard
+        if (!d.areas || !Array.isArray(d.areas) || d.areas.length === 0) {
+          localStorage.removeItem('ob_perfil_v1');
+          // continúa hacia Firestore / obInit
+        } else {
+          applyAreas(d.areas);
+          return;
+        }
       }
     }
     const skipped = localStorage.getItem('ob_skipped');
     if (skipped) {
-      applyAreas(['entrenamiento','calendario','personal','tiempo','asignaturas','nutricion']);
+      applyAreas(null);
       return;
     }
   } catch(e) {}
@@ -8972,17 +8966,20 @@ window._checkOnboarding = function() {
   if (window._fbReady && window._fbListen) {
     window._fbListen('perfil', docs => {
       if (docs['datos'] && docs['datos'].completado) {
-        // Ya tiene perfil, cachear y aplicar áreas
-        try { localStorage.setItem('ob_perfil_v1', JSON.stringify(docs['datos'])); } catch(e) {}
+        const perfil = docs['datos'];
+        // Si el perfil no tiene areas → re-onboarding para elegirlas
+        if (!perfil.areas || !Array.isArray(perfil.areas) || perfil.areas.length === 0) {
+          obInit();
+          return;
+        }
+        try { localStorage.setItem('ob_perfil_v1', JSON.stringify(perfil)); } catch(e) {}
         document.getElementById('onboarding-screen').style.display = 'none';
-        applyAreas(docs['datos'].areas);
+        applyAreas(perfil.areas);
       } else {
-        // Sin perfil → mostrar onboarding
         obInit();
       }
     });
   } else {
-    // Firebase no listo aún → esperar
     window.addEventListener('firebase-ready', () => window._checkOnboarding(), { once: true });
   }
 };
