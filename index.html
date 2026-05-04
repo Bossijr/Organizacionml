@@ -10498,21 +10498,17 @@ function obFinish() {
   document.getElementById('ob-prog-text').textContent = 'Completado';
   document.getElementById('ob-prog-pct').textContent  = '100%';
 
-  // Guardar perfil (Firestore + localStorage) ANTES de generar los planes
   obSaveToFirestore();
 
-  // Sincronizar _ajPerfil con los datos recién guardados para que construirPerfilTexto() funcione
   try {
     const local = localStorage.getItem('ob_perfil_v1');
     if (local) _ajPerfil = JSON.parse(local) || {};
   } catch(e) {}
 
-  // Mostrar pantalla de generación automática
   card.innerHTML = `
     <div class="ob-finish-wrap">
       <div class="ob-finish-title">✅ Perfil guardado</div>
       <div class="ob-finish-sub" style="margin-bottom:1.5rem">Generando tu plan personalizado con IA…</div>
-
       <div id="ob-ia-entreno-status" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,113,227,0.06);border-radius:10px;margin-bottom:0.6rem;font-size:0.88rem;color:#1d1d1f">
         <span id="ob-ia-entreno-icon" style="font-size:1.2rem">⏳</span>
         <span>Plan de entrenamiento</span>
@@ -10523,7 +10519,6 @@ function obFinish() {
         <span>Plan nutricional</span>
         <span id="ob-ia-nutri-lbl" style="margin-left:auto;font-size:0.75rem;color:#86868b">En cola…</span>
       </div>
-
       <button class="ob-btn-next" id="ob-ia-acceder-btn"
         style="width:100%;max-width:280px;margin:0 auto;display:block;opacity:0.4;pointer-events:none"
         onclick="obEnterApp()">Acceder a la app</button>
@@ -10532,7 +10527,6 @@ function obFinish() {
       </div>
     </div>`;
 
-  // Lanzar la generación en segundo plano
   obGenerarPlanesAuto();
 }
 
@@ -10547,12 +10541,10 @@ function obSaveToFirestore() {
   };
   if (window._fbReady) doSave();
   else window.addEventListener('firebase-ready', doSave, { once: true });
-  // También en localStorage como caché
   try { localStorage.setItem('ob_perfil_v1', JSON.stringify(saveData)); } catch(e) {}
 }
 
 async function obGenerarPlanesAuto() {
-  // _ajPerfil ya fue sincronizado en obFinish justo antes de llamar esta función
   const perfil = construirPerfilTexto();
 
   const PROMPTS = {
@@ -10570,7 +10562,6 @@ Genera un plan de entrenamiento semanal completo con:
 - Tiempo estimado por sesión
 
 Sé específico, práctico y adapta todo al perfil del usuario. Usa formato con títulos y listas para facilitar la lectura.`,
-
     nutri: `Eres un nutricionista deportivo experto. Basándote en el siguiente perfil del usuario, crea un plan nutricional detallado y personalizado.
 
 PERFIL DEL USUARIO:
@@ -10598,7 +10589,7 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
   async function generarUno(tipo) {
     setStatus(tipo, '⏳', 'Generando…', '#86868b');
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://anthropic-proxy.lasa11bossi.workers.dev', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -10615,15 +10606,14 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
       setStatus(tipo, '✅', 'Listo', '#34c759');
     } catch(err) {
       setStatus(tipo, '⚠️', 'Error — podrás regenerarlo desde la app', '#ff9500');
+      console.error('[obGenerarPlanesAuto]', tipo, err);
     }
   }
 
-  // Generar entrenamiento primero, luego nutrición
   await generarUno('entreno');
   setStatus('nutri', '⏳', 'Generando…', '#86868b');
   await generarUno('nutri');
 
-  // Habilitar botón de acceso
   const btn = document.getElementById('ob-ia-acceder-btn');
   if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
   const skip = document.querySelector('[onclick="obEnterApp()"][style*="underline"]');
@@ -10632,12 +10622,10 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
 
 function obEnterApp() {
   document.getElementById('onboarding-screen').style.display = 'none';
-  // Aplicar áreas seleccionadas
   try {
     const local = localStorage.getItem('ob_perfil_v1');
     if (local) { const d = JSON.parse(local); if (d && d.areas) applyAreas(d.areas); }
   } catch(e) {}
-  // Cargar planes ya generados en la sección de entrenamiento/nutrición
   ['entreno', 'nutri'].forEach(tipo => {
     try {
       const saved = localStorage.getItem('plan_ia_' + tipo);
@@ -10881,7 +10869,7 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
   };
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://anthropic-proxy.lasa11bossi.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
