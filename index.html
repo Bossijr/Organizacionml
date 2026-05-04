@@ -7181,11 +7181,28 @@ function asigAddExamen() {
   document.getElementById('asig-exam-fecha').value = '';
   if (document.getElementById('asig-exam-hora')) document.getElementById('asig-exam-hora').value = '';
 
-  // Sincronizar y re-renderizar AL FINAL
+  // Sincronizar y re-renderizar solo lo necesario (no tocar los selectores del formulario)
   asigSyncAll();
-  asigRender();
-  closeFormCollapse('registrar-examen');
-  mostrarToast(addCal ? 'Examen registrado y añadido al Calendario' : 'Examen registrado');
+  asigRenderStats();
+  asigRenderNotas();
+  asigRenderResumen();
+  if (document.getElementById('asig-tab-calculadora')?.classList.contains('active')) calcRender();
+
+  // Feedback visual en el botón
+  const btn = document.querySelector('#fc-body-registrar-examen .reg-btn');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Registrado';
+    btn.style.background = 'var(--grass, #16a34a)';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
+  }
+
+  mostrarToast(addCal ? '✓ Examen registrado y añadido al Calendario' : '✓ Examen registrado');
 }
 
 // Buscar nodo por id en el árbol
