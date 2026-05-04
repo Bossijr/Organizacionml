@@ -57,6 +57,177 @@
     --surface2: #ffffff;
     --card-border: rgba(0,0,0,0.1);
   }
+
+  /* ── MODO OSCURO ── */
+  body.dark {
+    --navy: #f5f5f7;
+    --ocean: #3b9eff;
+    --ocean-light: #3b9eff;
+    --sand: #1c1c1e;
+    --grass: #32d74b;
+    --amber: #ff9f0a;
+    --coral: #ff453a;
+    --ink: #f5f5f7;
+    --muted: #8e8e93;
+    --border: rgba(255,255,255,0.08);
+    --gold: #3b9eff;
+    --gold-dim: #4da3ff;
+    --gold-glow: rgba(59,158,255,0.12);
+    --surface: #1c1c1e;
+    --surface2: #2c2c2e;
+    --card-border: rgba(255,255,255,0.1);
+    background: #1c1c1e;
+    color: #f5f5f7;
+  }
+  body.dark .portada-list,
+  body.dark .portada-card,
+  body.dark .aj-panel,
+  body.dark .aj-group,
+  body.dark .aj-accordion,
+  body.dark .aj-sheet-box,
+  body.dark .reg-form-card,
+  body.dark .form-collapse-wrap,
+  body.dark .reg-history-wrap,
+  body.dark .cal-mes-wrap,
+  body.dark .cal-semana-wrap,
+  body.dark .cal-dia-wrap,
+  body.dark .cal-event-panel,
+  body.dark .tarea-panel,
+  body.dark .shop-panel,
+  body.dark .asig-card,
+  body.dark .rec-card,
+  body.dark .prog-card,
+  body.dark .info-card,
+  body.dark .wx-day-card,
+  body.dark .midia-bloque,
+  body.dark .modal-overlay > div,
+  body.dark .hero {
+    background: #2c2c2e !important;
+    border-color: rgba(255,255,255,0.1) !important;
+    color: #f5f5f7 !important;
+  }
+  body.dark .portada-row-title,
+  body.dark .portada-card-title,
+  body.dark .section-heading,
+  body.dark .hero h1,
+  body.dark .aj-topbar-title,
+  body.dark .aj-acc-title,
+  body.dark .aj-row-title,
+  body.dark .aj-avatar-name,
+  body.dark .reg-form-title,
+  body.dark .form-collapse-trigger-label,
+  body.dark .reg-history-title,
+  body.dark .cal-dia-title,
+  body.dark .portada-title { color: #f5f5f7 !important; }
+  body.dark .portada-row-sub,
+  body.dark .portada-card-desc,
+  body.dark .section-sub,
+  body.dark .hero-desc,
+  body.dark .aj-row-val,
+  body.dark .aj-avatar-email,
+  body.dark .reg-label,
+  body.dark .cal-day-name,
+  body.dark .cal-hour-label,
+  body.dark .stat-lbl { color: #8e8e93 !important; }
+  body.dark .portada-row:hover,
+  body.dark .aj-row:hover,
+  body.dark .aj-acc-header:hover { background: rgba(255,255,255,0.04) !important; }
+  body.dark .portada-row:active,
+  body.dark .aj-row:active { background: rgba(255,255,255,0.08) !important; }
+  body.dark .portada-row { border-bottom-color: rgba(255,255,255,0.07) !important; }
+  body.dark .reg-input,
+  body.dark .reg-select,
+  body.dark .reg-textarea,
+  body.dark .aj-input,
+  body.dark .cal-event-input,
+  body.dark .cal-event-time,
+  body.dark .cal-event-pri,
+  body.dark .ob-input {
+    background: #3a3a3c !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    color: #f5f5f7 !important;
+  }
+  body.dark .reg-filter-btn { background: #3a3a3c !important; color: #8e8e93 !important; border-color: rgba(255,255,255,0.1) !important; }
+  body.dark .reg-filter-btn.active { background: #f5f5f7 !important; color: #1c1c1e !important; }
+  body.dark .reg-table thead th { background: #3a3a3c !important; color: #8e8e93 !important; }
+  body.dark .reg-table tbody tr { border-bottom-color: rgba(255,255,255,0.07) !important; }
+  body.dark .reg-table tbody td { color: #f5f5f7 !important; }
+  body.dark .cal-cell { border-color: rgba(255,255,255,0.07) !important; }
+  body.dark .cal-cell.empty { background: #1c1c1e !important; }
+  body.dark .cal-cell.today { background: rgba(59,158,255,0.1) !important; }
+  body.dark .cal-cell:hover { background: rgba(255,255,255,0.05) !important; }
+  body.dark .cal-num { color: #f5f5f7 !important; }
+  body.dark .back-bar { background: rgba(28,28,30,0.96) !important; border-top-color: rgba(255,255,255,0.08) !important; }
+  body.dark .back-btn { border-color: rgba(255,255,255,0.14) !important; color: #f5f5f7 !important; }
+  body.dark .back-btn:hover { background: rgba(255,255,255,0.06) !important; }
+  body.dark .aj-topbar { background: rgba(28,28,30,0.92) !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
+  body.dark .aj-close-btn { background: rgba(255,255,255,0.1) !important; color: #f5f5f7 !important; }
+  body.dark .aj-close-btn:hover { background: rgba(255,255,255,0.18) !important; }
+  body.dark .aj-avatar-row { border-bottom-color: rgba(255,255,255,0.07) !important; }
+  body.dark .aj-row { border-bottom-color: rgba(255,255,255,0.06) !important; }
+  body.dark .aj-acc-header { border-bottom-color: rgba(255,255,255,0.06) !important; }
+  body.dark .accordion.open .aj-acc-header,
+  body.dark .aj-accordion.open .aj-acc-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
+  body.dark .aj-acc-body { border-top-color: rgba(255,255,255,0.07) !important; }
+  body.dark .aj-sheet { background: rgba(0,0,0,0.6) !important; }
+  body.dark .aj-sheet-handle { background: rgba(255,255,255,0.2) !important; }
+  body.dark .aj-sheet-title { color: #f5f5f7 !important; }
+  body.dark .ob-option { background: #3a3a3c !important; border-color: rgba(255,255,255,0.1) !important; color: #f5f5f7 !important; }
+  body.dark .ob-card { background: #2c2c2e !important; }
+  body.dark .ob-question { color: #f5f5f7 !important; }
+  body.dark .ob-question-sub { color: #8e8e93 !important; }
+  body.dark .ob-progress-bar-bg { background: rgba(255,255,255,0.1) !important; }
+  body.dark #portada { background: #1c1c1e !important; }
+  body.dark .portada-sub { color: rgba(245,245,247,0.5) !important; }
+  body.dark .stat { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; }
+  body.dark .stat-val { color: var(--gold) !important; }
+  body.dark .tarea-item { border-bottom-color: rgba(255,255,255,0.07) !important; }
+  body.dark .tarea-text { color: #f5f5f7 !important; }
+  body.dark .tarea-empty { color: #8e8e93 !important; }
+  body.dark .form-collapse-trigger { color: #f5f5f7 !important; }
+  body.dark .form-collapse-wrap.open { border-color: rgba(59,158,255,0.25) !important; }
+  body.dark .nav-bar { background: rgba(28,28,30,0.96) !important; border-top-color: rgba(255,255,255,0.08) !important; }
+  body.dark .nav-tab { color: #8e8e93 !important; }
+  body.dark .nav-tab.active { color: var(--gold) !important; }
+  body.dark .asig-nav-tab { color: #8e8e93 !important; }
+  body.dark .asig-nav-tab.active { color: var(--gold) !important; border-bottom-color: var(--gold) !important; }
+  body.dark .cal-picker-overlay { background: rgba(0,0,0,0.6) !important; }
+  body.dark .cal-picker-box { background: #2c2c2e !important; border-color: rgba(255,255,255,0.1) !important; }
+  body.dark .cal-picker-year-val { color: #f5f5f7 !important; }
+  body.dark .cal-picker-month-btn { background: #3a3a3c !important; border-color: rgba(255,255,255,0.1) !important; color: #f5f5f7 !important; }
+  body.dark .cal-picker-month-btn.active { background: #f5f5f7 !important; color: #1c1c1e !important; }
+  body.dark .cal-semana-header { background: #3a3a3c !important; }
+  body.dark .cal-hour-cell.today-col { background: rgba(59,158,255,0.06) !important; }
+  body.dark .cal-event-panel-header { background: #3a3a3c !important; }
+  body.dark .cal-event-item { background: rgba(255,255,255,0.05) !important; }
+  body.dark .cal-dias-header { background: #3a3a3c !important; }
+  body.dark .aj-danger-btn { background: rgba(255,69,58,0.15) !important; color: #ff453a !important; border-color: #ff453a !important; }
+  body.dark .aj-danger-btn:hover { background: #ff453a !important; color: white !important; }
+  /* Toggle switch */
+  .aj-toggle-wrap { flex-shrink: 0; }
+  .aj-toggle {
+    width: 48px; height: 28px;
+    border-radius: 14px;
+    background: #d1d1d6;
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .aj-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+  }
+  .aj-toggle.on {
+    background: #3b9eff;
+  }
+  body:not(.dark) .aj-toggle.on { background: #0071e3; }
+  .aj-toggle.on::after { transform: translateX(20px); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', sans-serif; background: var(--surface); color: var(--ink); line-height: 1.6; }
 
@@ -8215,6 +8386,17 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
             <div class="aj-row-info"><div class="aj-row-title">Secciones activas</div><div class="aj-row-val" id="aj-val-areas">—</div></div>
             <div class="aj-row-chev">›</div>
           </div>
+          <!-- Modo oscuro -->
+          <div class="aj-row" onclick="dmToggle()" style="cursor:pointer">
+            <div class="aj-row-icon" style="background:#2c2c2e" id="aj-dm-icon">🌙</div>
+            <div class="aj-row-info">
+              <div class="aj-row-title">Modo oscuro</div>
+              <div class="aj-row-val" id="aj-dm-val">Desactivado</div>
+            </div>
+            <div class="aj-toggle-wrap">
+              <div class="aj-toggle" id="aj-dm-toggle"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -9369,6 +9551,57 @@ if (_origAuthRegistrar) {
     await _origAuthRegistrar(nombre, email, pw);
   };
 }
+</script>
+
+<script>
+// ══════════════════════════════ MODO OSCURO ══════════════════════════════
+(function() {
+  // Aplicar antes de pintar para evitar flash
+  try {
+    if (localStorage.getItem('dm_enabled') === '1') {
+      document.body.classList.add('dark');
+    }
+  } catch(e) {}
+})();
+
+function dmApply(on) {
+  if (on) {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
+  // Actualizar meta theme-color
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = on ? '#1c1c1e' : '#f5f5f7';
+  // Actualizar UI del toggle en ajustes
+  const toggle = document.getElementById('aj-dm-toggle');
+  const val    = document.getElementById('aj-dm-val');
+  const icon   = document.getElementById('aj-dm-icon');
+  if (toggle) toggle.classList.toggle('on', on);
+  if (val)    val.textContent = on ? 'Activado' : 'Desactivado';
+  if (icon)   icon.textContent = on ? '☀️' : '🌙';
+}
+
+function dmToggle() {
+  const isOn = document.body.classList.contains('dark');
+  const next = !isOn;
+  try { localStorage.setItem('dm_enabled', next ? '1' : '0'); } catch(e) {}
+  dmApply(next);
+}
+
+// Inicializar UI cuando se abra ajustes (puede abrirse antes de que exista el toggle)
+const _origAjustesAbrir = window.ajustesAbrir;
+window.ajustesAbrir = function() {
+  if (typeof _origAjustesAbrir === 'function') _origAjustesAbrir();
+  dmApply(document.body.classList.contains('dark'));
+};
+
+// Aplicar estado inicial al cargar
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    dmApply(localStorage.getItem('dm_enabled') === '1');
+  } catch(e) {}
+});
 </script>
 </body>
 </html>
