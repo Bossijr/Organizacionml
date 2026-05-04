@@ -6991,8 +6991,8 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
         <input class="reg-input" id="edit-nota-fecha" type="date" />
       </div>
       <div class="reg-field">
-        <label class="reg-label">Nota (0–10)</label>
-        <input class="reg-input" id="edit-nota-nota" type="number" min="0" max="10" step="0.01" />
+        <label class="reg-label">Nota (0–10) <span style="font-weight:400;color:var(--muted)">(vacío = pendiente)</span></label>
+        <input class="reg-input" id="edit-nota-nota" type="number" min="0" max="10" step="0.01" placeholder="Dejar vacío si es pendiente" />
       </div>
     </div>
     <div style="display:flex;gap:0.75rem;margin-top:1.2rem;justify-content:flex-end">
@@ -7085,6 +7085,7 @@ function asigDelAsignatura(id) {
 
 // ── Añadir nota ──
 function asigAddNota() {
+function asigAddNota() {
   const asigId = document.getElementById('asig-nota-asig').value;
   const tipo   = document.getElementById('asig-nota-tipo').value;
   const desc   = document.getElementById('asig-nota-desc').value.trim();
@@ -7097,33 +7098,37 @@ function asigAddNota() {
 
   const asig = asigDB.find(a => a.id === asigId);
 
-  // Categoría del árbol (si la asig la tiene y el campo es visible)
   const catField = document.getElementById('asig-nota-cat-field');
   const catSel   = document.getElementById('asig-nota-cat');
   const catFieldVisible = catField && catField.style.display !== 'none';
   const catId = catFieldVisible && catSel ? catSel.value : '';
 
-  // Si la asig tiene árbol de pcts, requerir que se seleccione categoría hoja
   if (asig && asig.pcts && asig.pcts.length > 0 && !catId) {
-    mostrarToast('Selecciona la categoría de evaluación');
-    return;
+    mostrarToast('Selecciona la categoría de evaluación'); return;
   }
 
-  // Encontrar nombre de categoría para label
   let catNombre = tipo;
   if (catId && asig && asig.pcts) {
     const found = asigPctBuscarNodo(asig.pcts, catId);
     if (found) catNombre = found.nombre || tipo;
   }
 
-  notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
-  asigSyncAll();
-  asigRender();
-  mostrarToast('Nota registrada: ' + nota.toFixed(2));
-
+  // Limpiar campos ANTES del re-render
   document.getElementById('asig-nota-nota').value = '';
   document.getElementById('asig-nota-desc').value = '';
+
+  notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
+
+  // Solo re-render las partes necesarias
+  asigSyncAll();
+  asigRenderStats();
+  asigRenderNotas();
+  asigRenderResumen();
+  if (document.getElementById('asig-tab-calculadora')?.classList.contains('active')) calcRender();
+
+  mostrarToast('✓ Nota registrada: ' + nota.toFixed(2));
   closeFormCollapse('registrar-nota');
+}
 }
 
 function asigAddExamen() {
@@ -7221,16 +7226,20 @@ function asigPctBuscarNodo(nodos, id) {
 function asigDelNota(id) {
   notasDB = notasDB.filter(n => n.id !== id);
   asigSyncAll();
-  asigRender();
+  asigRenderStats();
+  asigRenderNotas();
+  asigRenderResumen();
+  if (document.getElementById('asig-tab-calculadora')?.classList.contains('active')) calcRender();
   mostrarToast('Nota eliminada');
 }
 
-// ── Borrar todas notas ──
 function asigBorrarTodasNotas() {
   if (!confirm('¿Borrar todo el historial de notas?')) return;
   notasDB = [];
   asigSyncAll();
-  asigRender();
+  asigRenderStats();
+  asigRenderNotas();
+  asigRenderResumen();
   mostrarToast('Historial borrado');
 }
 
@@ -7244,17 +7253,15 @@ function asigSetFiltroNota(val, btn) {
 
 // ── Media ponderada de una asignatura (árbol de categorías) ──
 function asigMedia(asigId) {
-  const notas = notasDB.filter(n => n.asigId === asigId);
+  const notas = notasDB.filter(n => n.asigId === asigId && n.nota !== null && n.nota !== undefined);
   if (!notas.length) return null;
 
   const asig = asigDB.find(a => a.id === asigId);
 
   if (asig && asig.pcts && asig.pcts.length > 0) {
-    // Calcular la media usando el árbol de porcentajes
     return asigMediaNivel(asig.pcts, notas, asig.minimo || 5);
   }
 
-  // Sin porcentajes: media aritmética simple
   return notas.reduce((s, n) => s + n.nota, 0) / notas.length;
 }
 
@@ -7496,11 +7503,10 @@ function asigRenderNotas() {
   const tabla = document.getElementById('asig-notas-tabla');
   const tbody = document.getElementById('asig-notas-tbody');
 
-  const filtradas = asigFiltroNota === 'todos'
+  const filtradas = (asigFiltroNota === 'todos'
     ? [...notasDB]
-    : notasDB.filter(n => n.asigId === asigFiltroNota);
-
-  filtradas.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+    : notasDB.filter(n => n.asigId === asigFiltroNota))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
   if (!filtradas.length) {
     empty.style.display = 'block';
@@ -7510,33 +7516,46 @@ function asigRenderNotas() {
   empty.style.display = 'none';
   tabla.style.display = 'table';
 
+  const PENCIL = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+
   tbody.innerHTML = filtradas.map(n => {
-    const asig = asigDB.find(a => a.id === n.asigId);
+    const asig   = asigDB.find(a => a.id === n.asigId);
     const nombre = asig ? asig.nombre : '—';
-    const color  = asig ? ASIG_COLORS[asig.color] || '#0e6ba8' : '#0e6ba8';
+    const color  = asig ? (ASIG_COLORS[asig.color] || '#0e6ba8') : '#0e6ba8';
     const minimo = asig ? (asig.minimo || 5) : 5;
-    const estado = n.nota >= minimo ? 'var(--grass)' : 'var(--coral)';
-    // Obtener % de la categoría del árbol y nota mínima de subcategoría
+    const esPendiente = n.nota === null || n.nota === undefined;
+
     let pctLabel = '';
     if (n.catId && asig && asig.pcts && asig.pcts.length > 0) {
       const nodo = asigPctBuscarNodo(asig.pcts, n.catId);
       if (nodo) {
         pctLabel = `<span style="font-size:0.7rem;font-weight:700;padding:1px 7px;border-radius:10px;background:#e0f2fe;color:#0369a1">${nodo.pct}%</span>`;
-        if (nodo.min != null) {
+        if (!esPendiente && nodo.min != null) {
           const minOk = n.nota >= nodo.min;
-          pctLabel += `<span style="font-size:0.68rem;font-weight:700;padding:1px 6px;border-radius:10px;background:${minOk ? '#dcfce7' : '#fee2e2'};color:${minOk ? '#15803d' : '#dc2626'}" title="Mínimo: ${nodo.min}">mín ${nodo.min} ${minOk ? '✓' : '✗'}</span>`;
+          pctLabel += `<span style="font-size:0.68rem;font-weight:700;padding:1px 6px;border-radius:10px;background:${minOk?'#dcfce7':'#fee2e2'};color:${minOk?'#15803d':'#dc2626'}" title="Mínimo: ${nodo.min}">mín ${nodo.min} ${minOk?'✓':'✗'}</span>`;
         }
       }
     }
+
+    let notaCell;
+    if (esPendiente) {
+      notaCell = `<span style="font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:20px;background:#fef3c7;color:#d97706">PENDIENTE</span>`;
+    } else {
+      const estado = n.nota >= minimo ? 'var(--grass)' : 'var(--coral)';
+      notaCell = `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.03em;color:${estado}">${Number(n.nota).toFixed(2)}</span>`;
+    }
+
     return `<tr>
       <td style="color:var(--muted);font-size:0.8rem">${n.fecha || '—'}</td>
-      <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>${nombre}</span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>${nombre}
+      </span></td>
       <td><span class="asig-nota-badge ${n.tipo}">${n.catNombre || n.tipo}</span> ${pctLabel}</td>
       <td style="font-size:0.83rem;color:var(--ink)">${n.desc || '—'}</td>
-      <td style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.03em;color:${estado}">${n.nota.toFixed(2)}</td>
+      <td>${notaCell}</td>
       <td style="text-align:right;white-space:nowrap">
-        <button class="reg-btn-danger" style="margin-right:4px;background:transparent;color:var(--ocean);border-color:var(--ocean)" onclick="asigAbrirEditNota('${n.id}')"></button>
-        <button class="reg-btn-danger" onclick="asigDelNota('${n.id}')">✕</button>
+        <button class="reg-btn-danger" style="margin-right:4px;background:transparent;color:var(--ocean);border-color:var(--ocean)" onclick="asigAbrirEditNota('${n.id}')" title="Editar">${PENCIL}</button>
+        <button class="reg-btn-danger" onclick="asigDelNota('${n.id}')" title="Eliminar">✕</button>
       </td>
     </tr>`;
   }).join('');
@@ -8615,17 +8634,34 @@ function asigGuardarEditNota() {
   const tipo   = document.getElementById('edit-nota-tipo').value;
   const desc   = document.getElementById('edit-nota-desc').value.trim();
   const fecha  = document.getElementById('edit-nota-fecha').value;
-  const nota   = parseFloat(document.getElementById('edit-nota-nota').value);
+  const notaRaw = document.getElementById('edit-nota-nota').value;
+  const nota   = notaRaw === '' ? null : parseFloat(notaRaw);
+
   if (!asigId) { mostrarToast('Selecciona una asignatura'); return; }
-  if (isNaN(nota) || nota < 0 || nota > 10) { mostrarToast('La nota debe ser entre 0 y 10'); return; }
-  const asig = asigDB.find(a => a.id === asigId);
-  const catNombre = tipo;
+  if (nota !== null && (isNaN(nota) || nota < 0 || nota > 10)) {
+    mostrarToast('La nota debe ser entre 0 y 10'); return;
+  }
+
   const idx = notasDB.findIndex(x => x.id === _editNotaId);
   if (idx === -1) return;
-  notasDB[idx] = { ...notasDB[idx], asigId, tipo, catNombre, desc, fecha, nota };
+
+  // Preservar catId y catNombre si no cambia la asignatura
+  const prev = notasDB[idx];
+  const asig = asigDB.find(a => a.id === asigId);
+  let catId = prev.catId;
+  let catNombre = tipo;
+  if (asigId !== prev.asigId) { catId = null; } // asignatura cambió, resetear categoría
+  else if (catId && asig && asig.pcts) {
+    const found = asigPctBuscarNodo(asig.pcts, catId);
+    if (found) catNombre = found.nombre || tipo;
+  }
+
+  notasDB[idx] = { ...prev, asigId, tipo, catId, catNombre, desc, fecha, nota };
   asigSyncAll();
-  asigRender();
-  mostrarToast('Nota actualizada');
+  asigRenderStats();
+  asigRenderNotas();
+  asigRenderResumen();
+  mostrarToast('✓ Nota actualizada');
   asigCerrarEditNota();
 }
 
