@@ -2043,11 +2043,30 @@
       <input id="auth-email" type="email" placeholder="correo@ejemplo.com" autocomplete="email" style="width:100%;font-family:'Inter',sans-serif;font-size:0.92rem;padding:0.65rem 0.9rem;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;background:#f5f5f7;color:#1d1d1f;outline:none">
     </div>
     <div style="margin-bottom:0.9rem">
-      <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#86868b;margin-bottom:4px">Contraseña</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#86868b">Contraseña</div>
+        <div id="auth-forgot-link" onclick="authMostrarRecuperar()" style="font-size:0.7rem;color:#0071e3;cursor:pointer;font-weight:500;display:block">¿La olvidaste?</div>
+      </div>
       <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;font-family:'Inter',sans-serif;font-size:0.92rem;padding:0.65rem 0.9rem;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;background:#f5f5f7;color:#1d1d1f;outline:none">
     </div>
     <button id="auth-submit-btn" onclick="authSubmit()" style="width:100%;padding:0.75rem;background:#0071e3;color:white;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.92rem;font-weight:600;letter-spacing:0.02em;cursor:pointer">Entrar</button>
     <div id="auth-error" style="display:none;background:rgba(192,57,43,0.2);border:1px solid rgba(192,57,43,0.5);color:#fca5a5;border-radius:8px;padding:0.55rem 0.8rem;font-size:0.8rem;margin-top:0.75rem;text-align:center"></div>
+
+    <!-- Modal recuperar contraseña -->
+    <div id="auth-recuperar-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;padding:1.5rem">
+      <div style="background:#ffffff;border-radius:16px;padding:2rem 1.8rem;width:100%;max-width:340px;box-shadow:0 12px 48px rgba(0,0,0,0.15)">
+        <div style="font-size:1.05rem;font-weight:600;color:#1d1d1f;margin-bottom:0.3rem">Recuperar contraseña</div>
+        <div style="font-size:0.8rem;color:#86868b;margin-bottom:1.3rem;font-weight:300">Te enviaremos un enlace para restablecer tu contraseña.</div>
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#86868b;margin-bottom:4px">Correo</div>
+        <input id="auth-recuperar-email" type="email" placeholder="correo@ejemplo.com" autocomplete="email"
+          style="width:100%;font-family:'Inter',sans-serif;font-size:0.92rem;padding:0.65rem 0.9rem;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;background:#f5f5f7;color:#1d1d1f;outline:none;margin-bottom:1rem">
+        <div id="auth-recuperar-msg" style="display:none;font-size:0.78rem;border-radius:8px;padding:0.5rem 0.75rem;margin-bottom:0.85rem;text-align:center"></div>
+        <div style="display:flex;gap:0.6rem">
+          <button onclick="authCerrarRecuperar()" style="flex:1;padding:0.65rem;background:rgba(0,0,0,0.06);color:#1d1d1f;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:500;cursor:pointer">Cancelar</button>
+          <button id="auth-recuperar-btn" onclick="authEnviarRecuperar()" style="flex:1;padding:0.65rem;background:#0071e3;color:white;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer">Enviar</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -7192,7 +7211,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
   const firebaseConfig = {
@@ -7247,6 +7266,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     await signOut(auth);
     if (typeof goPortada === 'function') goPortada();
   };
+  window._sendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
 
   function authSetLoading(on) {
     const btn = document.getElementById('auth-submit-btn');
@@ -7347,6 +7367,8 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     document.getElementById('auth-field-nombre').style.display = isLogin ? 'none' : '';
     document.getElementById('auth-submit-btn').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
     document.getElementById('auth-error').style.display = 'none';
+    const forgotLink = document.getElementById('auth-forgot-link');
+    if (forgotLink) forgotLink.style.display = isLogin ? 'block' : 'none';
   }
   function authSubmit() {
     const email = document.getElementById('auth-email').value.trim();
@@ -7364,6 +7386,59 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   }
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && document.getElementById('auth-screen').style.display !== 'none') authSubmit();
+  });
+
+  function authMostrarRecuperar() {
+    const modal = document.getElementById('auth-recuperar-modal');
+    const emailInput = document.getElementById('auth-recuperar-email');
+    // Pre-rellena con el correo del login si ya lo escribió
+    const loginEmail = document.getElementById('auth-email').value.trim();
+    if (loginEmail) emailInput.value = loginEmail;
+    document.getElementById('auth-recuperar-msg').style.display = 'none';
+    modal.style.display = 'flex';
+    setTimeout(() => emailInput.focus(), 50);
+  }
+  function authCerrarRecuperar() {
+    document.getElementById('auth-recuperar-modal').style.display = 'none';
+  }
+  async function authEnviarRecuperar() {
+    const email = document.getElementById('auth-recuperar-email').value.trim();
+    const msg = document.getElementById('auth-recuperar-msg');
+    const btn = document.getElementById('auth-recuperar-btn');
+    if (!email) {
+      msg.textContent = 'Introduce tu correo electrónico.';
+      msg.style.background = 'rgba(192,57,43,0.12)';
+      msg.style.color = '#c0392b';
+      msg.style.display = 'block';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    try {
+      await window._sendPasswordReset(email);
+      msg.textContent = '✓ Correo enviado. Revisa tu bandeja de entrada.';
+      msg.style.background = 'rgba(52,199,89,0.12)';
+      msg.style.color = '#1a7a34';
+      msg.style.display = 'block';
+      btn.textContent = 'Enviado';
+      setTimeout(() => authCerrarRecuperar(), 2800);
+    } catch(e) {
+      const errMap = {
+        'auth/user-not-found': 'No existe cuenta con ese correo.',
+        'auth/invalid-email': 'El correo no es válido.',
+        'auth/too-many-requests': 'Demasiados intentos. Espera un momento.',
+      };
+      msg.textContent = errMap[e.code] || 'Error al enviar. Inténtalo de nuevo.';
+      msg.style.background = 'rgba(192,57,43,0.12)';
+      msg.style.color = '#c0392b';
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
+    }
+  }
+  // Cerrar modal al pulsar fuera
+  document.getElementById('auth-recuperar-modal').addEventListener('click', function(e) {
+    if (e.target === this) authCerrarRecuperar();
   });
 </script>
 
