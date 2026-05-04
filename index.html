@@ -7115,7 +7115,18 @@ function asigAddNota() {
   document.getElementById('asig-nota-nota').value = '';
   document.getElementById('asig-nota-desc').value = '';
 
-  notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
+  // Si existe un examen pendiente de la misma asignatura y categoría, actualizarlo en vez de crear uno nuevo
+  const pendienteIdx = notasDB.findIndex(n =>
+    n.asigId === asigId &&
+    (catId ? n.catId === catId : n.catId === null) &&
+    (n.nota === null || n.nota === undefined)
+  );
+
+  if (pendienteIdx !== -1) {
+    notasDB[pendienteIdx] = { ...notasDB[pendienteIdx], nota, tipo, desc: desc || notasDB[pendienteIdx].desc };
+  } else {
+    notasDB.push({ id: asigUID(), asigId, tipo, catId: catId || null, catNombre, desc, fecha, nota, peso });
+  }
 
   asigSyncAll();
   asigRenderStats();
