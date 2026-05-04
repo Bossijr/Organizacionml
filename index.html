@@ -8112,6 +8112,49 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       </div>
     </div>
 
+    <!-- PERMISOS (colapsable) -->
+    <div class="aj-accordion" id="aj-acc-permisos">
+      <div class="aj-acc-header" onclick="ajAccToggle('permisos')">
+        <div class="aj-acc-header-left">
+          <div class="aj-acc-icon" style="background:#fff4e0">🔒</div>
+          <span class="aj-acc-title">Permisos</span>
+        </div>
+        <svg class="aj-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="aj-acc-body" id="aj-acc-body-permisos">
+        <div class="aj-group">
+
+          <!-- Notificaciones -->
+          <div class="aj-row aj-perm-row" id="aj-perm-row-notif" onclick="ajPermSolicitar('notificaciones')">
+            <div class="aj-row-icon" style="background:#fff4e0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ff9500" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div class="aj-row-info">
+              <div class="aj-row-title">Notificaciones</div>
+              <div class="aj-row-val" id="aj-perm-val-notif">Comprobando…</div>
+            </div>
+            <div class="aj-perm-badge" id="aj-perm-badge-notif"></div>
+          </div>
+
+          <!-- Ubicación -->
+          <div class="aj-row aj-perm-row" id="aj-perm-row-ubicacion" onclick="ajPermSolicitar('ubicacion')">
+            <div class="aj-row-icon" style="background:#e8f7ee">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="aj-row-info">
+              <div class="aj-row-title">Ubicación</div>
+              <div class="aj-row-val" id="aj-perm-val-ubicacion">Comprobando…</div>
+            </div>
+            <div class="aj-perm-badge" id="aj-perm-badge-ubicacion"></div>
+          </div>
+
+        </div>
+        <div style="font-size:0.72rem;color:#86868b;padding:0.5rem 0.2rem 0.1rem;line-height:1.5;font-weight:300">
+          Toca una fila para solicitar el permiso. Si aparece como bloqueado, actívalo desde los ajustes del sistema de tu dispositivo.
+        </div>
+      </div>
+    </div>
+
     <!-- PERFIL FÍSICO (colapsable, incluye entrenamiento y hábitos) -->
     <div class="aj-accordion" id="aj-acc-perfil">
       <div class="aj-acc-header" onclick="ajAccToggle('perfil')">
@@ -8270,7 +8313,116 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 .aj-acc-body .aj-group {
   margin: 0;
 }
+/* ── Permission badge ── */
+.aj-perm-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 3px 9px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.aj-perm-badge.granted  { background:#dcfce7; color:#15803d; }
+.aj-perm-badge.denied   { background:#fee2e2; color:#b91c1c; }
+.aj-perm-badge.prompt   { background:#dbeafe; color:#1d4ed8; }
+.aj-perm-badge.unknown  { background:#f3f4f6; color:#6b7280; }
 </style>
+
+<script>
+// ══════════════════════════════ PERMISOS ══════════════════════════════
+
+const _PERM_LABELS = {
+  granted: 'Activado',
+  denied:  'Bloqueado',
+  prompt:  'No solicitado',
+  unknown: 'Desconocido',
+};
+
+async function ajPermComprobar() {
+  // Notificaciones
+  let notifState = 'unknown';
+  if ('Notification' in window) {
+    const p = Notification.permission;
+    notifState = p === 'granted' ? 'granted' : p === 'denied' ? 'denied' : 'prompt';
+  }
+  _ajPermSetUI('notif', notifState);
+
+  // Ubicación (Permissions API si disponible)
+  let ubicState = 'unknown';
+  if (navigator.permissions) {
+    try {
+      const r = await navigator.permissions.query({ name: 'geolocation' });
+      ubicState = r.state === 'granted' ? 'granted' : r.state === 'denied' ? 'denied' : 'prompt';
+      r.onchange = () => {
+        const s = r.state === 'granted' ? 'granted' : r.state === 'denied' ? 'denied' : 'prompt';
+        _ajPermSetUI('ubicacion', s);
+      };
+    } catch(e) { ubicState = 'unknown'; }
+  } else if ('geolocation' in navigator) {
+    ubicState = 'prompt'; // existe pero no podemos saber el estado sin pedir
+  }
+  _ajPermSetUI('ubicacion', ubicState);
+}
+
+function _ajPermSetUI(key, state) {
+  const val   = document.getElementById('aj-perm-val-' + key);
+  const badge = document.getElementById('aj-perm-badge-' + key);
+  if (!val || !badge) return;
+  const descriptions = {
+    notif:    { granted:'Las notificaciones están activas', denied:'Notificaciones bloqueadas en el navegador', prompt:'Aún no has concedido el permiso', unknown:'Estado desconocido' },
+    ubicacion:{ granted:'La ubicación está activa', denied:'Ubicación bloqueada en el navegador', prompt:'Aún no has concedido el permiso', unknown:'Estado desconocido' },
+  };
+  val.textContent   = (descriptions[key] && descriptions[key][state]) || _PERM_LABELS[state] || '—';
+  badge.textContent = _PERM_LABELS[state] || state;
+  badge.className   = 'aj-perm-badge ' + (state || 'unknown');
+}
+
+async function ajPermSolicitar(tipo) {
+  if (tipo === 'notificaciones') {
+    if (!('Notification' in window)) { mostrarToast('Este navegador no soporta notificaciones'); return; }
+    if (Notification.permission === 'denied') {
+      mostrarToast('Notificaciones bloqueadas — actívalas en los ajustes del navegador/SO');
+      return;
+    }
+    if (Notification.permission === 'granted') { mostrarToast('Las notificaciones ya están activadas ✓'); return; }
+    const result = await Notification.requestPermission();
+    const state  = result === 'granted' ? 'granted' : result === 'denied' ? 'denied' : 'prompt';
+    _ajPermSetUI('notif', state);
+    if (state === 'granted') mostrarToast('Notificaciones activadas ✓');
+    else if (state === 'denied') mostrarToast('Permiso denegado — actívalo en ajustes del navegador');
+
+  } else if (tipo === 'ubicacion') {
+    if (!('geolocation' in navigator)) { mostrarToast('Este dispositivo no soporta geolocalización'); return; }
+    // Comprobar estado antes de pedir
+    if (navigator.permissions) {
+      try {
+        const r = await navigator.permissions.query({ name: 'geolocation' });
+        if (r.state === 'denied') {
+          mostrarToast('Ubicación bloqueada — actívala en los ajustes del navegador/SO');
+          return;
+        }
+        if (r.state === 'granted') { mostrarToast('La ubicación ya está activada ✓'); return; }
+      } catch(e) {}
+    }
+    navigator.geolocation.getCurrentPosition(
+      () => { _ajPermSetUI('ubicacion', 'granted'); mostrarToast('Ubicación activada ✓'); },
+      (err) => {
+        const state = err.code === 1 ? 'denied' : 'prompt';
+        _ajPermSetUI('ubicacion', state);
+        if (err.code === 1) mostrarToast('Permiso de ubicación denegado — actívalo en ajustes del navegador');
+      },
+      { timeout: 8000 }
+    );
+  }
+}
+
+// Comprobar permisos al abrir el acordeón de permisos
+const _origAjAccToggle = window.ajAccToggle;
+window.ajAccToggle = function(id) {
+  if (typeof _origAjAccToggle === 'function') _origAjAccToggle(id);
+  if (id === 'permisos') ajPermComprobar();
+};
+</script>
 
 <!-- SHEETS (bottom drawers) -->
 <div id="aj-sheet-nombre" class="aj-sheet" onclick="if(event.target===this)ajSheetCerrar('nombre')">
