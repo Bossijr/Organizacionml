@@ -10893,7 +10893,7 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
     });
 
     const data = await response.json();
-    const texto = data.choices?.[0]?.message?.content || 'No se pudo generar el plan.';
+    const texto = data.content?.[0]?.text || data.choices?.[0]?.message?.content || data.debug?.error?.message || 'No se pudo generar el plan.';
 
     result.innerHTML = renderMarkdown(texto);
     result.classList.add('visible');
