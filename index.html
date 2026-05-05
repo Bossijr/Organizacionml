@@ -10600,6 +10600,7 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
       });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const data = await response.json();
+      console.log('[DEBUG Worker response]', JSON.stringify(data));
       const texto = data.content?.[0]?.text || data.choices?.[0]?.message?.content;
       if (!texto) throw new Error('Sin respuesta');
       try { localStorage.setItem('plan_ia_' + tipo, texto); } catch(e) {}
