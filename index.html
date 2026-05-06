@@ -8805,9 +8805,23 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
-  // Firebase usa browserLocalPersistence por defecto: la sesion persiste al cerrar el navegador.
-  // No llamar a setPersistence: causaba un disparo extra de onAuthStateChanged con user=null.
   let _currentUid = null;
+
+  // DEBUG: log visible en pantalla
+  function _dbg(msg) {
+    let el = document.getElementById('_debug_log');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '_debug_log';
+      el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:999999;background:rgba(0,0,0,0.85);color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;max-height:180px;overflow-y:auto';
+      document.body.appendChild(el);
+    }
+    const line = document.createElement('div');
+    line.textContent = new Date().toISOString().slice(11,23) + ' ' + msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+    console.log('[DBG]', msg);
+  }
 
   // ── Helpers Firestore (por usuario) ──
   window._fbSet = async (col, id, data) => {
@@ -8831,24 +8845,26 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 
   // ── Auth functions ──
   window._authLogin = async (email, pw) => {
+    _dbg('_authLogin START');
     authSetError(''); authSetLoading(true);
-    _tabSet(); // antes del await para que onAuthStateChanged lo vea
     try {
+      _dbg('calling signInWithEmailAndPassword...');
       await signInWithEmailAndPassword(auth, email, pw);
+      _dbg('signIn resolved OK');
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     }
-    catch(e) { _tabDel(); authSetLoading(false); authSetError(traducirError(e.code)); }
+    catch(e) { _dbg('signIn ERROR: ' + e.code); authSetLoading(false); authSetError(traducirError(e.code)); }
   };
   window._authRegistrar = async (nombre, email, pw) => {
     authSetError(''); authSetLoading(true);
-    _tabSet();
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
-      _tabDel(); authSetLoading(false);
+      authSetLoading(false);
       if (e.code === 'auth/email-already-in-use') {
+        // Cambiar al tab de login automáticamente
         authSwitchTab('login');
         authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
       } else {
@@ -8857,7 +8873,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }
   };
   window._authLogout = async () => {
-    _tabDel();
     await signOut(auth);
     if (typeof goPortada === 'function') goPortada();
   };
@@ -8888,44 +8903,12 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   }
 
   // ── Estado de autenticación ──
-  // Aislamiento de pestanas: sessionStorage es exclusivo por pestana.
-  // '_t1' se setea al hacer login y persiste en recargas, pero NO en pestanas nuevas.
-  const _tabOk  = () => { try { return !!sessionStorage.getItem('_t1'); } catch(e) { return true; } };
-  const _tabSet = () => { try { sessionStorage.setItem('_t1','1'); } catch(e) {} };
-  const _tabDel = () => { try { sessionStorage.removeItem('_t1'); } catch(e) {} };
-
-  // Exponer authSetLoading en window para que authSwitchTab (script normal) pueda resetear el boton
-  window._authSetLoading = function(on) {
-    const btn = document.getElementById('auth-submit-btn');
-    if (!btn) return;
-    btn.disabled = on;
-    btn.textContent = on ? 'Cargando...' : (document.getElementById('auth-tab-login').classList.contains('auth-tab-active') ? 'Entrar' : 'Crear cuenta');
-  };
-
+  _dbg('registering onAuthStateChanged');
   onAuthStateChanged(auth, user => {
+    _dbg('onAuthStateChanged fired, user=' + (user ? user.uid.slice(0,8) : 'null'));
     document.getElementById('loading-screen').style.display = 'none';
-    window._authSetLoading(false); // siempre desbloquear boton
     if (user) {
-      // Pestana nueva sin login propio -> mostrar pantalla de login
-      if (!_tabOk()) {
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('app-root').style.display   = 'none';
-        _currentUid = null; window._fbReady = false;
-        // Prellenar email de la ultima sesion
-        try {
-          const lastEmail = localStorage.getItem('_last_email');
-          if (lastEmail) {
-            const ei = document.getElementById('auth-email');
-            if (ei && !ei.value) {
-              ei.value = lastEmail;
-              const hint = document.getElementById('auth-last-session-hint');
-              if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
-            }
-          }
-        } catch(e) {}
-        return;
-      }
-      // Sesion valida en esta pestana
+      // Si cambió de cuenta, limpiar localStorage para no mezclar datos
       const prevUid = localStorage.getItem('_app_uid');
       if (prevUid && prevUid !== user.uid) {
         const keysToClean = [
@@ -8936,6 +8919,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
         keysToClean.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
       }
       localStorage.setItem('_app_uid', user.uid);
+
       _currentUid = user.uid;
       const n = document.getElementById('portada-user-name');
       if (n) n.textContent = user.displayName || user.email.split('@')[0];
