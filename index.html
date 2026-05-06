@@ -4337,10 +4337,12 @@ const DIAS_LARGO = ['lunes','martes','miércoles','jueves','viernes','sábado','
 
 function loadCal() {
   try { const raw = localStorage.getItem(CAL_KEY); if (raw) calEventsDB = JSON.parse(raw); } catch(e) {}
+  purgeOldCalEvents();
   const startCalListener = () => {
     window._fbListen('calendario', docs => {
       if (docs['data']) {
         calEventsDB = docs['data'];
+        purgeOldCalEvents();
         localStorage.setItem(CAL_KEY, JSON.stringify(calEventsDB));
         renderCal(); renderCalPanel();
       }
@@ -4354,6 +4356,29 @@ function saveCal() {
   if (window._fbReady) window._fbSet('calendario', 'data', calEventsDB);
   else window.addEventListener('firebase-ready', () => window._fbSet('calendario', 'data', calEventsDB), { once: true });
   if (typeof pwLoadCalendar === 'function') pwLoadCalendar();
+}
+
+// ── LIMPIEZA AUTOMÁTICA: elimina eventos superados por más de 1 día (sin repetición) ──
+function purgeOldCalEvents() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const limit = new Date(today);
+  limit.setDate(limit.getDate() - 1); // hace más de 1 día completo
+
+  let changed = false;
+  Object.keys(calEventsDB).forEach(key => {
+    const [y, m, d] = key.split('-').map(Number);
+    const evDate = new Date(y, m - 1, d);
+    if (evDate < limit) {
+      const before = calEventsDB[key].length;
+      calEventsDB[key] = calEventsDB[key].filter(ev => ev.repeat && ev.repeat !== 'none');
+      if (!calEventsDB[key].length) {
+        delete calEventsDB[key];
+      }
+      if ((calEventsDB[key]?.length ?? 0) !== before) changed = true;
+    }
+  });
+  if (changed) saveCal();
 }
 
 function getEventsFor(key) { return calEventsDB[key] || []; }
