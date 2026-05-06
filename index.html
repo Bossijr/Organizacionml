@@ -1741,8 +1741,13 @@
   #pwa-install-btn:hover { background: rgba(168,213,240,0.25); }
 
   /* ── EDIT BUTTONS ── */
-  .reg-btn-edit { background: #e0f2fe; color: #0369a1; border: none; border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; }
-  .reg-btn-edit:hover { background: #bae6fd; }
+  .reg-btn-edit {
+    background: none; border: none; cursor: pointer;
+    padding: 3px 5px; opacity: 0.35; border-radius: 5px;
+    transition: opacity 0.15s, background 0.15s; line-height: 1; color: var(--muted);
+  }
+  tr:hover .reg-btn-edit { opacity: 0.7; }
+  .reg-btn-edit:hover { background: rgba(0,0,0,0.06); color: var(--gold); opacity: 1; }
   .tarea-edit-btn {
     background: none; border: none; cursor: pointer;
     padding: 3px 5px; opacity: 0.35; border-radius: 5px;
@@ -4063,7 +4068,7 @@ function renderTabla() {
       <td style="color:var(--muted)">${r.rpe != null ? r.rpe : '—'}</td>
       <td><span style="font-size:0.72rem;color:var(--muted)">${r.dia.split('—')[0].trim()}</span></td>
       <td style="color:var(--muted);font-size:0.8rem">${r.semana || '—'}</td>
-      <td style="display:flex;gap:4px"><button class="reg-btn-edit" onclick="abrirEditRegistro(${r.id})"></button><button class="reg-btn-danger" onclick="eliminarRegistro(${r.id})">✕</button></td>
+      <td style="display:flex;gap:4px"><button class="reg-btn-edit" onclick="abrirEditRegistro(${r.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="reg-btn-danger" onclick="eliminarRegistro(${r.id})">✕</button></td>
     </tr>`;
   }).join('');
 }
