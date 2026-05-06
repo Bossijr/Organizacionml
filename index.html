@@ -8806,16 +8806,11 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
-  // Persistencia LOCAL: la sesion sobrevive al cerrar el navegador
-  setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Auth] persistence error', e));
-
-  // ── Aislamiento por pestana ──
-  // sessionStorage NO se comparte entre pestanas (a diferencia de localStorage).
-  // Usamos un UID de pestana para saber si ESTA pestana inicio sesion o no.
-  const _SESS_UID_KEY = '_tab_auth_uid';
-  function _tabGetUid()     { try { return sessionStorage.getItem(_SESS_UID_KEY); } catch(e) { return null; } }
-  function _tabSetUid(uid)  { try { sessionStorage.setItem(_SESS_UID_KEY, uid);  } catch(e) {} }
-  function _tabClearUid()   { try { sessionStorage.removeItem(_SESS_UID_KEY);    } catch(e) {} }
+  // ── Helpers sessionStorage para aislamiento por pestana ──
+  const _SESS_KEY = '_tab_auth_uid';
+  const _tabGetUid   = () => { try { return sessionStorage.getItem(_SESS_KEY); } catch(e) { return null; } };
+  const _tabSetUid   = uid => { try { sessionStorage.setItem(_SESS_KEY, uid); } catch(e) {} };
+  const _tabClearUid = () => { try { sessionStorage.removeItem(_SESS_KEY); } catch(e) {} };
 
   let _currentUid = null;
 
@@ -8899,79 +8894,77 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   }
 
   // ── Estado de autenticacion ──
-  onAuthStateChanged(auth, user => {
-    // Siempre ocultar el loading-screen primero
-    document.getElementById('loading-screen').style.display = 'none';
+  // IMPORTANTE: registrar onAuthStateChanged DENTRO del .then de setPersistence
+  // para que la persistencia LOCAL este activa antes de que Firebase dispare el estado.
+  setPersistence(auth, browserLocalPersistence)
+    .catch(e => console.warn('[Auth] persistence error', e))
+    .finally(() => {
 
-    if (user) {
-      // AISLAMIENTO DE PESTANAS:
-      // Solo entrar si esta pestana fue quien inicio sesion con este uid.
-      // _tabGetUid() usa sessionStorage, que es exclusivo por pestana.
-      if (_tabGetUid() !== user.uid) {
-        // Otra pestana tiene la sesion activa, pero esta no la inicio.
-        // Mostrar login sin desloguear al otro.
+    onAuthStateChanged(auth, user => {
+      // Siempre ocultar loading y resetear boton (por si se quedo en "Cargando...")
+      document.getElementById('loading-screen').style.display = 'none';
+      authSetLoading(false);
+
+      if (user) {
+        const tabUid = _tabGetUid();
+
+        if (tabUid !== user.uid) {
+          // Firebase tiene sesion activa pero esta pestana no la inicio.
+          // Mostrar login sin cerrar la sesion de la otra pestana.
+          _currentUid = null;
+          window._fbReady = false;
+          document.getElementById('auth-screen').style.display = 'flex';
+          document.getElementById('app-root').style.display   = 'none';
+          _prefillLastEmail();
+          return;
+        }
+
+        // Esta pestana inicio sesion -> entrar
+        const prevUid = localStorage.getItem('_app_uid');
+        if (prevUid && prevUid !== user.uid) {
+          ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
+           'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
+           'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
+          .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+        }
+        localStorage.setItem('_app_uid', user.uid);
+        _currentUid = user.uid;
+        const n = document.getElementById('portada-user-name');
+        if (n) n.textContent = user.displayName || user.email.split('@')[0];
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-root').style.display   = 'block';
+        window._fbReady = true;
+        window.dispatchEvent(new Event('firebase-ready'));
+        setTimeout(() => {
+          if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
+        }, 400);
+
+      } else {
+        // Sin sesion en Firebase
+        _tabClearUid();
         _currentUid = null;
         window._fbReady = false;
         document.getElementById('auth-screen').style.display = 'flex';
         document.getElementById('app-root').style.display   = 'none';
-        try {
-          const lastEmail = localStorage.getItem('_last_email');
-          if (lastEmail) {
-            const emailInput = document.getElementById('auth-email');
-            if (emailInput && !emailInput.value) {
-              emailInput.value = lastEmail;
-              const hint = document.getElementById('auth-last-session-hint');
-              if (hint) { hint.textContent = 'Ultima sesion: ' + lastEmail; hint.style.display = 'block'; }
-              setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
-            }
-          }
-        } catch(e) {}
-        return;
+        _prefillLastEmail();
       }
+    });
 
-      // Esta pestana inicio la sesion: entrar normalmente
-      const prevUid = localStorage.getItem('_app_uid');
-      if (prevUid && prevUid !== user.uid) {
-        const keysToClean = [
-          'rutina_surf_cargas_v1', 'rutina_tareas_v1', 'mi_calendario_v1',
-          'mi_lista_compra_v1', 'ob_perfil_v1', 'cal_tipos_v1',
-          'plan_ia_entreno', 'plan_ia_nutri', 'cal_reminders_v1'
-        ];
-        keysToClean.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+  }); // fin setPersistence.finally
+
+  function _prefillLastEmail() {
+    try {
+      const lastEmail = localStorage.getItem('_last_email');
+      if (!lastEmail) return;
+      const emailInput = document.getElementById('auth-email');
+      if (emailInput && !emailInput.value) {
+        emailInput.value = lastEmail;
+        const hint = document.getElementById('auth-last-session-hint');
+        if (hint) { hint.textContent = 'Ultima sesion: ' + lastEmail; hint.style.display = 'block'; }
+        setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
       }
-      localStorage.setItem('_app_uid', user.uid);
-
-      _currentUid = user.uid;
-      const n = document.getElementById('portada-user-name');
-      if (n) n.textContent = user.displayName || user.email.split('@')[0];
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('app-root').style.display   = 'block';
-      window._fbReady = true;
-      window.dispatchEvent(new Event('firebase-ready'));
-      setTimeout(() => {
-        if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
-      }, 400);
-    } else {
-      // No hay sesion activa en Firebase: limpiar todo
-      _tabClearUid();
-      _currentUid = null;
-      window._fbReady = false;
-      document.getElementById('auth-screen').style.display = 'flex';
-      document.getElementById('app-root').style.display   = 'none';
-      try {
-        const lastEmail = localStorage.getItem('_last_email');
-        if (lastEmail) {
-          const emailInput = document.getElementById('auth-email');
-          if (emailInput && !emailInput.value) {
-            emailInput.value = lastEmail;
-            const hint = document.getElementById('auth-last-session-hint');
-            if (hint) { hint.textContent = 'Ultima sesion: ' + lastEmail; hint.style.display = 'block'; }
-            setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
-          }
-        }
-      } catch(e) {}
-    }
-  });
+    } catch(e) {}
+  }
 
   // ── FCM ──
   const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
