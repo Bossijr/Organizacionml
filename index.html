@@ -628,16 +628,16 @@
   .pers-section.active { display: block; }
 
   /* ── WEEK GRID ── */
-  .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+  .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 0.4rem; margin-bottom: 2rem; }
   .week-card {
     background: var(--surface2); border: 1.5px solid var(--card-border); border-radius: 10px;
-    padding: 1rem 1.1rem; cursor: pointer;
+    padding: 0.55rem 0.5rem; cursor: pointer; text-align: center;
     transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
   }
   .week-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(10,37,64,0.1); }
   .week-card.active { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(14,107,168,0.15); }
-  .wc-day { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
-  .wc-title { font-size: 0.88rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
+  .wc-day { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .wc-title { font-size: 0.72rem; font-weight: 600; color: var(--ink); margin-bottom: 5px; line-height: 1.3; }
   .tag { display: inline-block; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; }
   .tag-fuerza { background: rgba(0,0,0,0.06); color: var(--gold); border: 1px solid rgba(0,113,227,0.25); }
   .tag-surf { background: #d1fae5; color: #065f46; }
@@ -1985,7 +1985,7 @@
     .reg-table td       { padding: 0.42rem 0.4rem; }
 
     /* ── Grids de 2 col → 1 col ── */
-    .week-grid   { grid-template-columns: 1fr; gap: 0.55rem; }
+    .week-grid   { grid-template-columns: repeat(7,1fr); gap: 0.25rem; }
     .phases-grid { grid-template-columns: 1fr; }
     .info-card   { grid-template-columns: 1fr; }
     .rec-grid    { grid-template-columns: 1fr; }
@@ -2176,7 +2176,7 @@
     /* ════════════════════════════════
        ENTRENAMIENTO
        ════════════════════════════════ */
-    .week-grid     { grid-template-columns: 1fr; gap: 0.55rem; }
+    .week-grid     { grid-template-columns: repeat(7,1fr); gap: 0.25rem; }
     .wc-title      { font-size: 0.84rem; }
     .phases-grid   { grid-template-columns: 1fr; }
     .info-card     { grid-template-columns: 1fr; }
@@ -2287,8 +2287,8 @@
     .section-sub     { font-size: 0.9rem; margin-bottom: 1.4rem; }
 
     /* ── Week grid / cards ── */
-    .week-grid  { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.85rem; margin-bottom: 2rem; }
-    .week-card  { padding: 1.1rem 1.3rem; border-radius: 10px; }
+    .week-grid  { grid-template-columns: repeat(7,1fr); gap: 0.5rem; margin-bottom: 2rem; }
+    .week-card  { padding: 0.65rem 0.5rem; border-radius: 9px; }
     .wc-day     { font-size: 0.7rem; }
     .wc-title   { font-size: 0.95rem; margin-bottom: 6px; }
     .tag        { font-size: 0.65rem; padding: 2px 10px; }
@@ -2482,6 +2482,11 @@
     .area-inner-wrap--wide {
     }
   }
+
+  /* ── DRAG & DROP GRID ── */
+  .cal-ev-mini[draggable], .cal-ev-block[draggable] { cursor: grab; -webkit-user-drag: element; }
+  .cal-ev-mini[draggable]:active, .cal-ev-block[draggable]:active { cursor: grabbing; opacity: 0.5; }
+  .cal-drag-hl { outline: 2px dashed #0071e3 !important; background: rgba(0,113,227,.13) !important; }
 </style>
 </head>
 <body>
@@ -4505,7 +4510,7 @@ function renderCalMes() {
     const evts = getEventsFor(key);
     const hasFestivoEv = evts.some(e => e.pri === 'festivoev');
     const festivoHtml = festivo ? `<div class="cal-festivo-label">${festivo}</div>` : '';
-    const evHtml = evts.slice(0,2).map(e => `<div class="cal-ev-mini ${e.pri!=='normal'?e.pri:''}">${e.hora?e.hora+' ':'' }${e.text}</div>`).join('');
+    const evHtml = evts.slice(0,2).map(e => `<div class="cal-ev-mini ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" draggable="true">${e.hora?e.hora+' ':'' }${e.text}</div>`).join('');
     html += `<div class="cal-cell${isToday?' today':''}${isSel?' selected':''}${(festivo||hasFestivoEv)?' festivo':''}" onclick="selectCalDay('${key}')">
       <div class="cal-num">${d}</div>${festivoHtml}${evHtml}</div>`;
   }
@@ -4547,7 +4552,7 @@ function renderCalSemana() {
       const key = dateKey(d);
       const isT = key === tk;
       const evts = getEventsFor(key).filter(e => e.hora && parseInt(e.hora.split(':')[0]) === h);
-      const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" onclick="event.stopPropagation();selectCalDay('${key}')">${e.hora} ${e.text}</div>`).join('');
+      const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" onclick="event.stopPropagation();selectCalDay('${key}')">${e.hora} ${e.text}</div>`).join('');
       body += `<div class="cal-hour-cell${isT?' today-col':''}" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
     });
   }
@@ -4584,7 +4589,7 @@ function renderCalDia() {
   let html = '';
   for (let h = 6; h <= 23; h++) {
     const evts = getEventsFor(key).filter(e => !e.allday && e.hora && parseInt(e.hora.split(':')[0]) === h);
-    const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" style="cursor:pointer" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`).join('');
+    const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" style="cursor:grab" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`).join('');
     html += `<div class="cal-dia-hour-label"><span>${h}:00</span></div>
       <div class="cal-dia-hour-cell" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
   }
@@ -8711,6 +8716,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
+  setPersistence(auth, browserSessionPersistence).catch(e => console.warn('[Auth] persistence error', e));
   let _currentUid = null;
 
   // ── Helpers Firestore (por usuario) ──
@@ -8738,7 +8744,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     authSetError(''); authSetLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, pw);
-      // Guardar email para pre-rellenar en nuevas pestañas
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     }
     catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
@@ -8821,17 +8826,14 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       window._fbReady = false;
       document.getElementById('auth-screen').style.display = 'flex';
       document.getElementById('app-root').style.display   = 'none';
-      // Pre-rellenar email de la última sesión para login rápido
       try {
         const lastEmail = localStorage.getItem('_last_email');
         if (lastEmail) {
           const emailInput = document.getElementById('auth-email');
           if (emailInput && !emailInput.value) {
             emailInput.value = lastEmail;
-            // Mostrar hint visual
             const hint = document.getElementById('auth-last-session-hint');
             if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
-            // Foco en contraseña directamente
             setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
           }
         }
@@ -10955,185 +10957,160 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
-
 <script>
-// ══════════════════════════════ DRAG & DROP EVENTOS CALENDARIO ══════════════════════════════
-(function() {
-
-  var dragEvId = null;
-  var dragFromKey = null;
-
-  // Estilo highlight
-  var styleEl = document.createElement('style');
-  styleEl.textContent = '.cal-drag-hl { background: rgba(0,113,227,.2) !important; outline: 2px solid #0071e3 !important; }';
-  document.head.appendChild(styleEl);
+// ══════════════════════════════ DRAG & DROP CALENDARIO ══════════════════════════════
+(function () {
+  'use strict';
+  var DRAG = { evId: null, fromKey: null, fromHora: null };
 
   function removeHL() {
-    document.querySelectorAll('.cal-drag-hl').forEach(function(el){ el.classList.remove('cal-drag-hl'); });
+    document.querySelectorAll('.cal-drag-hl').forEach(function (el) { el.classList.remove('cal-drag-hl'); });
   }
 
-  // Inicializar items y celdas — se llama cada vez que el calendario renderiza
-  function init() {
-    // Items arrastrables
-    document.querySelectorAll('.cal-event-item[data-evid]').forEach(function(item) {
-      if (item.dataset.di) return;
-      item.dataset.di = '1';
-      item.setAttribute('draggable', 'true');
-
-      item.addEventListener('dragstart', function(e) {
-        dragEvId    = Number(item.dataset.evid);
-        dragFromKey = item.dataset.fromkey;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', String(dragEvId));
-        item.style.opacity = '0.4';
-      });
-      item.addEventListener('dragend', function() {
-        item.style.opacity = '';
-        removeHL();
-        dragEvId = null; dragFromKey = null;
-      });
-    });
-
-    // Zonas de drop
-    document.querySelectorAll('.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell').forEach(function(cell) {
-      if (cell.dataset.di) return;
-      cell.dataset.di = '1';
-
-      cell.addEventListener('dragover', function(e) {
-        if (dragEvId === null) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        removeHL();
-        cell.classList.add('cal-drag-hl');
-      });
-      cell.addEventListener('dragleave', function(e) {
-        // Solo quitar si salimos realmente de la celda
-        if (!cell.contains(e.relatedTarget)) cell.classList.remove('cal-drag-hl');
-      });
-      cell.addEventListener('drop', function(e) {
-        e.preventDefault();
-        cell.classList.remove('cal-drag-hl');
-        if (dragEvId === null || !dragFromKey) return;
-
-        var oc = cell.getAttribute('onclick') || '';
-        var key = null, hora = null;
-        var m = oc.match(/selectCalDay\('([^']+)'\)/);
-        if (m) key = m[1];
-        m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);
-        if (m) { key = m[1]; hora = m[2]; }
-        if (!key) return;
-
-        var arr = calEventsDB[dragFromKey];
-        if (!arr) return;
-        var idx = arr.findIndex(function(ev){ return ev.id === dragEvId; });
-        if (idx === -1) return;
-
-        var sameDay  = key === dragFromKey;
-        var sameHora = arr[idx].hora === hora;
-        if (sameDay && sameHora) return;
-
-        var ev = Object.assign({}, arr[idx]);
-        if (hora) ev.hora = hora;
-        arr.splice(idx, 1);
-        if (!arr.length) delete calEventsDB[dragFromKey];
-        if (!calEventsDB[key]) calEventsDB[key] = [];
-        calEventsDB[key].push(ev);
-        calSelectedKey = key;
-        var p = key.split('-').map(Number);
-        calYear = p[0]; calMonth = p[1]-1;
-        saveCal(); renderCal(); renderCalPanel();
-        mostrarToast('📅 Movido al ' + key + (hora ? ' · '+hora : ''));
-        try { navigator.vibrate && navigator.vibrate([15,20,15]); } catch(err){}
-        dragEvId = null; dragFromKey = null;
-      });
-    });
+  function cellInfo(cell) {
+    var oc = cell.getAttribute('onclick') || '';
+    var key = null, hora = null, m;
+    m = oc.match(/selectCalDay\('([^']+)'\)/);                   if (m) key = m[1];
+    m = oc.match(/selectCalDayAndSwitch\('([^']+)'\)/);          if (m) key = m[1];
+    m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);  if (m) { key = m[1]; hora = m[2]; }
+    return { key: key, hora: hora };
   }
 
-  // Parchear renderCalPanel DESPUÉS de que cargue todo
-  window.addEventListener('load', function() {
-    var orig = window.renderCalPanel;
-    window.renderCalPanel = function() {
-      orig && orig.apply(this, arguments);
-      setTimeout(init, 50);
+  function doMove(toKey, toHora) {
+    var fromKey = DRAG.fromKey, evId = DRAG.evId;
+    if (!fromKey || evId === null) return;
+    var arr = calEventsDB[fromKey];
+    if (!arr) return;
+    var idx = arr.findIndex(function (ev) { return ev.id === evId; });
+    if (idx === -1) return;
+    if (toKey === fromKey && (!toHora || toHora === arr[idx].hora)) return;
+    var ev = Object.assign({}, arr[idx]);
+    if (toHora) ev.hora = toHora;
+    arr.splice(idx, 1);
+    if (!arr.length) delete calEventsDB[fromKey];
+    if (!calEventsDB[toKey]) calEventsDB[toKey] = [];
+    calEventsDB[toKey].push(ev);
+    var p = toKey.split('-').map(Number);
+    calYear = p[0]; calMonth = p[1] - 1;
+    calSelectedKey = toKey;
+    if (calView === 'dia') calDayDate = new Date(p[0], p[1]-1, p[2]);
+    else if (calView === 'semana') calWeekStart = getMondayOf(new Date(p[0], p[1]-1, p[2]));
+    saveCal(); renderCal(); renderCalPanel();
+    mostrarToast('📅 Movido al ' + toKey + (toHora ? ' · ' + toHora : ''));
+    try { navigator.vibrate && navigator.vibrate([15, 20, 15]); } catch (e) {}
+  }
+
+  var DROP_SEL = '.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell';
+
+  document.addEventListener('dragstart', function (e) {
+    var el = e.target.closest('[data-evid][data-fromkey]');
+    if (!el) return;
+    DRAG.evId = Number(el.dataset.evid);
+    DRAG.fromKey = el.dataset.fromkey;
+    DRAG.fromHora = el.dataset.fromhora || null;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(DRAG.evId));
+    e.stopPropagation();
+    setTimeout(function () { el.style.opacity = '0.4'; }, 0);
+  }, true);
+
+  document.addEventListener('dragend', function (e) {
+    var el = e.target.closest('[data-evid]');
+    if (el) el.style.opacity = '';
+    removeHL();
+    DRAG.evId = null; DRAG.fromKey = null; DRAG.fromHora = null;
+  }, true);
+
+  document.addEventListener('dragover', function (e) {
+    if (DRAG.evId === null) return;
+    var cell = e.target.closest(DROP_SEL);
+    if (!cell) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    removeHL();
+    cell.classList.add('cal-drag-hl');
+  }, false);
+
+  document.addEventListener('dragleave', function (e) {
+    var cell = e.target.closest(DROP_SEL);
+    if (cell && !cell.contains(e.relatedTarget)) cell.classList.remove('cal-drag-hl');
+  }, false);
+
+  document.addEventListener('drop', function (e) {
+    removeHL();
+    if (DRAG.evId === null) return;
+    var cell = e.target.closest(DROP_SEL);
+    if (!cell) return;
+    e.preventDefault(); e.stopPropagation();
+    var ci = cellInfo(cell);
+    if (!ci.key) return;
+    doMove(ci.key, ci.hora);
+    DRAG.evId = null; DRAG.fromKey = null; DRAG.fromHora = null;
+  }, true);
+
+  // Móvil: long-press
+  var TD = null;
+  document.addEventListener('touchstart', function (e) {
+    var el = e.target.closest('[data-evid][data-fromkey]');
+    if (!el) return;
+    var t = e.touches[0];
+    TD = {
+      evId: Number(el.dataset.evid), fromKey: el.dataset.fromkey,
+      fromHora: el.dataset.fromhora || null, el: el,
+      sx: t.clientX, sy: t.clientY, ghost: null, active: false,
+      timer: setTimeout(function () {
+        if (!TD) return;
+        TD.active = true;
+        var g = document.createElement('div');
+        g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:#0071e3;color:#fff;border-radius:10px;padding:6px 14px;font-size:0.8rem;font-weight:600;box-shadow:0 6px 24px rgba(0,113,227,.45);white-space:nowrap;transform:translate(-50%,-120%);';
+        g.textContent = el.textContent.trim().slice(0, 40);
+        document.body.appendChild(g); TD.ghost = g;
+        el.style.opacity = '0.4';
+        try { navigator.vibrate && navigator.vibrate(40); } catch (er) {}
+      }, 400)
     };
-    // Inicializar ahora si ya hay eventos
-    setTimeout(init, 300);
-  });
+  }, { passive: true });
 
-  // Touch: long press para móvil
-  var td = null;
-  document.addEventListener('touchstart', function(e) {
-    var item = e.target.closest('.cal-event-item[data-evid]');
-    if (!item) return;
+  document.addEventListener('touchmove', function (e) {
+    if (!TD) return;
     var t = e.touches[0];
-    td = { evId: Number(item.dataset.evid), fromKey: item.dataset.fromkey,
-           el: item, sx: t.clientX, sy: t.clientY, ghost: null, active: false,
-           timer: setTimeout(function(){
-             td.active = true;
-             var g = document.createElement('div');
-             g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:#0071e3;color:#fff;border-radius:10px;padding:8px 16px;font-size:0.83rem;font-weight:500;box-shadow:0 8px 28px rgba(0,113,227,.4);white-space:nowrap;';
-             var cl = item.cloneNode(true);
-             cl.querySelectorAll('button,.ev-type-badge,.ev-repeat,.ev-duration,.ev-allday').forEach(function(n){n.remove();});
-             g.textContent = cl.textContent.trim();
-             document.body.appendChild(g); td.ghost = g;
-             item.style.opacity='0.4';
-             try{navigator.vibrate&&navigator.vibrate(40);}catch(er){}
-           }, 450) };
-  },{passive:true});
-
-  document.addEventListener('touchmove', function(e) {
-    if (!td) return;
-    var t = e.touches[0];
-    if (!td.active) {
-      if (Math.abs(t.clientX-td.sx)>8||Math.abs(t.clientY-td.sy)>8){clearTimeout(td.timer);td=null;}
+    if (!TD.active) {
+      if (Math.abs(t.clientX - TD.sx) > 8 || Math.abs(t.clientY - TD.sy) > 8) { clearTimeout(TD.timer); TD = null; }
       return;
     }
     e.preventDefault();
-    if (td.ghost){td.ghost.style.left=(t.clientX-10)+'px';td.ghost.style.top=(t.clientY-50)+'px';}
-    if(td.ghost)td.ghost.style.display='none';
-    var el=document.elementFromPoint(t.clientX,t.clientY);
-    if(td.ghost)td.ghost.style.display='';
+    if (TD.ghost) { TD.ghost.style.left = t.clientX + 'px'; TD.ghost.style.top = t.clientY + 'px'; TD.ghost.style.display = 'none'; }
+    var below = document.elementFromPoint(t.clientX, t.clientY);
+    if (TD.ghost) TD.ghost.style.display = '';
     removeHL();
-    if(el){var c=el.closest('.cal-cell:not(.empty)')||el.closest('.cal-hour-cell')||el.closest('.cal-dia-hour-cell');if(c)c.classList.add('cal-drag-hl');}
-  },{passive:false});
+    if (below) { var c = below.closest(DROP_SEL); if (c) c.classList.add('cal-drag-hl'); }
+  }, { passive: false });
 
-  function touchEnd(e) {
-    if (!td) return;
-    clearTimeout(td.timer);
-    if(td.ghost)td.ghost.remove();
-    if(td.el)td.el.style.opacity='';
+  function onTouchEnd(e) {
+    if (!TD) return;
+    clearTimeout(TD.timer);
+    if (TD.ghost) TD.ghost.remove();
+    if (TD.el) TD.el.style.opacity = '';
     removeHL();
-    if (td.active) {
+    if (TD.active) {
       var t = e.changedTouches[0];
-      var el = document.elementFromPoint(t.clientX, t.clientY);
-      if (el) {
-        var cell = el.closest('.cal-cell:not(.empty)')||el.closest('.cal-hour-cell')||el.closest('.cal-dia-hour-cell');
+      var below = document.elementFromPoint(t.clientX, t.clientY);
+      if (below) {
+        var cell = below.closest(DROP_SEL);
         if (cell) {
-          var oc=cell.getAttribute('onclick')||'', key=null, hora=null;
-          var m=oc.match(/selectCalDay\('([^']+)'\)/); if(m)key=m[1];
-          m=oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/); if(m){key=m[1];hora=m[2];}
-          if (key) {
-            var arr=calEventsDB[td.fromKey]; if(!arr){td=null;return;}
-            var idx=arr.findIndex(function(ev){return ev.id===td.evId;}); if(idx===-1){td=null;return;}
-            if(key!==td.fromKey||(hora&&arr[idx].hora!==hora)){
-              var ev=Object.assign({},arr[idx]); if(hora)ev.hora=hora;
-              arr.splice(idx,1); if(!arr.length)delete calEventsDB[td.fromKey];
-              if(!calEventsDB[key])calEventsDB[key]=[];
-              calEventsDB[key].push(ev); calSelectedKey=key;
-              var p=key.split('-').map(Number); calYear=p[0];calMonth=p[1]-1;
-              saveCal();renderCal();renderCalPanel();
-              mostrarToast('📅 Movido al '+key+(hora?' · '+hora:''));
-              try{navigator.vibrate&&navigator.vibrate([15,20,15]);}catch(er){}
-            }
+          var ci = cellInfo(cell);
+          if (ci.key) {
+            DRAG.evId = TD.evId; DRAG.fromKey = TD.fromKey; DRAG.fromHora = TD.fromHora;
+            doMove(ci.key, ci.hora);
+            DRAG.evId = null; DRAG.fromKey = null; DRAG.fromHora = null;
           }
         }
       }
     }
-    td = null;
+    TD = null;
   }
-  document.addEventListener('touchend', touchEnd, {passive:true});
-  document.addEventListener('touchcancel', touchEnd, {passive:true});
-
+  document.addEventListener('touchend', onTouchEnd, { passive: true });
+  document.addEventListener('touchcancel', onTouchEnd, { passive: true });
 })();
 </script>
 </body>
