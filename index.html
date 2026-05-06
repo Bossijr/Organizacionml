@@ -8805,8 +8805,8 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
-  // Firebase usa browserLocalPersistence por defecto en web (sesion persiste al cerrar).
-  // NO llamamos a setPersistence para evitar problemas de timing con onAuthStateChanged.
+  // Firebase usa browserLocalPersistence por defecto: la sesion persiste al cerrar el navegador.
+  // No llamar a setPersistence: causaba un disparo extra de onAuthStateChanged con user=null.
   let _currentUid = null;
 
   // ── Helpers Firestore (por usuario) ──
@@ -8829,26 +8829,46 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }, err => console.warn('[FB] listen error', err));
   };
 
-  // ── Aislamiento de pestanas ──
-  // sessionStorage['_tok'] solo existe si ESTA pestana hizo login o es una recarga.
-  // Pestanas nuevas (Ctrl+T) empiezan con sessionStorage vacio -> ven pantalla de login.
-  const _ss = { get: () => { try { return sessionStorage.getItem('_tok'); } catch(e) { return '1'; } },
-                set: () => { try { sessionStorage.setItem('_tok','1'); } catch(e) {} },
-                del: () => { try { sessionStorage.removeItem('_tok'); } catch(e) {} } };
-
-  // En recargas, sessionStorage ya tiene '_tok' de la sesion anterior (persiste en recargas).
-  // Solo en pestanas nuevas estara vacio. No hace falta hacer nada especial aqui.
-
   // ── Auth functions ──
-  // authSetLoading tambien expuesto en window (el modulo ES tiene scope privado)
+  window._authLogin = async (email, pw) => {
+    authSetError(''); authSetLoading(true);
+    _tabSet(); // antes del await para que onAuthStateChanged lo vea
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+      try { localStorage.setItem('_last_email', email); } catch(e) {}
+    }
+    catch(e) { _tabDel(); authSetLoading(false); authSetError(traducirError(e.code)); }
+  };
+  window._authRegistrar = async (nombre, email, pw) => {
+    authSetError(''); authSetLoading(true);
+    _tabSet();
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      await updateProfile(cred.user, { displayName: nombre });
+      try { localStorage.setItem('_last_email', email); } catch(e) {}
+    } catch(e) {
+      _tabDel(); authSetLoading(false);
+      if (e.code === 'auth/email-already-in-use') {
+        authSwitchTab('login');
+        authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
+      } else {
+        authSetError(traducirError(e.code));
+      }
+    }
+  };
+  window._authLogout = async () => {
+    _tabDel();
+    await signOut(auth);
+    if (typeof goPortada === 'function') goPortada();
+  };
+  window._sendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
+
   function authSetLoading(on) {
     const btn = document.getElementById('auth-submit-btn');
     if (!btn) return;
     btn.disabled = on;
     btn.textContent = on ? 'Cargando...' : (document.getElementById('auth-tab-login').classList.contains('auth-tab-active') ? 'Entrar' : 'Crear cuenta');
   }
-  window._authSetLoading = authSetLoading;
-
   function authSetError(msg) {
     const el = document.getElementById('auth-error');
     if (!el) return;
@@ -8867,57 +8887,53 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     return map[code] || 'Error: ' + code;
   }
 
-  window._authLogin = async (email, pw) => {
-    authSetError(''); authSetLoading(true);
-    _ss.set(); // marcar ANTES del await: onAuthStateChanged puede disparar antes de que retorne
-    try {
-      await signInWithEmailAndPassword(auth, email, pw);
-      try { localStorage.setItem('_last_email', email); } catch(e) {}
-    }
-    catch(e) { _ss.del(); authSetLoading(false); authSetError(traducirError(e.code)); }
-  };
-  window._authRegistrar = async (nombre, email, pw) => {
-    authSetError(''); authSetLoading(true);
-    _ss.set();
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pw);
-      await updateProfile(cred.user, { displayName: nombre });
-      try { localStorage.setItem('_last_email', email); } catch(e) {}
-    } catch(e) {
-      _ss.del(); authSetLoading(false);
-      if (e.code === 'auth/email-already-in-use') {
-        authSwitchTab('login');
-        authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
-      } else {
-        authSetError(traducirError(e.code));
-      }
-    }
-  };
-  window._authLogout = async () => {
-    _ss.del();
-    await signOut(auth);
-    if (typeof goPortada === 'function') goPortada();
-  };
-  window._sendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
+  // ── Estado de autenticación ──
+  // Aislamiento de pestanas: sessionStorage es exclusivo por pestana.
+  // '_t1' se setea al hacer login y persiste en recargas, pero NO en pestanas nuevas.
+  const _tabOk  = () => { try { return !!sessionStorage.getItem('_t1'); } catch(e) { return true; } };
+  const _tabSet = () => { try { sessionStorage.setItem('_t1','1'); } catch(e) {} };
+  const _tabDel = () => { try { sessionStorage.removeItem('_t1'); } catch(e) {} };
 
-  // ── Estado de autenticacion ──
+  // Exponer authSetLoading en window para que authSwitchTab (script normal) pueda resetear el boton
+  window._authSetLoading = function(on) {
+    const btn = document.getElementById('auth-submit-btn');
+    if (!btn) return;
+    btn.disabled = on;
+    btn.textContent = on ? 'Cargando...' : (document.getElementById('auth-tab-login').classList.contains('auth-tab-active') ? 'Entrar' : 'Crear cuenta');
+  };
+
   onAuthStateChanged(auth, user => {
     document.getElementById('loading-screen').style.display = 'none';
-    authSetLoading(false);
+    window._authSetLoading(false); // siempre desbloquear boton
     if (user) {
-      if (!_ss.get()) {
-        // Pestana nueva que heredo sesion de Firebase -> forzar login
-        _currentUid = null; window._fbReady = false;
+      // Pestana nueva sin login propio -> mostrar pantalla de login
+      if (!_tabOk()) {
         document.getElementById('auth-screen').style.display = 'flex';
         document.getElementById('app-root').style.display   = 'none';
+        _currentUid = null; window._fbReady = false;
+        // Prellenar email de la ultima sesion
+        try {
+          const lastEmail = localStorage.getItem('_last_email');
+          if (lastEmail) {
+            const ei = document.getElementById('auth-email');
+            if (ei && !ei.value) {
+              ei.value = lastEmail;
+              const hint = document.getElementById('auth-last-session-hint');
+              if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
+            }
+          }
+        } catch(e) {}
         return;
       }
+      // Sesion valida en esta pestana
       const prevUid = localStorage.getItem('_app_uid');
       if (prevUid && prevUid !== user.uid) {
-        ['rutina_surf_cargas_v1', 'rutina_tareas_v1', 'mi_calendario_v1',
-         'mi_lista_compra_v1', 'ob_perfil_v1', 'cal_tipos_v1',
-         'plan_ia_entreno', 'plan_ia_nutri', 'cal_reminders_v1']
-        .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+        const keysToClean = [
+          'rutina_surf_cargas_v1', 'rutina_tareas_v1', 'mi_calendario_v1',
+          'mi_lista_compra_v1', 'ob_perfil_v1', 'cal_tipos_v1',
+          'plan_ia_entreno', 'plan_ia_nutri', 'cal_reminders_v1'
+        ];
+        keysToClean.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
       }
       localStorage.setItem('_app_uid', user.uid);
       _currentUid = user.uid;
@@ -8931,7 +8947,8 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
         if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
       }, 400);
     } else {
-      _currentUid = null; window._fbReady = false;
+      _currentUid = null;
+      window._fbReady = false;
       document.getElementById('auth-screen').style.display = 'flex';
       document.getElementById('app-root').style.display   = 'none';
       try {
