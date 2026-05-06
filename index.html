@@ -8805,13 +8805,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
-
-  // ── Helpers sessionStorage para aislamiento por pestana ──
-  const _SESS_KEY = '_tab_auth_uid';
-  const _tabGetUid   = () => { try { return sessionStorage.getItem(_SESS_KEY); } catch(e) { return null; } };
-  const _tabSetUid   = uid => { try { sessionStorage.setItem(_SESS_KEY, uid); } catch(e) {} };
-  const _tabClearUid = () => { try { sessionStorage.removeItem(_SESS_KEY); } catch(e) {} };
-
   let _currentUid = null;
 
   // ── Helpers Firestore (por usuario) ──
@@ -8834,47 +8827,27 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }, err => console.warn('[FB] listen error', err));
   };
 
-  // ── Auth functions ──
-  window._authLogin = async (email, pw) => {
-    authSetError(''); authSetLoading(true);
-    try {
-      const cred = await signInWithEmailAndPassword(auth, email, pw);
-      _tabSetUid(cred.user.uid);
-      try { localStorage.setItem('_last_email', email); } catch(e) {}
-    }
-    catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
-  };
-  window._authRegistrar = async (nombre, email, pw) => {
-    authSetError(''); authSetLoading(true);
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pw);
-      await updateProfile(cred.user, { displayName: nombre });
-      _tabSetUid(cred.user.uid);
-      try { localStorage.setItem('_last_email', email); } catch(e) {}
-    } catch(e) {
-      authSetLoading(false);
-      if (e.code === 'auth/email-already-in-use') {
-        // Cambiar al tab de login automáticamente
-        authSwitchTab('login');
-        authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
-      } else {
-        authSetError(traducirError(e.code));
-      }
-    }
-  };
-  window._authLogout = async () => {
-    _tabClearUid();
-    await signOut(auth);
-    if (typeof goPortada === 'function') goPortada();
-  };
-  window._sendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
+  // ── Aislamiento por pestana ──
+  // sessionStorage es exclusivo por pestana (no se comparte al abrir una nueva).
+  // Guardamos el uid que ESTA pestana autentico. Si Firebase tiene sesion activa
+  // pero este valor no coincide, mostramos login en vez de entrar directamente.
+  const _SK = '_tab_uid';
+  const _tabGet   = () => { try { return sessionStorage.getItem(_SK); } catch(e) { return null; } };
+  const _tabSet   = v  => { try { sessionStorage.setItem(_SK, v);     } catch(e) {} };
+  const _tabClear = () => { try { sessionStorage.removeItem(_SK);      } catch(e) {} };
 
-  function authSetLoading(on) {
+  // ── authSetLoading expuesto en window para que lo use el script normal ──
+  // (los modulos ES tienen scope privado; sin esto el boton queda bloqueado)
+  window._authSetLoading = function(on) {
     const btn = document.getElementById('auth-submit-btn');
     if (!btn) return;
     btn.disabled = on;
-    btn.textContent = on ? 'Cargando...' : (document.getElementById('auth-tab-login').classList.contains('auth-tab-active') ? 'Entrar' : 'Crear cuenta');
-  }
+    const isLogin = document.getElementById('auth-tab-login').classList.contains('auth-tab-active');
+    btn.textContent = on ? 'Cargando...' : (isLogin ? 'Entrar' : 'Crear cuenta');
+  };
+
+  function authSetLoading(on) { window._authSetLoading(on); }
+
   function authSetError(msg) {
     const el = document.getElementById('auth-error');
     if (!el) return;
@@ -8893,66 +8866,45 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     return map[code] || 'Error: ' + code;
   }
 
-  // ── Estado de autenticacion ──
-  // IMPORTANTE: registrar onAuthStateChanged DENTRO del .then de setPersistence
-  // para que la persistencia LOCAL este activa antes de que Firebase dispare el estado.
-  setPersistence(auth, browserLocalPersistence)
-    .catch(e => console.warn('[Auth] persistence error', e))
-    .finally(() => {
-
-    onAuthStateChanged(auth, user => {
-      // Siempre ocultar loading y resetear boton (por si se quedo en "Cargando...")
-      document.getElementById('loading-screen').style.display = 'none';
+  // ── Auth functions ──
+  window._authLogin = async (email, pw) => {
+    authSetError(''); authSetLoading(true);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pw);
+      _tabSet(cred.user.uid);
+      try { localStorage.setItem('_last_email', email); } catch(e) {}
+    }
+    catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
+  };
+  window._authRegistrar = async (nombre, email, pw) => {
+    authSetError(''); authSetLoading(true);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      await updateProfile(cred.user, { displayName: nombre });
+      _tabSet(cred.user.uid);
+      try { localStorage.setItem('_last_email', email); } catch(e) {}
+    } catch(e) {
       authSetLoading(false);
-
-      if (user) {
-        const tabUid = _tabGetUid();
-
-        if (tabUid !== user.uid) {
-          // Firebase tiene sesion activa pero esta pestana no la inicio.
-          // Mostrar login sin cerrar la sesion de la otra pestana.
-          _currentUid = null;
-          window._fbReady = false;
-          document.getElementById('auth-screen').style.display = 'flex';
-          document.getElementById('app-root').style.display   = 'none';
-          _prefillLastEmail();
-          return;
-        }
-
-        // Esta pestana inicio sesion -> entrar
-        const prevUid = localStorage.getItem('_app_uid');
-        if (prevUid && prevUid !== user.uid) {
-          ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
-           'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
-           'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
-          .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
-        }
-        localStorage.setItem('_app_uid', user.uid);
-        _currentUid = user.uid;
-        const n = document.getElementById('portada-user-name');
-        if (n) n.textContent = user.displayName || user.email.split('@')[0];
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-root').style.display   = 'block';
-        window._fbReady = true;
-        window.dispatchEvent(new Event('firebase-ready'));
-        setTimeout(() => {
-          if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
-        }, 400);
-
+      if (e.code === 'auth/email-already-in-use') {
+        authSwitchTab('login');
+        authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
       } else {
-        // Sin sesion en Firebase
-        _tabClearUid();
-        _currentUid = null;
-        window._fbReady = false;
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('app-root').style.display   = 'none';
-        _prefillLastEmail();
+        authSetError(traducirError(e.code));
       }
-    });
+    }
+  };
+  window._authLogout = async () => {
+    _tabClear();
+    await signOut(auth);
+    if (typeof goPortada === 'function') goPortada();
+  };
+  window._sendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
 
-  }); // fin setPersistence.finally
-
-  function _prefillLastEmail() {
+  // ── Estado de autenticacion ──
+  function _mostrarLogin() {
+    authSetLoading(false);
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-root').style.display   = 'none';
     try {
       const lastEmail = localStorage.getItem('_last_email');
       if (!lastEmail) return;
@@ -8960,11 +8912,56 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       if (emailInput && !emailInput.value) {
         emailInput.value = lastEmail;
         const hint = document.getElementById('auth-last-session-hint');
-        if (hint) { hint.textContent = 'Ultima sesion: ' + lastEmail; hint.style.display = 'block'; }
+        if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
         setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
       }
     } catch(e) {}
   }
+
+  // Configurar persistencia LOCAL (sesion sobrevive al cerrar navegador)
+  // y registrar el listener DENTRO del then para garantizar el orden correcto.
+  setPersistence(auth, browserLocalPersistence)
+    .catch(e => console.warn('[Auth] persistence error', e))
+    .finally(() => {
+      onAuthStateChanged(auth, user => {
+        document.getElementById('loading-screen').style.display = 'none';
+        authSetLoading(false); // siempre desbloquear el boton
+
+        if (user) {
+          if (_tabGet() !== user.uid) {
+            // Firebase tiene sesion pero esta pestana no la inicio -> pedir login
+            _currentUid = null;
+            window._fbReady = false;
+            _mostrarLogin();
+            return;
+          }
+          // Esta pestana inicio la sesion -> entrar
+          const prevUid = localStorage.getItem('_app_uid');
+          if (prevUid && prevUid !== user.uid) {
+            ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
+             'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
+             'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
+            .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+          }
+          localStorage.setItem('_app_uid', user.uid);
+          _currentUid = user.uid;
+          const n = document.getElementById('portada-user-name');
+          if (n) n.textContent = user.displayName || user.email.split('@')[0];
+          document.getElementById('auth-screen').style.display = 'none';
+          document.getElementById('app-root').style.display   = 'block';
+          window._fbReady = true;
+          window.dispatchEvent(new Event('firebase-ready'));
+          setTimeout(() => {
+            if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
+          }, 400);
+        } else {
+          _tabClear();
+          _currentUid = null;
+          window._fbReady = false;
+          _mostrarLogin();
+        }
+      });
+    });
 
   // ── FCM ──
   const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
