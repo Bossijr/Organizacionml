@@ -5692,22 +5692,16 @@ function renderWeather(wx, ciudad) {
   document.getElementById('wx-amanecer').textContent = 'Amanecer ' + fmtHora(d.sunrise[0]);
   document.getElementById('wx-atardecer').textContent = 'Atardecer ' + fmtHora(d.sunset[0]);
 
-  // Previsión por horas (horas de hoy)
+  // Previsión por horas — las 24h completas de hoy (incluye madrugada)
   const hContainer = document.getElementById('wx-hourly');
   const now = new Date();
   const nowH = now.getHours();
   const todayStr = now.toISOString().slice(0,10);
   const h = wx.hourly;
-  // Filtra solo las horas de hoy (desde la hora actual hasta fin de día) + primeras horas de mañana si quedan pocas
-  const hoursToday = h.time
+  // Todas las horas del día: 00:00 → 23:00
+  const visibleHours = h.time
     .map((t, i) => ({ t, i }))
     .filter(({t}) => t.startsWith(todayStr));
-  // Show from current hour onward (include a couple hours before for context)
-  const startIdx = Math.max(0, hoursToday.findIndex(({i}) => {
-    const hr = new Date(h.time[i] + ':00').getHours();
-    return hr >= nowH;
-  }) - 1);
-  const visibleHours = hoursToday.slice(startIdx);
 
   hContainer.innerHTML = visibleHours.map(({t, i}) => {
     const hr = parseInt(t.slice(11,13));
