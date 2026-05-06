@@ -2774,6 +2774,7 @@
       </div>
       <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;font-family:'Inter',sans-serif;font-size:0.92rem;padding:0.65rem 0.9rem;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;background:#f5f5f7;color:#1d1d1f;outline:none">
     </div>
+    <div id="auth-last-session-hint" style="display:none;font-size:0.72rem;color:rgba(0,113,227,0.75);text-align:center;margin-bottom:0.6rem;font-weight:500;"></div>
     <button id="auth-submit-btn" onclick="authSubmit()" style="width:100%;padding:0.75rem;background:#0071e3;color:white;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.92rem;font-weight:600;letter-spacing:0.02em;cursor:pointer">Entrar</button>
     <div id="auth-error" style="display:none;background:rgba(192,57,43,0.2);border:1px solid rgba(192,57,43,0.5);color:#fca5a5;border-radius:8px;padding:0.55rem 0.8rem;font-size:0.8rem;margin-top:0.75rem;text-align:center"></div>
 
@@ -8710,8 +8711,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
-  // Persistencia por pestaña: cada pestaña tiene su propia sesión independiente
-  setPersistence(auth, browserSessionPersistence).catch(e => console.warn('[Auth] persistence error', e));
   let _currentUid = null;
 
   // ── Helpers Firestore (por usuario) ──
@@ -8737,7 +8736,11 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   // ── Auth functions ──
   window._authLogin = async (email, pw) => {
     authSetError(''); authSetLoading(true);
-    try { await signInWithEmailAndPassword(auth, email, pw); }
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+      // Guardar email para pre-rellenar en nuevas pestañas
+      try { localStorage.setItem('_last_email', email); } catch(e) {}
+    }
     catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
   };
   window._authRegistrar = async (nombre, email, pw) => {
@@ -8745,6 +8748,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
+      try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
       authSetLoading(false);
       if (e.code === 'auth/email-already-in-use') {
@@ -8817,6 +8821,21 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       window._fbReady = false;
       document.getElementById('auth-screen').style.display = 'flex';
       document.getElementById('app-root').style.display   = 'none';
+      // Pre-rellenar email de la última sesión para login rápido
+      try {
+        const lastEmail = localStorage.getItem('_last_email');
+        if (lastEmail) {
+          const emailInput = document.getElementById('auth-email');
+          if (emailInput && !emailInput.value) {
+            emailInput.value = lastEmail;
+            // Mostrar hint visual
+            const hint = document.getElementById('auth-last-session-hint');
+            if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
+            // Foco en contraseña directamente
+            setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
+          }
+        }
+      } catch(e) {}
     }
   });
 
