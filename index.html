@@ -8908,6 +8908,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     _dbg('onAuthStateChanged fired, user=' + (user ? user.uid.slice(0,8) : 'null'));
     document.getElementById('loading-screen').style.display = 'none';
     if (user) {
+      _dbg('user OK, hiding auth-screen, showing app-root');
       // Si cambió de cuenta, limpiar localStorage para no mezclar datos
       const prevUid = localStorage.getItem('_app_uid');
       if (prevUid && prevUid !== user.uid) {
@@ -8925,9 +8926,11 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       if (n) n.textContent = user.displayName || user.email.split('@')[0];
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('app-root').style.display   = 'block';
+      _dbg('app-root shown, dispatching firebase-ready');
       window._fbReady = true;
       window.dispatchEvent(new Event('firebase-ready'));
       setTimeout(() => {
+        _dbg('calling _checkOnboarding, ob_perfil_v1=' + localStorage.getItem('ob_perfil_v1'));
         if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
       }, 400);
     } else {
@@ -10511,6 +10514,9 @@ let obStep = 0;
 let obAnswers = {};
 
 function obInit() {
+  console.log('[DBG] obInit called - showing onboarding');
+  let el = document.getElementById('_debug_log');
+  if (el) { const d = document.createElement('div'); d.textContent = new Date().toISOString().slice(11,23) + ' obInit called!'; el.appendChild(d); }
   obStep = 0;
   obAnswers = {};
   obRender();
