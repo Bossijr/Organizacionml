@@ -8789,7 +8789,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
   const firebaseConfig = {
@@ -8805,6 +8805,8 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
+  // Firebase usa browserLocalPersistence por defecto en web (sesion persiste al cerrar).
+  // NO llamamos a setPersistence para evitar problemas de timing con onAuthStateChanged.
   let _currentUid = null;
 
   // ── Helpers Firestore (por usuario) ──
@@ -8827,39 +8829,25 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }, err => console.warn('[FB] listen error', err));
   };
 
-  // ── Aislamiento por pestana ──
-  // sessionStorage es unico por pestana: si abres Ctrl+T estara vacio.
-  // localStorage persiste entre pestanas y recargas.
-  // La clave: al abrir una pestana NUEVA, sessionStorage['_tab_ok'] es undefined.
-  // Al hacer login o al recargar la misma pestana, se setea a '1'.
-  function _tabIsAllowed() {
-    try { return sessionStorage.getItem('_tab_ok') === '1'; } catch(e) { return true; }
-  }
-  function _tabAllow() {
-    try { sessionStorage.setItem('_tab_ok', '1'); } catch(e) {}
-  }
-  function _tabDeny() {
-    try { sessionStorage.removeItem('_tab_ok'); } catch(e) {}
-  }
+  // ── Aislamiento de pestanas ──
+  // sessionStorage['_tok'] solo existe si ESTA pestana hizo login o es una recarga.
+  // Pestanas nuevas (Ctrl+T) empiezan con sessionStorage vacio -> ven pantalla de login.
+  const _ss = { get: () => { try { return sessionStorage.getItem('_tok'); } catch(e) { return '1'; } },
+                set: () => { try { sessionStorage.setItem('_tok','1'); } catch(e) {} },
+                del: () => { try { sessionStorage.removeItem('_tok'); } catch(e) {} } };
 
-  // Si es una recarga (no pestaña nueva), restaurar permiso automaticamente
-  try {
-    const nav = performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-    const type = nav ? nav.type : (performance.navigation ? ['navigate','reload','back_forward'][performance.navigation.type] : 'navigate');
-    if (type === 'reload' || type === 'back_forward') {
-      _tabAllow();
-    }
-  } catch(e) {}
+  // En recargas, sessionStorage ya tiene '_tok' de la sesion anterior (persiste en recargas).
+  // Solo en pestanas nuevas estara vacio. No hace falta hacer nada especial aqui.
 
   // ── Auth functions ──
-  window._authSetLoading = function(on) {
+  // authSetLoading tambien expuesto en window (el modulo ES tiene scope privado)
+  function authSetLoading(on) {
     const btn = document.getElementById('auth-submit-btn');
     if (!btn) return;
     btn.disabled = on;
-    const isLogin = document.getElementById('auth-tab-login').classList.contains('auth-tab-active');
-    btn.textContent = on ? 'Cargando...' : (isLogin ? 'Entrar' : 'Crear cuenta');
-  };
-  function authSetLoading(on) { window._authSetLoading(on); }
+    btn.textContent = on ? 'Cargando...' : (document.getElementById('auth-tab-login').classList.contains('auth-tab-active') ? 'Entrar' : 'Crear cuenta');
+  }
+  window._authSetLoading = authSetLoading;
 
   function authSetError(msg) {
     const el = document.getElementById('auth-error');
@@ -8881,23 +8869,22 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 
   window._authLogin = async (email, pw) => {
     authSetError(''); authSetLoading(true);
+    _ss.set(); // marcar ANTES del await: onAuthStateChanged puede disparar antes de que retorne
     try {
-      _tabAllow(); // marcar ANTES del await para que onAuthStateChanged lo vea
       await signInWithEmailAndPassword(auth, email, pw);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     }
-    catch(e) { _tabDeny(); authSetLoading(false); authSetError(traducirError(e.code)); }
+    catch(e) { _ss.del(); authSetLoading(false); authSetError(traducirError(e.code)); }
   };
-
   window._authRegistrar = async (nombre, email, pw) => {
     authSetError(''); authSetLoading(true);
+    _ss.set();
     try {
-      _tabAllow();
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
-      _tabDeny(); authSetLoading(false);
+      _ss.del(); authSetLoading(false);
       if (e.code === 'auth/email-already-in-use') {
         authSwitchTab('login');
         authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
@@ -8906,53 +8893,30 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       }
     }
   };
-
   window._authLogout = async () => {
-    _tabDeny();
+    _ss.del();
     await signOut(auth);
     if (typeof goPortada === 'function') goPortada();
   };
-
   window._sendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
 
-  function _mostrarLogin() {
-    authSetLoading(false);
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('app-root').style.display   = 'none';
-    try {
-      const lastEmail = localStorage.getItem('_last_email');
-      if (!lastEmail) return;
-      const emailInput = document.getElementById('auth-email');
-      if (emailInput && !emailInput.value) {
-        emailInput.value = lastEmail;
-        const hint = document.getElementById('auth-last-session-hint');
-        if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
-        setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
-      }
-    } catch(e) {}
-  }
-
-  // Persistencia LOCAL: la sesion sobrevive al cerrar el navegador
-  setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Auth] persistence error', e));
-
+  // ── Estado de autenticacion ──
   onAuthStateChanged(auth, user => {
     document.getElementById('loading-screen').style.display = 'none';
     authSetLoading(false);
-
     if (user) {
-      if (!_tabIsAllowed()) {
-        // Pestana nueva que heredo sesion de otra -> mostrar login
-        _currentUid = null;
-        window._fbReady = false;
-        _mostrarLogin();
+      if (!_ss.get()) {
+        // Pestana nueva que heredo sesion de Firebase -> forzar login
+        _currentUid = null; window._fbReady = false;
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('app-root').style.display   = 'none';
         return;
       }
-      // Sesion valida en esta pestana
       const prevUid = localStorage.getItem('_app_uid');
       if (prevUid && prevUid !== user.uid) {
-        ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
-         'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
-         'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
+        ['rutina_surf_cargas_v1', 'rutina_tareas_v1', 'mi_calendario_v1',
+         'mi_lista_compra_v1', 'ob_perfil_v1', 'cal_tipos_v1',
+         'plan_ia_entreno', 'plan_ia_nutri', 'cal_reminders_v1']
         .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
       }
       localStorage.setItem('_app_uid', user.uid);
@@ -8967,9 +8931,21 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
         if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
       }, 400);
     } else {
-      _currentUid = null;
-      window._fbReady = false;
-      _mostrarLogin();
+      _currentUid = null; window._fbReady = false;
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('app-root').style.display   = 'none';
+      try {
+        const lastEmail = localStorage.getItem('_last_email');
+        if (lastEmail) {
+          const emailInput = document.getElementById('auth-email');
+          if (emailInput && !emailInput.value) {
+            emailInput.value = lastEmail;
+            const hint = document.getElementById('auth-last-session-hint');
+            if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
+            setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
+          }
+        }
+      } catch(e) {}
     }
   });
 
