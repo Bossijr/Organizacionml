@@ -944,6 +944,8 @@
   /* MES */
   .cal-mes-wrap { background: var(--surface2); border: 1.5px solid var(--card-border); border-radius: 10px; overflow: hidden; margin-bottom: 1.2rem; }
   .cal-mes-wrap *, .cal-semana-wrap *, .cal-dia-wrap *, .cal-event-panel * { user-select: none !important; -webkit-user-select: none !important; }
+  /* Necesario para que dragstart funcione: -webkit-user-drag activa el drag nativo en Safari/Chrome */
+  .cal-event-item[data-evid] { -webkit-user-drag: element !important; }
 
   /* ── TRANSICIONES DE VISTA CALENDARIO ── */
   #cal-view-mes,
@@ -10939,57 +10941,66 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════ DRAG & DROP EVENTOS CALENDARIO ══════════════════════════════
 (function() {
 
-  // Estado del drag
   var dragEvId    = null;
   var dragFromKey = null;
-  var dropBlocked = false; // impide que el onclick de la celda navegue tras un drop
+  var dropBlocked = false;
 
-  // Estilos
+  // CSS: activar drag nativo y highlight
   var styleEl = document.createElement('style');
-  styleEl.textContent =
-    '.cal-drag-hl { background: rgba(0,113,227,.15) !important; outline: 2px dashed #0071e3 !important; }\n' +
-    '.cal-event-item[data-evid] { cursor: grab; }\n';
+  styleEl.textContent = [
+    '.cal-drag-hl { background: rgba(0,113,227,.15) !important; outline: 2px dashed #0071e3 !important; }',
+    '.cal-event-item[data-evid] { -webkit-user-drag: element !important; cursor: grab !important; }',
+  ].join('\n');
   document.head.appendChild(styleEl);
 
   function removeHL() {
     document.querySelectorAll('.cal-drag-hl').forEach(function(el){ el.classList.remove('cal-drag-hl'); });
   }
 
-  // Extrae key y hora del atributo onclick de una celda
   function cellInfo(cell) {
     var oc = cell.getAttribute('onclick') || '';
     var key = null, hora = null, m;
-    m = oc.match(/selectCalDay\('([^']+)'\)/);       if (m) key = m[1];
-    m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/); if (m) { key = m[1]; hora = m[2]; }
-    m = oc.match(/selectCalDayAndSwitch\('([^']+)'\)/); if (m) key = m[1];
+    m = oc.match(/selectCalDay\('([^']+)'\)/);                    if (m) key = m[1];
+    m = oc.match(/selectCalDayAndSwitch\('([^']+)'\)/);           if (m) key = m[1];
+    m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);  if (m) { key = m[1]; hora = m[2]; }
     return { key: key, hora: hora };
   }
 
-  // Selector de celdas destino
   var DROP_SEL = '.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell';
 
-  // ── Hacer items arrastrables con MutationObserver ──
-  // Se ejecuta automáticamente cada vez que renderCal / renderCalPanel añade elementos
-  var mo = new MutationObserver(function() {
-    document.querySelectorAll('.cal-event-item[data-evid]:not([draggable])').forEach(function(item) {
-      item.setAttribute('draggable', 'true');
+  // Parche a renderCalPanel y renderCal para hacer items arrastrables tras cada render
+  function patchRenders() {
+    function makeItemsDraggable() {
+      document.querySelectorAll('.cal-event-item[data-evid]').forEach(function(item) {
+        item.setAttribute('draggable', 'true');
+      });
+    }
+    ['renderCalPanel', 'renderCal', 'renderCalMes', 'renderCalSemana', 'renderCalDia'].forEach(function(fn) {
+      if (typeof window[fn] !== 'function') return;
+      var orig = window[fn];
+      window[fn] = function() {
+        orig.apply(this, arguments);
+        setTimeout(makeItemsDraggable, 30);
+      };
     });
-  });
-  mo.observe(document.body, { childList: true, subtree: true });
+    setTimeout(makeItemsDraggable, 200);
+  }
 
-  // ── Parchear selectCalDay y selectCalDayAndSwitch para que no cambien de vista
-  //    mientras hay un drag activo ──
+  // Bloquear selectCalDay/Switch durante drops
+  function patchSelectors() {
+    ['selectCalDay', 'selectCalDayAndSwitch'].forEach(function(fn) {
+      if (typeof window[fn] !== 'function') return;
+      var orig = window[fn];
+      window[fn] = function(key) {
+        if (dropBlocked) { dropBlocked = false; return; }
+        orig.apply(this, arguments);
+      };
+    });
+  }
+
   window.addEventListener('load', function() {
-    var _selectCalDay = window.selectCalDay;
-    window.selectCalDay = function(key) {
-      if (dropBlocked) { dropBlocked = false; return; }
-      _selectCalDay && _selectCalDay(key);
-    };
-    var _selectCalDayAndSwitch = window.selectCalDayAndSwitch;
-    window.selectCalDayAndSwitch = function(key) {
-      if (dropBlocked) { dropBlocked = false; return; }
-      _selectCalDayAndSwitch && _selectCalDayAndSwitch(key);
-    };
+    patchRenders();
+    patchSelectors();
   });
 
   function doMove(toKey, toHora) {
@@ -10998,10 +11009,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!arr) return false;
     var idx = arr.findIndex(function(ev){ return ev.id === dragEvId; });
     if (idx === -1) return false;
-
-    var sameDay  = toKey === dragFromKey;
-    var sameHora = !toHora || arr[idx].hora === toHora;
-    if (sameDay && sameHora) return false;
+    if (toKey === dragFromKey && (!toHora || arr[idx].hora === toHora)) return false;
 
     var ev = Object.assign({}, arr[idx]);
     if (toHora) ev.hora = toHora;
@@ -11018,7 +11026,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
-  // ── DESKTOP: delegación en document ──
+  // ── DESKTOP drag & drop (delegado en document con capture) ──
 
   document.addEventListener('dragstart', function(e) {
     var item = e.target.closest('.cal-event-item[data-evid]');
@@ -11027,7 +11035,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dragFromKey = item.dataset.fromkey;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', String(dragEvId));
-    setTimeout(function(){ item.style.opacity = '0.4'; }, 0);
+    setTimeout(function(){ if (item) item.style.opacity = '0.4'; }, 0);
   }, true);
 
   document.addEventListener('dragend', function(e) {
@@ -11061,13 +11069,13 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     var ci = cellInfo(cell);
     if (!ci.key) return;
-    dropBlocked = true; // bloquea el onclick que dispara selectCalDay
+    dropBlocked = true;
     var moved = doMove(ci.key, ci.hora);
     if (!moved) dropBlocked = false;
     dragEvId = null; dragFromKey = null;
-  }, true); // captura para ir antes que el onclick inline
+  }, true);
 
-  // ── MÓVIL: long-press + touch drag delegado ──
+  // ── MÓVIL: long-press ──
 
   var td = null;
 
@@ -11077,8 +11085,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var t = e.touches[0];
     td = {
       evId: Number(item.dataset.evid), fromKey: item.dataset.fromkey,
-      el: item, sx: t.clientX, sy: t.clientY,
-      ghost: null, active: false,
+      el: item, sx: t.clientX, sy: t.clientY, ghost: null, active: false,
       timer: setTimeout(function() {
         if (!td) return;
         td.active = true;
@@ -11112,10 +11119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var el = document.elementFromPoint(t.clientX, t.clientY);
     if (td.ghost) td.ghost.style.display = '';
     removeHL();
-    if (el) {
-      var c = el.closest(DROP_SEL);
-      if (c) c.classList.add('cal-drag-hl');
-    }
+    if (el) { var c = el.closest(DROP_SEL); if (c) c.classList.add('cal-drag-hl'); }
   }, { passive: false });
 
   function touchEnd(e) {
@@ -11132,8 +11136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cell) {
           var ci = cellInfo(cell);
           if (ci.key) {
-            dragEvId    = td.evId;
-            dragFromKey = td.fromKey;
+            dragEvId = td.evId; dragFromKey = td.fromKey;
             dropBlocked = true;
             var moved = doMove(ci.key, ci.hora);
             if (!moved) dropBlocked = false;
