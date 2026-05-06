@@ -8842,21 +8842,42 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   window._authLogin = async (email, pw) => {
     authSetError(''); authSetLoading(true);
     _tabSet(); // marcar esta pestana antes del await
+
+    // Timeout de seguridad: si Firebase no responde en 12s, liberar el botón
+    const loginTimeout = setTimeout(() => {
+      _tabDel();
+      authSetLoading(false);
+      authSetError('No se pudo conectar. Comprueba tu conexión a internet o desactiva el bloqueador de anuncios e inténtalo de nuevo.');
+    }, 12000);
+
     try {
       await signInWithEmailAndPassword(auth, email, pw);
+      clearTimeout(loginTimeout);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
       // authSetLoading(false) lo hara onAuthStateChanged
     }
-    catch(e) { _tabDel(); authSetLoading(false); authSetError(traducirError(e.code)); }
+    catch(e) {
+      clearTimeout(loginTimeout);
+      _tabDel(); authSetLoading(false); authSetError(traducirError(e.code));
+    }
   };
   window._authRegistrar = async (nombre, email, pw) => {
     authSetError(''); authSetLoading(true);
     _tabSet();
+
+    const registerTimeout = setTimeout(() => {
+      _tabDel();
+      authSetLoading(false);
+      authSetError('No se pudo conectar. Comprueba tu conexión a internet o desactiva el bloqueador de anuncios e inténtalo de nuevo.');
+    }, 12000);
+
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      clearTimeout(registerTimeout);
       await updateProfile(cred.user, { displayName: nombre });
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
+      clearTimeout(registerTimeout);
       _tabDel(); authSetLoading(false);
       if (e.code === 'auth/email-already-in-use') {
         authSwitchTab('login');
@@ -8893,6 +8914,8 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       'auth/wrong-password': 'Contraseña incorrecta.',
       'auth/invalid-credential': 'Correo o contraseña incorrectos.',
       'auth/too-many-requests': 'Demasiados intentos. Inténtalo más tarde.',
+      'auth/network-request-failed': 'Sin conexión. Comprueba tu red o desactiva el bloqueador de anuncios.',
+      'auth/user-disabled': 'Esta cuenta ha sido desactivada.',
     };
     return map[code] || 'Error: ' + code;
   }
