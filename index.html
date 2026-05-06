@@ -8927,53 +8927,72 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     } catch(e) {}
   }
 
-  // Configurar persistencia LOCAL (sesion sobrevive al cerrar navegador)
-  // y registrar el listener DENTRO del then para garantizar el orden correcto.
-  setPersistence(auth, browserLocalPersistence)
-    .catch(e => console.warn('[Auth] persistence error', e))
-    .finally(() => {
-      onAuthStateChanged(auth, user => {
-        document.getElementById('loading-screen').style.display = 'none';
-        authSetLoading(false); // siempre desbloquear el boton
+  // Persistencia LOCAL: sesion sobrevive a cerrar el navegador
+  setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Auth] persistence error', e));
 
-        if (user) {
-          // Si esta pestana esta en proceso de login, o ya tiene este uid guardado -> entrar
-          if (!_loginInProgress && _tabGet() !== user.uid) {
-            // Firebase tiene sesion de otra pestana -> pedir login
-            _currentUid = null;
-            window._fbReady = false;
-            _mostrarLogin();
-            return;
-          }
-          // Guardar uid de esta pestana (por si _loginInProgress llego primero)
-          _tabSet(user.uid);
-          // Esta pestana inicio la sesion -> entrar
-          const prevUid = localStorage.getItem('_app_uid');
-          if (prevUid && prevUid !== user.uid) {
-            ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
-             'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
-             'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
-            .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
-          }
-          localStorage.setItem('_app_uid', user.uid);
-          _currentUid = user.uid;
-          const n = document.getElementById('portada-user-name');
-          if (n) n.textContent = user.displayName || user.email.split('@')[0];
-          document.getElementById('auth-screen').style.display = 'none';
-          document.getElementById('app-root').style.display   = 'block';
-          window._fbReady = true;
-          window.dispatchEvent(new Event('firebase-ready'));
-          setTimeout(() => {
-            if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
-          }, 400);
-        } else {
-          _tabClear();
-          _currentUid = null;
-          window._fbReady = false;
-          _mostrarLogin();
-        }
-      });
-    });
+  // Al cargar la pagina, si hay una sesion guardada en localStorage de una visita anterior
+  // de ESTA misma pestana (recarga/navegacion), restaurar el uid en sessionStorage
+  // para que el usuario no tenga que volver a iniciar sesion.
+  // Nota: sessionStorage persiste durante recargas de la misma pestana pero NO
+  // se copia a pestanas nuevas (abiertas con Ctrl+T o desde otro sitio).
+  (function restoreTabSession() {
+    try {
+      if (_tabGet()) return; // ya tiene uid en esta pestana
+      // Solo restaurar si venimos de una recarga/navegacion interna (no pestaña nueva)
+      // performance.navigation.type: 0=navegar, 1=recargar, 2=historial
+      // En pestañas nuevas, document.referrer esta vacio Y type es 0
+      const nav = performance && performance.navigation;
+      const isReload = nav && (nav.type === 1 || nav.type === 2);
+      const hasReferrer = document.referrer !== '';
+      if (isReload || hasReferrer) {
+        const savedUid = localStorage.getItem('_app_uid');
+        if (savedUid) _tabSet(savedUid);
+      }
+    } catch(e) {}
+  })();
+
+  // Estado de autenticacion
+  onAuthStateChanged(auth, user => {
+    document.getElementById('loading-screen').style.display = 'none';
+    authSetLoading(false);
+
+    if (user) {
+      // AISLAMIENTO DE PESTANAS:
+      // Si esta pestana acaba de hacer login (_loginInProgress) o ya tiene el uid guardado -> OK
+      // Si no, es una pestana nueva que heredo la sesion de otra -> mostrar login
+      if (!_loginInProgress && _tabGet() !== user.uid) {
+        _currentUid = null;
+        window._fbReady = false;
+        _mostrarLogin();
+        return;
+      }
+      _tabSet(user.uid);
+
+      const prevUid = localStorage.getItem('_app_uid');
+      if (prevUid && prevUid !== user.uid) {
+        ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
+         'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
+         'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
+        .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+      }
+      localStorage.setItem('_app_uid', user.uid);
+      _currentUid = user.uid;
+      const n = document.getElementById('portada-user-name');
+      if (n) n.textContent = user.displayName || user.email.split('@')[0];
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app-root').style.display   = 'block';
+      window._fbReady = true;
+      window.dispatchEvent(new Event('firebase-ready'));
+      setTimeout(() => {
+        if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
+      }, 400);
+    } else {
+      _tabClear();
+      _currentUid = null;
+      window._fbReady = false;
+      _mostrarLogin();
+    }
+  });
 
   // ── FCM ──
   const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
