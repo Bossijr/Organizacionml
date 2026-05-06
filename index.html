@@ -4581,12 +4581,12 @@ function renderCalSemana() {
   });
   document.getElementById('cal-semana-header').innerHTML = hdr;
 
-  // Body — horas 6–23
+  // Body — horas 0–23
   // Leer altura real de celda tras renderizar (fallback 44px)
   document.getElementById('cal-semana-body').innerHTML = '';
-  const CELL_H_SEM = Math.max(20, Math.round((window.innerHeight - 260) / 18));
+  const CELL_H_SEM = Math.max(20, Math.round((window.innerHeight - 260) / 24));
   let body = '';
-  for (let h = 6; h <= 23; h++) {
+  for (let h = 0; h <= 23; h++) {
     body += `<div class="cal-hour-label"><span>${h}:00</span></div>`;
     cols.forEach(d => {
       const key = dateKey(d);
@@ -4632,7 +4632,7 @@ function renderCalDia() {
 
   let html = '';
   const CELL_H_DIA = 48; // px por hora (min-height .cal-dia-hour-cell)
-  for (let h = 6; h <= 23; h++) {
+  for (let h = 0; h <= 23; h++) {
     const evts = getEventsFor(key).filter(e => !e.allday && e.hora && parseInt(e.hora.split(':')[0]) === h);
     const evHtml = evts.map(e => {
       const minOffset = e.hora ? parseInt(e.hora.split(':')[1] || 0) : 0;
