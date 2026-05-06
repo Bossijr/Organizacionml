@@ -1051,7 +1051,7 @@
   .cal-event-time:focus { border-color: var(--gold); background: var(--surface2); }
   .cal-event-pri { font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 0.45rem 0.5rem; border: 1.5px solid var(--card-border); border-radius: 6px; background: var(--surface); color: var(--ink); outline: none; cursor: pointer; }
   .cal-event-list { display: flex; flex-direction: column; gap: 0.4rem; }
-  .cal-event-item { display: flex; align-items: center; gap: 0.5rem; border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.85rem; color: var(--ink); border-left: 3px solid var(--ocean); background: rgba(0,0,0,0.05); }
+  .cal-event-item { display: flex; align-items: center; gap: 0.5rem; border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.85rem; color: var(--ink); border-left: 3px solid var(--ocean); background: rgba(0,0,0,0.05); user-select: none; -webkit-user-select: none; cursor: grab; }
   .cal-event-item.cumple    { border-color: #db2777; background: #fdf2f8; }
   .cal-event-item.examen    { border-color: #7c3aed; background: #f5f3ff; }
   .cal-event-item.evento    { border-color: var(--amber); background: rgba(0,113,227,0.06); }
@@ -11063,6 +11063,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const evId    = Number(item.dataset.evid);
     const fromKey = item.dataset.fromkey;
     if (!evId || !fromKey) return;
+    e.preventDefault();
     drag = { evId, fromKey, sourceEl:item, ghost:null, active:false,
               startX:e.clientX, startY:e.clientY, timer:null };
   });
