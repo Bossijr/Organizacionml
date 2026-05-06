@@ -8807,22 +8807,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const auth = getAuth(app);
   let _currentUid = null;
 
-  // DEBUG: log visible en pantalla
-  function _dbg(msg) {
-    let el = document.getElementById('_debug_log');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = '_debug_log';
-      el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:999999;background:rgba(0,0,0,0.85);color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;max-height:180px;overflow-y:auto';
-      document.body.appendChild(el);
-    }
-    const line = document.createElement('div');
-    line.textContent = new Date().toISOString().slice(11,23) + ' ' + msg;
-    el.appendChild(line);
-    el.scrollTop = el.scrollHeight;
-    console.log('[DBG]', msg);
-  }
-
   // ── Helpers Firestore (por usuario) ──
   window._fbSet = async (col, id, data) => {
     if (!_currentUid) return;
@@ -8843,28 +8827,34 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }, err => console.warn('[FB] listen error', err));
   };
 
-  // ── Auth functions ──
+  // Tab isolation helpers - sessionStorage no se comparte entre pestanas nuevas
+  const _tabOk  = () => { try { return sessionStorage.getItem('_t1') === '1'; } catch(e) { return true; } };
+  const _tabSet = () => { try { sessionStorage.setItem('_t1', '1'); } catch(e) {} };
+  const _tabDel = () => { try { sessionStorage.removeItem('_t1'); } catch(e) {} };
+
+  // Auth functions
   window._authLogin = async (email, pw) => {
-    _dbg('_authLogin START');
     authSetError(''); authSetLoading(true);
+    _tabSet();
     try {
-      _dbg('calling signInWithEmailAndPassword...');
       await signInWithEmailAndPassword(auth, email, pw);
-      _dbg('signIn resolved OK');
+      // Si Firebase no dispara onAuthStateChanged (sesion ya activa), desbloquear boton
+      authSetLoading(false);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     }
-    catch(e) { _dbg('signIn ERROR: ' + e.code); authSetLoading(false); authSetError(traducirError(e.code)); }
+    catch(e) { _tabDel(); authSetLoading(false); authSetError(traducirError(e.code)); }
   };
   window._authRegistrar = async (nombre, email, pw) => {
     authSetError(''); authSetLoading(true);
+    _tabSet();
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
+      authSetLoading(false);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
-      authSetLoading(false);
+      _tabDel(); authSetLoading(false);
       if (e.code === 'auth/email-already-in-use') {
-        // Cambiar al tab de login automáticamente
         authSwitchTab('login');
         authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
       } else {
@@ -8873,6 +8863,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }
   };
   window._authLogout = async () => {
+    _tabDel();
     await signOut(auth);
     if (typeof goPortada === 'function') goPortada();
   };
@@ -8902,40 +8893,49 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     return map[code] || 'Error: ' + code;
   }
 
-  // ── Estado de autenticación ──
-  _dbg('registering onAuthStateChanged');
+  // Estado de autenticacion
   onAuthStateChanged(auth, user => {
-    _dbg('onAuthStateChanged fired, user=' + (user ? user.uid.slice(0,8) : 'null'));
     document.getElementById('loading-screen').style.display = 'none';
+    authSetLoading(false);
     if (user) {
-      _dbg('user OK, hiding auth-screen, showing app-root');
-      // Si cambió de cuenta, limpiar localStorage para no mezclar datos
+      // Pestana nueva (sin _t1 en sessionStorage) -> mostrar login
+      if (!_tabOk()) {
+        _currentUid = null; window._fbReady = false;
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('app-root').style.display   = 'none';
+        try {
+          const lastEmail = localStorage.getItem('_last_email');
+          if (lastEmail) {
+            const ei = document.getElementById('auth-email');
+            if (ei && !ei.value) {
+              ei.value = lastEmail;
+              const hint = document.getElementById('auth-last-session-hint');
+              if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
+            }
+          }
+        } catch(e) {}
+        return;
+      }
       const prevUid = localStorage.getItem('_app_uid');
       if (prevUid && prevUid !== user.uid) {
-        const keysToClean = [
-          'rutina_surf_cargas_v1', 'rutina_tareas_v1', 'mi_calendario_v1',
-          'mi_lista_compra_v1', 'ob_perfil_v1', 'cal_tipos_v1',
-          'plan_ia_entreno', 'plan_ia_nutri', 'cal_reminders_v1'
-        ];
-        keysToClean.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+        ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
+         'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
+         'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
+        .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
       }
       localStorage.setItem('_app_uid', user.uid);
-
       _currentUid = user.uid;
       const n = document.getElementById('portada-user-name');
       if (n) n.textContent = user.displayName || user.email.split('@')[0];
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('app-root').style.display   = 'block';
-      _dbg('app-root shown, dispatching firebase-ready');
       window._fbReady = true;
       window.dispatchEvent(new Event('firebase-ready'));
       setTimeout(() => {
-        _dbg('calling _checkOnboarding, ob_perfil_v1=' + localStorage.getItem('ob_perfil_v1'));
         if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
       }, 400);
     } else {
-      _currentUid = null;
-      window._fbReady = false;
+      _currentUid = null; window._fbReady = false;
       document.getElementById('auth-screen').style.display = 'flex';
       document.getElementById('app-root').style.display   = 'none';
       try {
@@ -10514,9 +10514,6 @@ let obStep = 0;
 let obAnswers = {};
 
 function obInit() {
-  console.log('[DBG] obInit called - showing onboarding');
-  let el = document.getElementById('_debug_log');
-  if (el) { const d = document.createElement('div'); d.textContent = new Date().toISOString().slice(11,23) + ' obInit called!'; el.appendChild(d); }
   obStep = 0;
   obAnswers = {};
   obRender();
