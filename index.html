@@ -10932,5 +10932,264 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
+<script>
+// ══════════════════════════════ DRAG & DROP EVENTOS CALENDARIO ══════════════════════════════
+(function() {
+  // Estado del drag
+  let dragState = null;
+  // { evId, fromKey, ghost, startX, startY, longPressTimer, dragging }
+
+  // ── Crear ghost visual ──
+  function createGhost(sourceEl, x, y) {
+    const ghost = document.createElement('div');
+    ghost.style.cssText = `
+      position: fixed; z-index: 99999; pointer-events: none;
+      background: var(--ocean); color: white; border-radius: 10px;
+      padding: 8px 14px; font-size: 0.82rem; font-family: 'Inter', sans-serif;
+      box-shadow: 0 8px 32px rgba(0,113,227,0.35), 0 2px 8px rgba(0,0,0,0.18);
+      opacity: 0.92; max-width: 200px; white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; transform: translate(-50%, -120%) scale(1.08);
+      transition: transform 0.1s; font-weight: 500;
+    `;
+    const timeEl = sourceEl.querySelector('.ev-time');
+    const textEl = sourceEl.querySelector('span[style*="flex:1"]') || sourceEl.querySelector('span[style]');
+    const time = timeEl ? timeEl.textContent.trim() : '';
+    // Get just the event name (sin badges)
+    let textContent = '';
+    if (textEl) {
+      // Clone and remove badges
+      const clone = textEl.cloneNode(true);
+      clone.querySelectorAll('span').forEach(s => s.remove());
+      textContent = clone.textContent.trim();
+    }
+    ghost.textContent = (time && time !== '·' ? time + ' ' : '') + textContent;
+    document.body.appendChild(ghost);
+    moveGhost(ghost, x, y);
+    return ghost;
+  }
+
+  function moveGhost(ghost, x, y) {
+    ghost.style.left = x + 'px';
+    ghost.style.top  = y + 'px';
+  }
+
+  // ── Obtener target drop bajo el punto ──
+  function getDropTarget(x, y) {
+    const ghost = dragState && dragState.ghost;
+    if (ghost) ghost.style.pointerEvents = 'none'; // ya está none, pero por si acaso
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+
+    // Vista MES → cal-cell
+    const cell = el.closest('.cal-cell');
+    if (cell && !cell.classList.contains('empty')) {
+      return { type: 'cell', el: cell };
+    }
+    // Vista SEMANA → cal-hour-cell
+    const hourCell = el.closest('.cal-hour-cell');
+    if (hourCell) {
+      return { type: 'hourCell', el: hourCell };
+    }
+    // Vista DÍA → cal-dia-hour-cell
+    const diaCell = el.closest('.cal-dia-hour-cell');
+    if (diaCell) {
+      return { type: 'diaCell', el: diaCell };
+    }
+    return null;
+  }
+
+  // ── Highlight drop target ──
+  let lastHighlight = null;
+  function highlightTarget(target) {
+    if (lastHighlight) {
+      lastHighlight.style.background = '';
+      lastHighlight.style.outline = '';
+    }
+    if (target) {
+      lastHighlight = target.el;
+      target.el.style.background = 'rgba(0,113,227,0.13)';
+      target.el.style.outline = '2px solid var(--ocean)';
+    } else {
+      lastHighlight = null;
+    }
+  }
+
+  // ── Mover evento en calEventsDB ──
+  function moveEvent(evId, fromKey, newKey, newHora) {
+    if (!calEventsDB[fromKey]) return;
+    const idx = calEventsDB[fromKey].findIndex(e => e.id === evId);
+    if (idx === -1) return;
+    const ev = { ...calEventsDB[fromKey][idx] };
+
+    // Actualizar hora si se soltó en slot de hora
+    if (newHora !== undefined) ev.hora = newHora;
+
+    // Quitar del origen
+    calEventsDB[fromKey].splice(idx, 1);
+    if (!calEventsDB[fromKey].length) delete calEventsDB[fromKey];
+
+    // Añadir al destino
+    if (!calEventsDB[newKey]) calEventsDB[newKey] = [];
+    calEventsDB[newKey].push(ev);
+
+    // Actualizar vista
+    calSelectedKey = newKey;
+    const [ny, nm] = newKey.split('-').map(Number);
+    calYear = ny; calMonth = nm - 1;
+
+    saveCal(); renderCal(); renderCalPanel();
+    mostrarToast(`Evento movido al ${newKey}${newHora ? ' · ' + newHora : ''}`);
+  }
+
+  // ── Extraer key y hora de un drop target ──
+  function extractKeyHora(target) {
+    if (!target) return null;
+
+    if (target.type === 'cell') {
+      // Cal mes: onclick="selectCalDay('YYYY-MM-DD')"
+      const onclick = target.el.getAttribute('onclick') || '';
+      const m = onclick.match(/selectCalDay\('([^']+)'\)/);
+      if (m) return { key: m[1], hora: undefined };
+    }
+
+    if (target.type === 'hourCell') {
+      // Cal semana: onclick="selectCalDayAndTime('YYYY-MM-DD','HH:00')"
+      const onclick = target.el.getAttribute('onclick') || '';
+      const m = onclick.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);
+      if (m) return { key: m[1], hora: m[2] };
+    }
+
+    if (target.type === 'diaCell') {
+      // Cal día: onclick="selectCalDayAndTime('YYYY-MM-DD','HH:00')"
+      const onclick = target.el.getAttribute('onclick') || '';
+      const m = onclick.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);
+      if (m) return { key: m[1], hora: m[2] };
+    }
+
+    return null;
+  }
+
+  // ── Limpiar estado drag ──
+  function cleanup() {
+    if (!dragState) return;
+    clearTimeout(dragState.longPressTimer);
+    if (dragState.ghost) dragState.ghost.remove();
+    if (dragState.sourceEl) {
+      dragState.sourceEl.style.opacity = '';
+      dragState.sourceEl.style.transform = '';
+    }
+    highlightTarget(null);
+    dragState = null;
+  }
+
+  // ── Vibrar si disponible ──
+  function vibrate(ms) {
+    try { navigator.vibrate && navigator.vibrate(ms); } catch(e) {}
+  }
+
+  // ── Delegación de eventos en el panel de eventos ──
+  document.addEventListener('touchstart', function(e) {
+    const item = e.target.closest('.cal-event-item');
+    if (!item) return;
+    // Solo si no es readonly
+    if (item.querySelector('[data-readonly]')) return;
+
+    const touch = e.touches[0];
+    const startX = touch.clientX;
+    const startY = touch.clientY;
+
+    // Obtener evId y fromKey
+    // El botón de editar tiene onclick="openEditModal(i)" — usaremos data del DOM
+    // Buscar el id del evento desde el onclick del botón borrar: deleteCalEvent(i)
+    // Mejor: buscar en calEventsDB por texto y hora
+    const timeEl = item.querySelector('.ev-time');
+    const hora = timeEl ? timeEl.textContent.trim() : '';
+
+    // Clonar el item para obtener texto limpio
+    const cloneItem = item.cloneNode(true);
+    cloneItem.querySelectorAll('button, .ev-type-badge, .ev-time, .ev-repeat, .ev-duration, .ev-allday').forEach(n => n.remove());
+    const texto = cloneItem.textContent.trim();
+
+    // Encontrar el evento en calEventsDB
+    let evId = null, fromKey = null;
+    for (const [k, evts] of Object.entries(calEventsDB)) {
+      for (const ev of evts) {
+        if (ev.text && texto.startsWith(ev.text) && (hora === '·' || !hora || ev.hora === hora || hora === '—')) {
+          evId = ev.id; fromKey = k; break;
+        }
+        // fallback: solo por texto
+        if (ev.text === texto) {
+          evId = ev.id; fromKey = k; break;
+        }
+      }
+      if (evId) break;
+    }
+
+    if (!evId) return;
+
+    dragState = {
+      evId, fromKey,
+      sourceEl: item,
+      ghost: null,
+      startX, startY,
+      dragging: false,
+      longPressTimer: setTimeout(() => {
+        vibrate(40);
+        dragState.dragging = true;
+        dragState.ghost = createGhost(item, startX, startY);
+        item.style.opacity = '0.4';
+        item.style.transform = 'scale(0.97)';
+      }, 450)
+    };
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!dragState || !dragState.dragging) {
+      // Si se mueve antes del long press, cancelar
+      if (dragState) {
+        const t = e.touches[0];
+        const dx = Math.abs(t.clientX - dragState.startX);
+        const dy = Math.abs(t.clientY - dragState.startY);
+        if (dx > 8 || dy > 8) cleanup();
+      }
+      return;
+    }
+    e.preventDefault();
+    const touch = e.touches[0];
+    moveGhost(dragState.ghost, touch.clientX, touch.clientY);
+    const target = getDropTarget(touch.clientX, touch.clientY);
+    highlightTarget(target);
+  }, { passive: false });
+
+  document.addEventListener('touchend', function(e) {
+    if (!dragState) return;
+    if (!dragState.dragging) { cleanup(); return; }
+
+    const touch = e.changedTouches[0];
+    const target = getDropTarget(touch.clientX, touch.clientY);
+    const info = extractKeyHora(target);
+
+    if (info && info.key !== dragState.fromKey) {
+      vibrate([20, 30, 20]);
+      moveEvent(dragState.evId, dragState.fromKey, info.key, info.hora);
+    } else if (info && info.hora && info.key === dragState.fromKey) {
+      // Mismo día pero diferente hora
+      const ev = (calEventsDB[dragState.fromKey] || []).find(e => e.id === dragState.evId);
+      if (ev && ev.hora !== info.hora) {
+        vibrate([20, 30, 20]);
+        ev.hora = info.hora;
+        saveCal(); renderCal(); renderCalPanel();
+        mostrarToast(`Evento movido a las ${info.hora}`);
+      }
+    }
+
+    cleanup();
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', cleanup, { passive: true });
+
+})();
+</script>
 </body>
 </html>
