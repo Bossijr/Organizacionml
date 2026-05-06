@@ -8828,20 +8828,30 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   };
 
   // ── Aislamiento por pestana ──
-  // sessionStorage es exclusivo por pestana (no se comparte al abrir una nueva).
-  const _SK = '_tab_uid';
-  const _tabGet   = () => { try { return sessionStorage.getItem(_SK); } catch(e) { return null; } };
-  const _tabSet   = v  => { try { sessionStorage.setItem(_SK, v);     } catch(e) {} };
-  const _tabClear = () => { try { sessionStorage.removeItem(_SK);      } catch(e) {} };
+  // sessionStorage es unico por pestana: si abres Ctrl+T estara vacio.
+  // localStorage persiste entre pestanas y recargas.
+  // La clave: al abrir una pestana NUEVA, sessionStorage['_tab_ok'] es undefined.
+  // Al hacer login o al recargar la misma pestana, se setea a '1'.
+  function _tabIsAllowed() {
+    try { return sessionStorage.getItem('_tab_ok') === '1'; } catch(e) { return true; }
+  }
+  function _tabAllow() {
+    try { sessionStorage.setItem('_tab_ok', '1'); } catch(e) {}
+  }
+  function _tabDeny() {
+    try { sessionStorage.removeItem('_tab_ok'); } catch(e) {}
+  }
 
-  // Flag en memoria para resolver la race condition:
-  // onAuthStateChanged se dispara ANTES de que el await de signIn retorne,
-  // asi que no podemos usar _tabSet despues del await. Usamos este flag
-  // que se setea sincronamente justo antes de llamar a Firebase.
-  let _loginInProgress = false;
+  // Si es una recarga (no pestaña nueva), restaurar permiso automaticamente
+  try {
+    const nav = performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    const type = nav ? nav.type : (performance.navigation ? ['navigate','reload','back_forward'][performance.navigation.type] : 'navigate');
+    if (type === 'reload' || type === 'back_forward') {
+      _tabAllow();
+    }
+  } catch(e) {}
 
-  // ── authSetLoading expuesto en window para que lo use el script normal ──
-  // (los modulos ES tienen scope privado; sin esto el boton queda bloqueado)
+  // ── Auth functions ──
   window._authSetLoading = function(on) {
     const btn = document.getElementById('auth-submit-btn');
     if (!btn) return;
@@ -8849,7 +8859,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     const isLogin = document.getElementById('auth-tab-login').classList.contains('auth-tab-active');
     btn.textContent = on ? 'Cargando...' : (isLogin ? 'Entrar' : 'Crear cuenta');
   };
-
   function authSetLoading(on) { window._authSetLoading(on); }
 
   function authSetError(msg) {
@@ -8870,30 +8879,25 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     return map[code] || 'Error: ' + code;
   }
 
-  // ── Auth functions ──
   window._authLogin = async (email, pw) => {
     authSetError(''); authSetLoading(true);
     try {
-      _loginInProgress = true;
-      const cred = await signInWithEmailAndPassword(auth, email, pw);
-      _tabSet(cred.user.uid);
-      _loginInProgress = false;
+      _tabAllow(); // marcar ANTES del await para que onAuthStateChanged lo vea
+      await signInWithEmailAndPassword(auth, email, pw);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     }
-    catch(e) { _loginInProgress = false; authSetLoading(false); authSetError(traducirError(e.code)); }
+    catch(e) { _tabDeny(); authSetLoading(false); authSetError(traducirError(e.code)); }
   };
+
   window._authRegistrar = async (nombre, email, pw) => {
     authSetError(''); authSetLoading(true);
     try {
-      _loginInProgress = true;
+      _tabAllow();
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
-      _tabSet(cred.user.uid);
-      _loginInProgress = false;
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
-      _loginInProgress = false;
-      authSetLoading(false);
+      _tabDeny(); authSetLoading(false);
       if (e.code === 'auth/email-already-in-use') {
         authSwitchTab('login');
         authSetError('Ese correo ya tiene cuenta. Introduce tu contraseña para entrar.');
@@ -8902,14 +8906,15 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       }
     }
   };
+
   window._authLogout = async () => {
-    _tabClear();
+    _tabDeny();
     await signOut(auth);
     if (typeof goPortada === 'function') goPortada();
   };
+
   window._sendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
 
-  // ── Estado de autenticacion ──
   function _mostrarLogin() {
     authSetLoading(false);
     document.getElementById('auth-screen').style.display = 'flex';
@@ -8927,47 +8932,22 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     } catch(e) {}
   }
 
-  // Persistencia LOCAL: sesion sobrevive a cerrar el navegador
+  // Persistencia LOCAL: la sesion sobrevive al cerrar el navegador
   setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Auth] persistence error', e));
 
-  // Al cargar la pagina, si hay una sesion guardada en localStorage de una visita anterior
-  // de ESTA misma pestana (recarga/navegacion), restaurar el uid en sessionStorage
-  // para que el usuario no tenga que volver a iniciar sesion.
-  // Nota: sessionStorage persiste durante recargas de la misma pestana pero NO
-  // se copia a pestanas nuevas (abiertas con Ctrl+T o desde otro sitio).
-  (function restoreTabSession() {
-    try {
-      if (_tabGet()) return; // ya tiene uid en esta pestana
-      // Solo restaurar si venimos de una recarga/navegacion interna (no pestaña nueva)
-      // performance.navigation.type: 0=navegar, 1=recargar, 2=historial
-      // En pestañas nuevas, document.referrer esta vacio Y type es 0
-      const nav = performance && performance.navigation;
-      const isReload = nav && (nav.type === 1 || nav.type === 2);
-      const hasReferrer = document.referrer !== '';
-      if (isReload || hasReferrer) {
-        const savedUid = localStorage.getItem('_app_uid');
-        if (savedUid) _tabSet(savedUid);
-      }
-    } catch(e) {}
-  })();
-
-  // Estado de autenticacion
   onAuthStateChanged(auth, user => {
     document.getElementById('loading-screen').style.display = 'none';
     authSetLoading(false);
 
     if (user) {
-      // AISLAMIENTO DE PESTANAS:
-      // Si esta pestana acaba de hacer login (_loginInProgress) o ya tiene el uid guardado -> OK
-      // Si no, es una pestana nueva que heredo la sesion de otra -> mostrar login
-      if (!_loginInProgress && _tabGet() !== user.uid) {
+      if (!_tabIsAllowed()) {
+        // Pestana nueva que heredo sesion de otra -> mostrar login
         _currentUid = null;
         window._fbReady = false;
         _mostrarLogin();
         return;
       }
-      _tabSet(user.uid);
-
+      // Sesion valida en esta pestana
       const prevUid = localStorage.getItem('_app_uid');
       if (prevUid && prevUid !== user.uid) {
         ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
@@ -8987,7 +8967,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
         if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
       }, 400);
     } else {
-      _tabClear();
       _currentUid = null;
       window._fbReady = false;
       _mostrarLogin();
