@@ -944,8 +944,6 @@
   /* MES */
   .cal-mes-wrap { background: var(--surface2); border: 1.5px solid var(--card-border); border-radius: 10px; overflow: hidden; margin-bottom: 1.2rem; }
   .cal-mes-wrap *, .cal-semana-wrap *, .cal-dia-wrap *, .cal-event-panel * { user-select: none !important; -webkit-user-select: none !important; }
-  /* Necesario para que dragstart funcione: -webkit-user-drag activa el drag nativo en Safari/Chrome */
-  .cal-event-item[data-evid] { -webkit-user-drag: element !important; }
 
   /* ── TRANSICIONES DE VISTA CALENDARIO ── */
   #cal-view-mes,
@@ -2484,6 +2482,11 @@
     .area-inner-wrap--wide {
     }
   }
+
+  /* ── DRAG & DROP GRID ── */
+  .cal-ev-mini[draggable], .cal-ev-block[draggable] { cursor: grab; -webkit-user-drag: element; }
+  .cal-ev-mini[draggable]:active, .cal-ev-block[draggable]:active { cursor: grabbing; opacity: 0.5; }
+  .cal-drag-hl { outline: 2px dashed #0071e3 !important; background: rgba(0,113,227,.13) !important; }
 </style>
 </head>
 <body>
@@ -4506,7 +4509,7 @@ function renderCalMes() {
     const evts = getEventsFor(key);
     const hasFestivoEv = evts.some(e => e.pri === 'festivoev');
     const festivoHtml = festivo ? `<div class="cal-festivo-label">${festivo}</div>` : '';
-    const evHtml = evts.slice(0,2).map(e => `<div class="cal-ev-mini ${e.pri!=='normal'?e.pri:''}">${e.hora?e.hora+' ':'' }${e.text}</div>`).join('');
+    const evHtml = evts.slice(0,2).map(e => `<div class="cal-ev-mini ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" draggable="true">${e.hora?e.hora+' ':'' }${e.text}</div>`).join('');
     html += `<div class="cal-cell${isToday?' today':''}${isSel?' selected':''}${(festivo||hasFestivoEv)?' festivo':''}" onclick="selectCalDay('${key}')">
       <div class="cal-num">${d}</div>${festivoHtml}${evHtml}</div>`;
   }
@@ -4548,7 +4551,7 @@ function renderCalSemana() {
       const key = dateKey(d);
       const isT = key === tk;
       const evts = getEventsFor(key).filter(e => e.hora && parseInt(e.hora.split(':')[0]) === h);
-      const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" onclick="event.stopPropagation();selectCalDay('${key}')">${e.hora} ${e.text}</div>`).join('');
+      const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" onclick="event.stopPropagation();selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${e.hora} ${e.text}</div>`).join('');
       body += `<div class="cal-hour-cell${isT?' today-col':''}" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
     });
   }
@@ -4585,7 +4588,7 @@ function renderCalDia() {
   let html = '';
   for (let h = 6; h <= 23; h++) {
     const evts = getEventsFor(key).filter(e => !e.allday && e.hora && parseInt(e.hora.split(':')[0]) === h);
-    const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" style="cursor:pointer" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`).join('');
+    const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" style="cursor:grab">${e.hora} — ${e.text}</div>`).join('');
     html += `<div class="cal-dia-hour-label"><span>${h}:00</span></div>
       <div class="cal-dia-hour-cell" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
   }
@@ -10936,118 +10939,93 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
-
 <script>
-// ══════════════════════════════ DRAG & DROP EVENTOS CALENDARIO ══════════════════════════════
-(function() {
+// ══════════════════════════════ DRAG & DROP CALENDARIO ══════════════════════════════
+(function () {
+  'use strict';
 
-  var dragEvId    = null;
-  var dragFromKey = null;
-  var dropBlocked = false;
-
-  // CSS: activar drag nativo y highlight
-  var styleEl = document.createElement('style');
-  styleEl.textContent = [
-    '.cal-drag-hl { background: rgba(0,113,227,.15) !important; outline: 2px dashed #0071e3 !important; }',
-    '.cal-event-item[data-evid] { -webkit-user-drag: element !important; cursor: grab !important; }',
-  ].join('\n');
-  document.head.appendChild(styleEl);
+  var DRAG = { evId: null, fromKey: null, fromHora: null };
 
   function removeHL() {
-    document.querySelectorAll('.cal-drag-hl').forEach(function(el){ el.classList.remove('cal-drag-hl'); });
+    document.querySelectorAll('.cal-drag-hl').forEach(function (el) { el.classList.remove('cal-drag-hl'); });
   }
 
+  // Obtener key y hora de una celda destino
   function cellInfo(cell) {
-    var oc = cell.getAttribute('onclick') || '';
+    var oc  = cell.getAttribute('onclick') || '';
     var key = null, hora = null, m;
-    m = oc.match(/selectCalDay\('([^']+)'\)/);                    if (m) key = m[1];
-    m = oc.match(/selectCalDayAndSwitch\('([^']+)'\)/);           if (m) key = m[1];
+    m = oc.match(/selectCalDay\('([^']+)'\)/);                   if (m) key = m[1];
+    m = oc.match(/selectCalDayAndSwitch\('([^']+)'\)/);          if (m) key = m[1];
     m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);  if (m) { key = m[1]; hora = m[2]; }
+    // data-key directo (celdas de semana/día pueden tenerlo)
+    if (!key && cell.dataset.key) key = cell.dataset.key;
     return { key: key, hora: hora };
   }
 
-  var DROP_SEL = '.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell';
-
-  // Parche a renderCalPanel y renderCal para hacer items arrastrables tras cada render
-  function patchRenders() {
-    function makeItemsDraggable() {
-      document.querySelectorAll('.cal-event-item[data-evid]').forEach(function(item) {
-        item.setAttribute('draggable', 'true');
-      });
-    }
-    ['renderCalPanel', 'renderCal', 'renderCalMes', 'renderCalSemana', 'renderCalDia'].forEach(function(fn) {
-      if (typeof window[fn] !== 'function') return;
-      var orig = window[fn];
-      window[fn] = function() {
-        orig.apply(this, arguments);
-        setTimeout(makeItemsDraggable, 30);
-      };
-    });
-    setTimeout(makeItemsDraggable, 200);
-  }
-
-  // Bloquear selectCalDay/Switch durante drops
-  function patchSelectors() {
-    ['selectCalDay', 'selectCalDayAndSwitch'].forEach(function(fn) {
-      if (typeof window[fn] !== 'function') return;
-      var orig = window[fn];
-      window[fn] = function(key) {
-        if (dropBlocked) { dropBlocked = false; return; }
-        orig.apply(this, arguments);
-      };
-    });
-  }
-
-  window.addEventListener('load', function() {
-    patchRenders();
-    patchSelectors();
-  });
-
+  // Mover el evento en calEventsDB
   function doMove(toKey, toHora) {
-    if (dragEvId === null || !dragFromKey) return false;
-    var arr = calEventsDB[dragFromKey];
-    if (!arr) return false;
-    var idx = arr.findIndex(function(ev){ return ev.id === dragEvId; });
-    if (idx === -1) return false;
-    if (toKey === dragFromKey && (!toHora || arr[idx].hora === toHora)) return false;
+    var fromKey = DRAG.fromKey;
+    var evId    = DRAG.evId;
+    if (!fromKey || evId === null) return;
+
+    var arr = calEventsDB[fromKey];
+    if (!arr) return;
+    var idx = arr.findIndex(function (ev) { return ev.id === evId; });
+    if (idx === -1) return;
+
+    // Nada que mover
+    if (toKey === fromKey && (!toHora || toHora === arr[idx].hora)) return;
 
     var ev = Object.assign({}, arr[idx]);
     if (toHora) ev.hora = toHora;
     arr.splice(idx, 1);
-    if (!arr.length) delete calEventsDB[dragFromKey];
+    if (!arr.length) delete calEventsDB[fromKey];
     if (!calEventsDB[toKey]) calEventsDB[toKey] = [];
     calEventsDB[toKey].push(ev);
-    calSelectedKey = toKey;
+
+    // Navegar al mes/semana del destino y actualizar panel
     var p = toKey.split('-').map(Number);
     calYear = p[0]; calMonth = p[1] - 1;
+    calSelectedKey = toKey;
+
+    // Actualizar calDayDate y calWeekStart si estamos en esas vistas
+    if (calView === 'dia') {
+      calDayDate = new Date(p[0], p[1]-1, p[2]);
+    } else if (calView === 'semana') {
+      calWeekStart = getMondayOf(new Date(p[0], p[1]-1, p[2]));
+    }
+
     saveCal(); renderCal(); renderCalPanel();
     mostrarToast('📅 Movido al ' + toKey + (toHora ? ' · ' + toHora : ''));
-    try { navigator.vibrate && navigator.vibrate([15, 20, 15]); } catch(e) {}
-    return true;
+    try { navigator.vibrate && navigator.vibrate([15, 20, 15]); } catch (e) {}
   }
 
-  // ── DESKTOP drag & drop (delegado en document con capture) ──
+  // ── DESKTOP ──
 
-  document.addEventListener('dragstart', function(e) {
-    var item = e.target.closest('.cal-event-item[data-evid]');
-    if (!item) return;
-    dragEvId    = Number(item.dataset.evid);
-    dragFromKey = item.dataset.fromkey;
+  // dragstart delegado — captura en la fase de captura para ir antes que otros handlers
+  document.addEventListener('dragstart', function (e) {
+    var el = e.target.closest('[data-evid][data-fromkey]');
+    if (!el) return;
+    DRAG.evId    = Number(el.dataset.evid);
+    DRAG.fromKey = el.dataset.fromkey;
+    DRAG.fromHora = el.dataset.fromhora || null;
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', String(dragEvId));
-    setTimeout(function(){ if (item) item.style.opacity = '0.4'; }, 0);
+    e.dataTransfer.setData('text/plain', String(DRAG.evId));
+    // Evitar que el onclick de la celda padre navegue
+    e.stopPropagation();
+    setTimeout(function () { el.style.opacity = '0.4'; }, 0);
   }, true);
 
-  document.addEventListener('dragend', function(e) {
-    var item = e.target.closest('.cal-event-item[data-evid]');
-    if (item) item.style.opacity = '';
+  document.addEventListener('dragend', function (e) {
+    var el = e.target.closest('[data-evid]');
+    if (el) el.style.opacity = '';
     removeHL();
-    dragEvId = null; dragFromKey = null;
+    DRAG.evId = null; DRAG.fromKey = null; DRAG.fromHora = null;
   }, true);
 
-  document.addEventListener('dragover', function(e) {
-    if (dragEvId === null) return;
-    var cell = e.target.closest(DROP_SEL);
+  document.addEventListener('dragover', function (e) {
+    if (DRAG.evId === null) return;
+    var cell = e.target.closest('.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell');
     if (!cell) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -11055,100 +11033,114 @@ document.addEventListener('DOMContentLoaded', () => {
     cell.classList.add('cal-drag-hl');
   }, false);
 
-  document.addEventListener('dragleave', function(e) {
-    var cell = e.target.closest(DROP_SEL);
+  document.addEventListener('dragleave', function (e) {
+    var cell = e.target.closest('.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell');
     if (cell && !cell.contains(e.relatedTarget)) cell.classList.remove('cal-drag-hl');
   }, false);
 
-  document.addEventListener('drop', function(e) {
+  document.addEventListener('drop', function (e) {
     removeHL();
-    if (dragEvId === null || !dragFromKey) return;
-    var cell = e.target.closest(DROP_SEL);
+    if (DRAG.evId === null) return;
+    var cell = e.target.closest('.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell');
     if (!cell) return;
     e.preventDefault();
     e.stopPropagation();
     var ci = cellInfo(cell);
     if (!ci.key) return;
-    dropBlocked = true;
-    var moved = doMove(ci.key, ci.hora);
-    if (!moved) dropBlocked = false;
-    dragEvId = null; dragFromKey = null;
+    doMove(ci.key, ci.hora);
+    DRAG.evId = null; DRAG.fromKey = null; DRAG.fromHora = null;
   }, true);
 
-  // ── MÓVIL: long-press ──
+  // ── MÓVIL: long-press + arrastre ──
 
-  var td = null;
+  var TD = null;
+  var DROP_SEL = '.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell';
 
-  document.addEventListener('touchstart', function(e) {
-    var item = e.target.closest('.cal-event-item[data-evid]');
-    if (!item) return;
+  document.addEventListener('touchstart', function (e) {
+    var el = e.target.closest('[data-evid][data-fromkey]');
+    if (!el) return;
     var t = e.touches[0];
-    td = {
-      evId: Number(item.dataset.evid), fromKey: item.dataset.fromkey,
-      el: item, sx: t.clientX, sy: t.clientY, ghost: null, active: false,
-      timer: setTimeout(function() {
-        if (!td) return;
-        td.active = true;
+    TD = {
+      evId: Number(el.dataset.evid),
+      fromKey: el.dataset.fromkey,
+      fromHora: el.dataset.fromhora || null,
+      el: el,
+      sx: t.clientX, sy: t.clientY,
+      ghost: null, active: false,
+      timer: setTimeout(function () {
+        if (!TD) return;
+        TD.active = true;
+        // Ghost visual
         var g = document.createElement('div');
-        g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:#0071e3;color:#fff;border-radius:10px;padding:8px 16px;font-size:0.83rem;font-weight:500;box-shadow:0 8px 28px rgba(0,113,227,.4);white-space:nowrap;transform:translateY(-50%);';
-        var cl = item.cloneNode(true);
-        cl.querySelectorAll('button,.ev-type-badge,.ev-repeat,.ev-duration,.ev-allday').forEach(function(n){ n.remove(); });
-        g.textContent = cl.textContent.trim();
-        document.body.appendChild(g); td.ghost = g;
-        item.style.opacity = '0.4';
-        try { navigator.vibrate && navigator.vibrate(40); } catch(er) {}
-      }, 450)
+        g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;' +
+          'background:#0071e3;color:#fff;border-radius:10px;padding:6px 14px;' +
+          'font-size:0.8rem;font-weight:600;box-shadow:0 6px 24px rgba(0,113,227,.45);' +
+          'white-space:nowrap;transform:translate(-50%,-120%);';
+        g.textContent = el.textContent.trim().slice(0, 40);
+        document.body.appendChild(g);
+        TD.ghost = g;
+        el.style.opacity = '0.4';
+        try { navigator.vibrate && navigator.vibrate(40); } catch (er) {}
+      }, 400)
     };
   }, { passive: true });
 
-  document.addEventListener('touchmove', function(e) {
-    if (!td) return;
+  document.addEventListener('touchmove', function (e) {
+    if (!TD) return;
     var t = e.touches[0];
-    if (!td.active) {
-      if (Math.abs(t.clientX - td.sx) > 8 || Math.abs(t.clientY - td.sy) > 8) {
-        clearTimeout(td.timer); td = null;
+    if (!TD.active) {
+      // Si se movió antes del long-press, cancelar
+      if (Math.abs(t.clientX - TD.sx) > 8 || Math.abs(t.clientY - TD.sy) > 8) {
+        clearTimeout(TD.timer); TD = null;
       }
       return;
     }
     e.preventDefault();
-    if (td.ghost) {
-      td.ghost.style.left = (t.clientX - 10) + 'px';
-      td.ghost.style.top  = (t.clientY - 50) + 'px';
-      td.ghost.style.display = 'none';
+    // Mover ghost
+    if (TD.ghost) {
+      TD.ghost.style.left = t.clientX + 'px';
+      TD.ghost.style.top  = t.clientY + 'px';
+      TD.ghost.style.display = 'none';
     }
-    var el = document.elementFromPoint(t.clientX, t.clientY);
-    if (td.ghost) td.ghost.style.display = '';
+    var below = document.elementFromPoint(t.clientX, t.clientY);
+    if (TD.ghost) TD.ghost.style.display = '';
     removeHL();
-    if (el) { var c = el.closest(DROP_SEL); if (c) c.classList.add('cal-drag-hl'); }
+    if (below) {
+      var cell = below.closest(DROP_SEL);
+      if (cell) cell.classList.add('cal-drag-hl');
+    }
   }, { passive: false });
 
-  function touchEnd(e) {
-    if (!td) return;
-    clearTimeout(td.timer);
-    if (td.ghost) td.ghost.remove();
-    if (td.el) td.el.style.opacity = '';
+  function onTouchEnd(e) {
+    if (!TD) return;
+    clearTimeout(TD.timer);
+    if (TD.ghost) TD.ghost.remove();
+    if (TD.el) TD.el.style.opacity = '';
     removeHL();
-    if (td.active) {
+
+    if (TD.active) {
       var t = e.changedTouches[0];
-      var el = document.elementFromPoint(t.clientX, t.clientY);
-      if (el) {
-        var cell = el.closest(DROP_SEL);
+      // Ocultar ghost para hacer elementFromPoint
+      var below = document.elementFromPoint(t.clientX, t.clientY);
+      if (below) {
+        var cell = below.closest(DROP_SEL);
         if (cell) {
           var ci = cellInfo(cell);
           if (ci.key) {
-            dragEvId = td.evId; dragFromKey = td.fromKey;
-            dropBlocked = true;
-            var moved = doMove(ci.key, ci.hora);
-            if (!moved) dropBlocked = false;
-            dragEvId = null; dragFromKey = null;
+            DRAG.evId    = TD.evId;
+            DRAG.fromKey = TD.fromKey;
+            DRAG.fromHora = TD.fromHora;
+            doMove(ci.key, ci.hora);
+            DRAG.evId = null; DRAG.fromKey = null; DRAG.fromHora = null;
           }
         }
       }
     }
-    td = null;
+    TD = null;
   }
-  document.addEventListener('touchend',    touchEnd, { passive: true });
-  document.addEventListener('touchcancel', touchEnd, { passive: true });
+
+  document.addEventListener('touchend',    onTouchEnd, { passive: true });
+  document.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
 })();
 </script>
