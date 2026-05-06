@@ -983,7 +983,7 @@
   .cal-num { font-size: 0.8rem; font-weight: 600; color: var(--ink); line-height: 1; margin-bottom: 3px; }
   .cal-cell.today .cal-num { background: var(--gold); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
   .cal-cell.empty .cal-num { color: #d1d5db; }
-  .cal-ev-mini { font-size: 0.65rem; color: white; background: var(--gold); border-radius: 10px; padding: 1px 4px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; -webkit-user-select: none; pointer-events: none; }
+  .cal-ev-mini { font-size: 0.65rem; color: white; background: var(--gold); border-radius: 10px; padding: 1px 4px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; -webkit-user-select: none; }
   .cal-ev-mini.cumple   { background: #db2777; }
   .cal-ev-mini.examen   { background: #7c3aed; }
   .cal-ev-mini.evento   { background: var(--amber); color: #1a1a2e; }
@@ -10939,242 +10939,179 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════ DRAG & DROP EVENTOS CALENDARIO ══════════════════════════════
 (function() {
 
-  // ID del evento que se está arrastrando
-  let dragEvId   = null;
-  let dragFromKey = null;
+  var dragEvId = null;
+  var dragFromKey = null;
 
-  // ── Inyectar draggable en cada evento al renderizar ──
-  // Se llama desde renderCalPanel() — parcheamos la función original
-  const _origRenderCalPanel = window.renderCalPanel;
-  window.renderCalPanel = function() {
-    _origRenderCalPanel && _origRenderCalPanel();
-    initDraggableItems();
-  };
+  // Estilo highlight
+  var styleEl = document.createElement('style');
+  styleEl.textContent = '.cal-drag-hl { background: rgba(0,113,227,.2) !important; outline: 2px solid #0071e3 !important; }';
+  document.head.appendChild(styleEl);
 
-  function initDraggableItems() {
+  function removeHL() {
+    document.querySelectorAll('.cal-drag-hl').forEach(function(el){ el.classList.remove('cal-drag-hl'); });
+  }
+
+  // Inicializar items y celdas — se llama cada vez que el calendario renderiza
+  function init() {
+    // Items arrastrables
     document.querySelectorAll('.cal-event-item[data-evid]').forEach(function(item) {
-      if (item.dataset.dragInit) return;
-      item.dataset.dragInit = '1';
+      if (item.dataset.di) return;
+      item.dataset.di = '1';
       item.setAttribute('draggable', 'true');
-      item.style.cursor = 'grab';
 
       item.addEventListener('dragstart', function(e) {
         dragEvId    = Number(item.dataset.evid);
         dragFromKey = item.dataset.fromkey;
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', dragEvId);
-        setTimeout(function(){ item.style.opacity = '0.4'; }, 0);
+        e.dataTransfer.setData('text/plain', String(dragEvId));
+        item.style.opacity = '0.4';
       });
-
       item.addEventListener('dragend', function() {
         item.style.opacity = '';
-        item.style.cursor  = 'grab';
-        removeAllHL();
+        removeHL();
+        dragEvId = null; dragFromKey = null;
       });
     });
 
-    // Añadir drop zones a celdas del calendario
-    initDropZones();
-  }
-
-  // ── Highlight ──
-  function removeAllHL() {
-    document.querySelectorAll('.cal-drag-hl').forEach(function(el) {
-      el.classList.remove('cal-drag-hl');
-    });
-  }
-
-  // Inyectar estilo HL una sola vez
-  if (!document.getElementById('cal-drag-style')) {
-    const s = document.createElement('style');
-    s.id = 'cal-drag-style';
-    s.textContent = '.cal-drag-hl { background: rgba(0,113,227,.18) !important; outline: 2px solid var(--ocean) !important; }';
-    document.head.appendChild(s);
-  }
-
-  function initDropZones() {
-    const selectors = '.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell';
-    document.querySelectorAll(selectors).forEach(function(cell) {
-      if (cell.dataset.dropInit) return;
-      cell.dataset.dropInit = '1';
+    // Zonas de drop
+    document.querySelectorAll('.cal-cell:not(.empty), .cal-hour-cell, .cal-dia-hour-cell').forEach(function(cell) {
+      if (cell.dataset.di) return;
+      cell.dataset.di = '1';
 
       cell.addEventListener('dragover', function(e) {
-        if (!dragEvId) return;
+        if (dragEvId === null) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        removeAllHL();
+        removeHL();
         cell.classList.add('cal-drag-hl');
       });
-
-      cell.addEventListener('dragleave', function() {
-        cell.classList.remove('cal-drag-hl');
+      cell.addEventListener('dragleave', function(e) {
+        // Solo quitar si salimos realmente de la celda
+        if (!cell.contains(e.relatedTarget)) cell.classList.remove('cal-drag-hl');
       });
-
       cell.addEventListener('drop', function(e) {
         e.preventDefault();
         cell.classList.remove('cal-drag-hl');
-        if (!dragEvId || !dragFromKey) return;
+        if (dragEvId === null || !dragFromKey) return;
 
-        const oc = cell.getAttribute('onclick') || '';
-        let key = null, hora = null;
-
-        let m = oc.match(/selectCalDay\('([^']+)'\)/);
-        if (m) { key = m[1]; }
-
+        var oc = cell.getAttribute('onclick') || '';
+        var key = null, hora = null;
+        var m = oc.match(/selectCalDay\('([^']+)'\)/);
+        if (m) key = m[1];
         m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);
         if (m) { key = m[1]; hora = m[2]; }
-
         if (!key) return;
 
-        const arr = calEventsDB[dragFromKey];
+        var arr = calEventsDB[dragFromKey];
         if (!arr) return;
-        const idx = arr.findIndex(function(e) { return e.id === dragEvId; });
+        var idx = arr.findIndex(function(ev){ return ev.id === dragEvId; });
         if (idx === -1) return;
 
-        const ev = Object.assign({}, arr[idx]);
+        var sameDay  = key === dragFromKey;
+        var sameHora = arr[idx].hora === hora;
+        if (sameDay && sameHora) return;
+
+        var ev = Object.assign({}, arr[idx]);
         if (hora) ev.hora = hora;
-
-        const sameDay  = key === dragFromKey;
-        const sameHora = arr[idx].hora === hora;
-        if (sameDay && (!hora || sameHora)) return;
-
         arr.splice(idx, 1);
         if (!arr.length) delete calEventsDB[dragFromKey];
         if (!calEventsDB[key]) calEventsDB[key] = [];
         calEventsDB[key].push(ev);
-
         calSelectedKey = key;
-        var parts = key.split('-').map(Number);
-        calYear = parts[0]; calMonth = parts[1] - 1;
-
+        var p = key.split('-').map(Number);
+        calYear = p[0]; calMonth = p[1]-1;
         saveCal(); renderCal(); renderCalPanel();
-        mostrarToast('📅 Movido al ' + key + (hora ? ' · ' + hora : ''));
-        try { navigator.vibrate && navigator.vibrate([15,20,15]); } catch(err) {}
-
+        mostrarToast('📅 Movido al ' + key + (hora ? ' · '+hora : ''));
+        try { navigator.vibrate && navigator.vibrate([15,20,15]); } catch(err){}
         dragEvId = null; dragFromKey = null;
       });
     });
   }
 
-  // ── TOUCH: long-press drag para móvil ──
-  var touchDrag = null;
+  // Parchear renderCalPanel DESPUÉS de que cargue todo
+  window.addEventListener('load', function() {
+    var orig = window.renderCalPanel;
+    window.renderCalPanel = function() {
+      orig && orig.apply(this, arguments);
+      setTimeout(init, 50);
+    };
+    // Inicializar ahora si ya hay eventos
+    setTimeout(init, 300);
+  });
 
+  // Touch: long press para móvil
+  var td = null;
   document.addEventListener('touchstart', function(e) {
     var item = e.target.closest('.cal-event-item[data-evid]');
     if (!item) return;
-    var evId    = Number(item.dataset.evid);
-    var fromKey = item.dataset.fromkey;
-    if (!evId || !fromKey) return;
     var t = e.touches[0];
-    touchDrag = {
-      evId: evId, fromKey: fromKey, sourceEl: item,
-      startX: t.clientX, startY: t.clientY, ghost: null, active: false,
-      timer: setTimeout(function() {
-        touchDrag.active = true;
-        var g = document.createElement('div');
-        g.id = 'cal-touch-ghost';
-        g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:var(--ocean);color:#fff;border-radius:10px;padding:8px 16px;font-size:0.83rem;font-family:Inter,sans-serif;font-weight:500;box-shadow:0 8px 28px rgba(0,113,227,.4);opacity:.93;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-        var time = (item.querySelector('.ev-time')||{}).textContent||'';
-        var cl = item.cloneNode(true);
-        cl.querySelectorAll('button,.ev-type-badge,.ev-time,.ev-repeat,.ev-duration,.ev-allday').forEach(function(n){n.remove();});
-        g.textContent = (time && time!=='·' && time!=='—' ? time+'  ' : '') + cl.textContent.trim();
-        document.body.appendChild(g);
-        touchDrag.ghost = g;
-        item.style.opacity = '0.35';
-        try { navigator.vibrate && navigator.vibrate(40); } catch(err) {}
-      }, 400)
-    };
-  }, { passive: true });
+    td = { evId: Number(item.dataset.evid), fromKey: item.dataset.fromkey,
+           el: item, sx: t.clientX, sy: t.clientY, ghost: null, active: false,
+           timer: setTimeout(function(){
+             td.active = true;
+             var g = document.createElement('div');
+             g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:#0071e3;color:#fff;border-radius:10px;padding:8px 16px;font-size:0.83rem;font-weight:500;box-shadow:0 8px 28px rgba(0,113,227,.4);white-space:nowrap;';
+             var cl = item.cloneNode(true);
+             cl.querySelectorAll('button,.ev-type-badge,.ev-repeat,.ev-duration,.ev-allday').forEach(function(n){n.remove();});
+             g.textContent = cl.textContent.trim();
+             document.body.appendChild(g); td.ghost = g;
+             item.style.opacity='0.4';
+             try{navigator.vibrate&&navigator.vibrate(40);}catch(er){}
+           }, 450) };
+  },{passive:true});
 
   document.addEventListener('touchmove', function(e) {
-    if (!touchDrag) return;
+    if (!td) return;
     var t = e.touches[0];
-    if (!touchDrag.active) {
-      if (Math.abs(t.clientX-touchDrag.startX)>8 || Math.abs(t.clientY-touchDrag.startY)>8) {
-        clearTimeout(touchDrag.timer); touchDrag = null;
-      }
+    if (!td.active) {
+      if (Math.abs(t.clientX-td.sx)>8||Math.abs(t.clientY-td.sy)>8){clearTimeout(td.timer);td=null;}
       return;
     }
     e.preventDefault();
-    var g = document.getElementById('cal-touch-ghost');
-    if (g) { g.style.left=(t.clientX-10)+'px'; g.style.top=(t.clientY-50)+'px'; }
-    // highlight
-    if (g) g.style.display='none';
-    var el = document.elementFromPoint(t.clientX, t.clientY);
-    if (g) g.style.display='';
-    removeAllHL();
-    if (el) {
-      var cell = el.closest('.cal-cell:not(.empty)') || el.closest('.cal-hour-cell') || el.closest('.cal-dia-hour-cell');
-      if (cell) cell.classList.add('cal-drag-hl');
-    }
-  }, { passive: false });
+    if (td.ghost){td.ghost.style.left=(t.clientX-10)+'px';td.ghost.style.top=(t.clientY-50)+'px';}
+    if(td.ghost)td.ghost.style.display='none';
+    var el=document.elementFromPoint(t.clientX,t.clientY);
+    if(td.ghost)td.ghost.style.display='';
+    removeHL();
+    if(el){var c=el.closest('.cal-cell:not(.empty)')||el.closest('.cal-hour-cell')||el.closest('.cal-dia-hour-cell');if(c)c.classList.add('cal-drag-hl');}
+  },{passive:false});
 
-  document.addEventListener('touchend', function(e) {
-    if (!touchDrag) return;
-    clearTimeout(touchDrag.timer);
-    var g = document.getElementById('cal-touch-ghost');
-    if (g) g.remove();
-    if (touchDrag.sourceEl) touchDrag.sourceEl.style.opacity = '';
-    removeAllHL();
-
-    if (touchDrag.active) {
+  function touchEnd(e) {
+    if (!td) return;
+    clearTimeout(td.timer);
+    if(td.ghost)td.ghost.remove();
+    if(td.el)td.el.style.opacity='';
+    removeHL();
+    if (td.active) {
       var t = e.changedTouches[0];
-      var ghost2 = document.getElementById('cal-touch-ghost');
-      if (ghost2) ghost2.style.display='none';
       var el = document.elementFromPoint(t.clientX, t.clientY);
-      if (ghost2) ghost2.style.display='';
-
       if (el) {
-        var cell = el.closest('.cal-cell:not(.empty)') || el.closest('.cal-hour-cell') || el.closest('.cal-dia-hour-cell');
+        var cell = el.closest('.cal-cell:not(.empty)')||el.closest('.cal-hour-cell')||el.closest('.cal-dia-hour-cell');
         if (cell) {
-          var oc = cell.getAttribute('onclick')||'';
-          var key=null, hora=null;
-          var m = oc.match(/selectCalDay\('([^']+)'\)/);
-          if (m) key = m[1];
-          m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);
-          if (m) { key=m[1]; hora=m[2]; }
+          var oc=cell.getAttribute('onclick')||'', key=null, hora=null;
+          var m=oc.match(/selectCalDay\('([^']+)'\)/); if(m)key=m[1];
+          m=oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/); if(m){key=m[1];hora=m[2];}
           if (key) {
-            var arr = calEventsDB[touchDrag.fromKey];
-            if (arr) {
-              var idx = arr.findIndex(function(ev){ return ev.id===touchDrag.evId; });
-              if (idx !== -1) {
-                var ev = Object.assign({}, arr[idx]);
-                if (hora) ev.hora = hora;
-                if (key !== touchDrag.fromKey || (hora && arr[idx].hora !== hora)) {
-                  arr.splice(idx,1);
-                  if (!arr.length) delete calEventsDB[touchDrag.fromKey];
-                  if (!calEventsDB[key]) calEventsDB[key]=[];
-                  calEventsDB[key].push(ev);
-                  calSelectedKey=key;
-                  var parts=key.split('-').map(Number);
-                  calYear=parts[0]; calMonth=parts[1]-1;
-                  saveCal(); renderCal(); renderCalPanel();
-                  mostrarToast('📅 Movido al '+key+(hora?' · '+hora:''));
-                  try { navigator.vibrate && navigator.vibrate([15,20,15]); } catch(err){}
-                }
-              }
+            var arr=calEventsDB[td.fromKey]; if(!arr){td=null;return;}
+            var idx=arr.findIndex(function(ev){return ev.id===td.evId;}); if(idx===-1){td=null;return;}
+            if(key!==td.fromKey||(hora&&arr[idx].hora!==hora)){
+              var ev=Object.assign({},arr[idx]); if(hora)ev.hora=hora;
+              arr.splice(idx,1); if(!arr.length)delete calEventsDB[td.fromKey];
+              if(!calEventsDB[key])calEventsDB[key]=[];
+              calEventsDB[key].push(ev); calSelectedKey=key;
+              var p=key.split('-').map(Number); calYear=p[0];calMonth=p[1]-1;
+              saveCal();renderCal();renderCalPanel();
+              mostrarToast('📅 Movido al '+key+(hora?' · '+hora:''));
+              try{navigator.vibrate&&navigator.vibrate([15,20,15]);}catch(er){}
             }
           }
         }
       }
     }
-    touchDrag = null;
-  }, { passive: true });
-
-  document.addEventListener('touchcancel', function() {
-    if (!touchDrag) return;
-    clearTimeout(touchDrag.timer);
-    var g = document.getElementById('cal-touch-ghost');
-    if (g) g.remove();
-    if (touchDrag.sourceEl) touchDrag.sourceEl.style.opacity='';
-    removeAllHL();
-    touchDrag = null;
-  }, { passive: true });
-
-  // Inicializar al cargar
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initDraggableItems, 500);
-  });
+    td = null;
+  }
+  document.addEventListener('touchend', touchEnd, {passive:true});
+  document.addEventListener('touchcancel', touchEnd, {passive:true});
 
 })();
 </script>
