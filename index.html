@@ -8806,19 +8806,16 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
-  // ── Persistencia LOCAL (la sesion sobrevive al cerrar la pestana/navegador) ──
+  // Persistencia LOCAL: la sesion sobrevive al cerrar el navegador
   setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Auth] persistence error', e));
 
-  // ── Aislamiento de pestanas ──
-  // Cada pestana tiene un ID unico en sessionStorage (no se comparte entre pestanas).
-  // Si abres una segunda pestana, empieza con login aunque otra pestana ya este logueada.
-  const TAB_KEY  = '_tab_id';
-  const SESS_KEY = '_tab_session_uid';
-  if (!sessionStorage.getItem(TAB_KEY)) {
-    sessionStorage.setItem(TAB_KEY, 'tab_' + Math.random().toString(36).slice(2));
-  }
-  const TAB_ID = sessionStorage.getItem(TAB_KEY);
-  let _tabSessionUid = sessionStorage.getItem(SESS_KEY) || null;
+  // ── Aislamiento por pestana ──
+  // sessionStorage NO se comparte entre pestanas (a diferencia de localStorage).
+  // Usamos un UID de pestana para saber si ESTA pestana inicio sesion o no.
+  const _SESS_UID_KEY = '_tab_auth_uid';
+  function _tabGetUid()     { try { return sessionStorage.getItem(_SESS_UID_KEY); } catch(e) { return null; } }
+  function _tabSetUid(uid)  { try { sessionStorage.setItem(_SESS_UID_KEY, uid);  } catch(e) {} }
+  function _tabClearUid()   { try { sessionStorage.removeItem(_SESS_UID_KEY);    } catch(e) {} }
 
   let _currentUid = null;
 
@@ -8847,9 +8844,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     authSetError(''); authSetLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, email, pw);
-      // Marcar esta pestana como propietaria de la sesion
-      _tabSessionUid = cred.user.uid;
-      sessionStorage.setItem(SESS_KEY, cred.user.uid);
+      _tabSetUid(cred.user.uid);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     }
     catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
@@ -8859,9 +8854,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
-      // Marcar esta pestana como propietaria de la sesion
-      _tabSessionUid = cred.user.uid;
-      sessionStorage.setItem(SESS_KEY, cred.user.uid);
+      _tabSetUid(cred.user.uid);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
       authSetLoading(false);
@@ -8875,9 +8868,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }
   };
   window._authLogout = async () => {
-    // Limpiar sesion de esta pestana
-    _tabSessionUid = null;
-    sessionStorage.removeItem(SESS_KEY);
+    _tabClearUid();
     await signOut(auth);
     if (typeof goPortada === 'function') goPortada();
   };
@@ -8909,13 +8900,16 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 
   // ── Estado de autenticacion ──
   onAuthStateChanged(auth, user => {
+    // Siempre ocultar el loading-screen primero
     document.getElementById('loading-screen').style.display = 'none';
+
     if (user) {
       // AISLAMIENTO DE PESTANAS:
-      // Solo aceptar al usuario si esta pestana fue quien inicio sesion con el.
-      // _tabSessionUid se guarda en sessionStorage (no compartido entre pestanas).
-      if (_tabSessionUid !== user.uid) {
-        // Esta pestana no inicio esta sesion -> mostrar login (sin cerrar la sesion global)
+      // Solo entrar si esta pestana fue quien inicio sesion con este uid.
+      // _tabGetUid() usa sessionStorage, que es exclusivo por pestana.
+      if (_tabGetUid() !== user.uid) {
+        // Otra pestana tiene la sesion activa, pero esta no la inicio.
+        // Mostrar login sin desloguear al otro.
         _currentUid = null;
         window._fbReady = false;
         document.getElementById('auth-screen').style.display = 'flex';
@@ -8935,7 +8929,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
         return;
       }
 
-      // Si cambio de cuenta, limpiar localStorage para no mezclar datos
+      // Esta pestana inicio la sesion: entrar normalmente
       const prevUid = localStorage.getItem('_app_uid');
       if (prevUid && prevUid !== user.uid) {
         const keysToClean = [
@@ -8958,9 +8952,8 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
         if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
       }, 400);
     } else {
-      // No hay usuario en Firebase -> limpiar tambien la sesion de esta pestana
-      _tabSessionUid = null;
-      sessionStorage.removeItem(SESS_KEY);
+      // No hay sesion activa en Firebase: limpiar todo
+      _tabClearUid();
       _currentUid = null;
       window._fbReady = false;
       document.getElementById('auth-screen').style.display = 'flex';
