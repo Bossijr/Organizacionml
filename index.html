@@ -943,6 +943,7 @@
 
   /* MES */
   .cal-mes-wrap { background: var(--surface2); border: 1.5px solid var(--card-border); border-radius: 10px; overflow: hidden; margin-bottom: 1.2rem; }
+  .cal-mes-wrap *, .cal-semana-wrap *, .cal-dia-wrap *, .cal-event-panel * { user-select: none !important; -webkit-user-select: none !important; }
 
   /* ── TRANSICIONES DE VISTA CALENDARIO ── */
   #cal-view-mes,
@@ -982,7 +983,7 @@
   .cal-num { font-size: 0.8rem; font-weight: 600; color: var(--ink); line-height: 1; margin-bottom: 3px; }
   .cal-cell.today .cal-num { background: var(--gold); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
   .cal-cell.empty .cal-num { color: #d1d5db; }
-  .cal-ev-mini { font-size: 0.65rem; color: white; background: var(--gold); border-radius: 10px; padding: 1px 4px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-ev-mini { font-size: 0.65rem; color: white; background: var(--gold); border-radius: 10px; padding: 1px 4px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; -webkit-user-select: none; pointer-events: none; }
   .cal-ev-mini.cumple   { background: #db2777; }
   .cal-ev-mini.examen   { background: #7c3aed; }
   .cal-ev-mini.evento   { background: var(--amber); color: #1a1a2e; }
@@ -1052,6 +1053,7 @@
   .cal-event-pri { font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 0.45rem 0.5rem; border: 1.5px solid var(--card-border); border-radius: 6px; background: var(--surface); color: var(--ink); outline: none; cursor: pointer; }
   .cal-event-list { display: flex; flex-direction: column; gap: 0.4rem; }
   .cal-event-item { display: flex; align-items: center; gap: 0.5rem; border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.85rem; color: var(--ink); border-left: 3px solid var(--ocean); background: rgba(0,0,0,0.05); user-select: none; -webkit-user-select: none; cursor: grab; }
+  .cal-event-item *, .cal-event-item span, .cal-event-item button { user-select: none !important; -webkit-user-select: none !important; }
   .cal-event-item.cumple    { border-color: #db2777; background: #fdf2f8; }
   .cal-event-item.examen    { border-color: #7c3aed; background: #f5f3ff; }
   .cal-event-item.evento    { border-color: var(--amber); background: rgba(0,113,227,0.06); }
