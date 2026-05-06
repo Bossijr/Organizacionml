@@ -8829,12 +8829,16 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 
   // ── Aislamiento por pestana ──
   // sessionStorage es exclusivo por pestana (no se comparte al abrir una nueva).
-  // Guardamos el uid que ESTA pestana autentico. Si Firebase tiene sesion activa
-  // pero este valor no coincide, mostramos login en vez de entrar directamente.
   const _SK = '_tab_uid';
   const _tabGet   = () => { try { return sessionStorage.getItem(_SK); } catch(e) { return null; } };
   const _tabSet   = v  => { try { sessionStorage.setItem(_SK, v);     } catch(e) {} };
   const _tabClear = () => { try { sessionStorage.removeItem(_SK);      } catch(e) {} };
+
+  // Flag en memoria para resolver la race condition:
+  // onAuthStateChanged se dispara ANTES de que el await de signIn retorne,
+  // asi que no podemos usar _tabSet despues del await. Usamos este flag
+  // que se setea sincronamente justo antes de llamar a Firebase.
+  let _loginInProgress = false;
 
   // ── authSetLoading expuesto en window para que lo use el script normal ──
   // (los modulos ES tienen scope privado; sin esto el boton queda bloqueado)
@@ -8870,20 +8874,25 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   window._authLogin = async (email, pw) => {
     authSetError(''); authSetLoading(true);
     try {
+      _loginInProgress = true;
       const cred = await signInWithEmailAndPassword(auth, email, pw);
       _tabSet(cred.user.uid);
+      _loginInProgress = false;
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     }
-    catch(e) { authSetLoading(false); authSetError(traducirError(e.code)); }
+    catch(e) { _loginInProgress = false; authSetLoading(false); authSetError(traducirError(e.code)); }
   };
   window._authRegistrar = async (nombre, email, pw) => {
     authSetError(''); authSetLoading(true);
     try {
+      _loginInProgress = true;
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
       _tabSet(cred.user.uid);
+      _loginInProgress = false;
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
+      _loginInProgress = false;
       authSetLoading(false);
       if (e.code === 'auth/email-already-in-use') {
         authSwitchTab('login');
@@ -8928,13 +8937,16 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
         authSetLoading(false); // siempre desbloquear el boton
 
         if (user) {
-          if (_tabGet() !== user.uid) {
-            // Firebase tiene sesion pero esta pestana no la inicio -> pedir login
+          // Si esta pestana esta en proceso de login, o ya tiene este uid guardado -> entrar
+          if (!_loginInProgress && _tabGet() !== user.uid) {
+            // Firebase tiene sesion de otra pestana -> pedir login
             _currentUid = null;
             window._fbReady = false;
             _mostrarLogin();
             return;
           }
+          // Guardar uid de esta pestana (por si _loginInProgress llego primero)
+          _tabSet(user.uid);
           // Esta pestana inicio la sesion -> entrar
           const prevUid = localStorage.getItem('_app_uid');
           if (prevUid && prevUid !== user.uid) {
