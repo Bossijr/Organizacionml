@@ -10937,54 +10937,66 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════ DRAG & DROP EVENTOS CALENDARIO ══════════════════════════════
 (function() {
   let drag = null;
-  // drag = { evId, fromKey, ghost, sourceEl, startX, startY, timer, active }
 
+  // ── Ghost ──
   function makeGhost(item, x, y) {
     const g = document.createElement('div');
-    g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:var(--ocean);color:#fff;border-radius:10px;padding:8px 16px;font-size:0.83rem;font-family:Inter,sans-serif;font-weight:500;box-shadow:0 8px 28px rgba(0,113,227,.4);opacity:.93;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:translate(-50%,-130%);';
+    g.id = 'cal-drag-ghost';
+    g.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:var(--ocean);color:#fff;border-radius:10px;padding:8px 16px;font-size:0.83rem;font-family:Inter,sans-serif;font-weight:500;box-shadow:0 8px 28px rgba(0,113,227,.4);opacity:.93;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;left:0;top:0;';
     const time = (item.querySelector('.ev-time')||{}).textContent||'';
     const cl = item.cloneNode(true);
     cl.querySelectorAll('button,.ev-type-badge,.ev-time,.ev-repeat,.ev-duration,.ev-allday').forEach(n=>n.remove());
     const txt = cl.textContent.trim();
     g.textContent = (time && time!=='·' && time!=='—' ? time+'  ' : '') + txt;
     document.body.appendChild(g);
-    moveGhost(g, x, y);
+    posGhost(x, y);
     return g;
   }
 
-  function moveGhost(g, x, y) { g.style.left=x+'px'; g.style.top=y+'px'; }
-
-  let hlEl = null;
-  function hl(el) {
-    if (hlEl) { hlEl.style.background=''; hlEl.style.outline=''; }
-    hlEl = el || null;
-    if (hlEl) { hlEl.style.background='rgba(0,113,227,.15)'; hlEl.style.outline='2px solid var(--ocean)'; }
+  function posGhost(x, y) {
+    const g = document.getElementById('cal-drag-ghost');
+    if (g) { g.style.left=(x-10)+'px'; g.style.top=(y-40)+'px'; }
   }
 
+  // ── Highlight ──
+  let hlEl = null;
+  function hl(el) {
+    if (hlEl && hlEl !== el) { hlEl.style.background=''; hlEl.style.outline=''; }
+    hlEl = el||null;
+    if (hlEl) { hlEl.style.background='rgba(0,113,227,.18)'; hlEl.style.outline='2px solid var(--ocean)'; }
+  }
+
+  // ── Encontrar celda destino ──
   function targetAt(x, y) {
+    // Esconder ghost temporalmente para que no interfiera
+    const g = document.getElementById('cal-drag-ghost');
+    if (g) g.style.display='none';
     const el = document.elementFromPoint(x, y);
+    if (g) g.style.display='';
     if (!el) return null;
-    const c = el.closest('.cal-cell:not(.empty)');    if (c) return c;
-    const h = el.closest('.cal-hour-cell');            if (h) return h;
-    const d = el.closest('.cal-dia-hour-cell');        if (d) return d;
+    const c = el.closest('.cal-cell:not(.empty)');  if (c) return c;
+    const h = el.closest('.cal-hour-cell');          if (h) return h;
+    const d = el.closest('.cal-dia-hour-cell');      if (d) return d;
     return null;
   }
 
+  // ── Info del target ──
   function infoFrom(el) {
     if (!el) return null;
     const oc = el.getAttribute('onclick')||'';
     let m = oc.match(/selectCalDay\('([^']+)'\)/);
-    if (m) return { key: m[1], hora: null };
+    if (m) return { key:m[1], hora:null };
     m = oc.match(/selectCalDayAndTime\('([^']+)','([^']+)'\)/);
-    if (m) return { key: m[1], hora: m[2] };
+    if (m) return { key:m[1], hora:m[2] };
     return null;
   }
 
+  // ── Mover evento ──
   function applyMove(evId, fromKey, toKey, toHora) {
     const arr = calEventsDB[fromKey];
-    if (!arr) return;
+    if (!arr) return false;
     const idx = arr.findIndex(e => e.id === evId);
-    if (idx === -1) return;
+    if (idx === -1) return false;
     const ev = { ...arr[idx] };
     if (toHora) ev.hora = toHora;
     arr.splice(idx, 1);
@@ -10996,13 +11008,16 @@ document.addEventListener('DOMContentLoaded', () => {
     calYear=y; calMonth=m-1;
     saveCal(); renderCal(); renderCalPanel();
     mostrarToast('📅 Movido al ' + toKey + (toHora ? ' · '+toHora : ''));
-    try { navigator.vibrate && navigator.vibrate([15,20,15]); } catch(e) {}
+    try { navigator.vibrate && navigator.vibrate([15,20,15]); } catch(e2) {}
+    return true;
   }
 
+  // ── Cleanup ──
   function cleanup() {
     if (!drag) return;
     clearTimeout(drag.timer);
-    if (drag.ghost) drag.ghost.remove();
+    const g = document.getElementById('cal-drag-ghost');
+    if (g) g.remove();
     if (drag.sourceEl) { drag.sourceEl.style.opacity=''; drag.sourceEl.style.transform=''; }
     hl(null);
     document.body.style.userSelect='';
@@ -11010,85 +11025,96 @@ document.addEventListener('DOMContentLoaded', () => {
     drag = null;
   }
 
+  // ── Activar drag ──
   function activate(x, y) {
-    if (!drag) return;
+    if (!drag || drag.active) return;
     drag.active = true;
     drag.ghost = makeGhost(drag.sourceEl, x, y);
-    drag.sourceEl.style.opacity = '0.38';
+    drag.sourceEl.style.opacity = '0.35';
     drag.sourceEl.style.transform = 'scale(0.96)';
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'grabbing';
-    try { navigator.vibrate && navigator.vibrate(40); } catch(e) {}
+    try { navigator.vibrate && navigator.vibrate(35); } catch(e) {}
   }
 
-  function drop(x, y) {
-    if (!drag || !drag.active) { cleanup(); return; }
-    const el = targetAt(x, y);
-    const info = infoFrom(el);
-    if (info) {
-      const ev = (calEventsDB[drag.fromKey]||[]).find(e=>e.id===drag.evId);
-      const sameDay  = info.key === drag.fromKey;
-      const sameHora = ev && ev.hora === info.hora;
-      if (!sameDay || (info.hora && !sameHora)) {
-        applyMove(drag.evId, drag.fromKey, info.key, info.hora);
+  // ── Drop ──
+  function doDrop(x, y) {
+    if (!drag) return;
+    if (drag.active) {
+      const el = targetAt(x, y);
+      const info = infoFrom(el);
+      if (info) {
+        const ev = (calEventsDB[drag.fromKey]||[]).find(e=>e.id===drag.evId);
+        const sameDay  = info.key === drag.fromKey;
+        const sameHora = ev && ev.hora === info.hora;
+        if (!sameDay || (info.hora && !sameHora)) {
+          applyMove(drag.evId, drag.fromKey, info.key, info.hora);
+        }
       }
     }
     cleanup();
   }
 
-  // ── MOUSE ──
-  document.addEventListener('mousedown', e => {
+  // ════════════ MOUSE ════════════
+  document.addEventListener('mousedown', function(e) {
     if (e.button !== 0) return;
     const item = e.target.closest('.cal-event-item[data-evid]');
     if (!item) return;
     const evId    = Number(item.dataset.evid);
     const fromKey = item.dataset.fromkey;
     if (!evId || !fromKey) return;
-    drag = { evId, fromKey, sourceEl: item, ghost: null, active: false,
-      startX: e.clientX, startY: e.clientY, timer: null };
+    drag = { evId, fromKey, sourceEl:item, ghost:null, active:false,
+              startX:e.clientX, startY:e.clientY, timer:null };
   });
 
-  document.addEventListener('mousemove', e => {
+  document.addEventListener('mousemove', function(e) {
     if (!drag) return;
     if (!drag.active) {
-      const dx = Math.abs(e.clientX - drag.startX);
-      const dy = Math.abs(e.clientY - drag.startY);
-      if (dx > 5 || dy > 5) activate(e.clientX, e.clientY);
+      if (Math.abs(e.clientX-drag.startX)>4 || Math.abs(e.clientY-drag.startY)>4) {
+        activate(e.clientX, e.clientY);
+      }
       return;
     }
-    moveGhost(drag.ghost, e.clientX, e.clientY);
+    posGhost(e.clientX, e.clientY);
     hl(targetAt(e.clientX, e.clientY));
   });
 
-  document.addEventListener('mouseup', e => { if (drag) drop(e.clientX, e.clientY); });
+  document.addEventListener('mouseup', function(e) {
+    doDrop(e.clientX, e.clientY);
+  });
 
-  // ── TOUCH ──
-  document.addEventListener('touchstart', e => {
+  // ════════════ TOUCH ════════════
+  document.addEventListener('touchstart', function(e) {
     const item = e.target.closest('.cal-event-item[data-evid]');
     if (!item) return;
-    const evId   = Number(item.dataset.evid);
+    const evId    = Number(item.dataset.evid);
     const fromKey = item.dataset.fromkey;
     if (!evId || !fromKey) return;
     const t = e.touches[0];
-    drag = { evId, fromKey, sourceEl: item, ghost: null, active: false,
-      startX: t.clientX, startY: t.clientY,
-      timer: setTimeout(() => activate(t.clientX, t.clientY), 420) };
-  }, { passive: true });
+    drag = { evId, fromKey, sourceEl:item, ghost:null, active:false,
+              startX:t.clientX, startY:t.clientY,
+              timer: setTimeout(function(){ activate(t.clientX, t.clientY); }, 400) };
+  }, { passive:true });
 
-  document.addEventListener('touchmove', e => {
+  document.addEventListener('touchmove', function(e) {
     if (!drag) return;
     const t = e.touches[0];
     if (!drag.active) {
-      if (Math.abs(t.clientX-drag.startX)>9 || Math.abs(t.clientY-drag.startY)>9) cleanup();
+      if (Math.abs(t.clientX-drag.startX)>8 || Math.abs(t.clientY-drag.startY)>8) cleanup();
       return;
     }
     e.preventDefault();
-    moveGhost(drag.ghost, t.clientX, t.clientY);
+    posGhost(t.clientX, t.clientY);
     hl(targetAt(t.clientX, t.clientY));
-  }, { passive: false });
+  }, { passive:false });
 
-  document.addEventListener('touchend',    e => { if (drag) { const t=e.changedTouches[0]; drop(t.clientX, t.clientY); } }, { passive: true });
-  document.addEventListener('touchcancel', cleanup, { passive: true });
+  document.addEventListener('touchend', function(e) {
+    if (!drag) return;
+    const t = e.changedTouches[0];
+    doDrop(t.clientX, t.clientY);
+  }, { passive:true });
+
+  document.addEventListener('touchcancel', cleanup, { passive:true });
 
 })();
 </script>
