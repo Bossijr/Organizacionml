@@ -11041,18 +11041,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.button !== 0) return;
     const item = e.target.closest('.cal-event-item[data-evid]');
     if (!item) return;
-    const evId   = Number(item.dataset.evid);
+    const evId    = Number(item.dataset.evid);
     const fromKey = item.dataset.fromkey;
     if (!evId || !fromKey) return;
-    e.preventDefault();
-    const x = e.clientX, y = e.clientY;
-    drag = { evId, fromKey, sourceEl: item, ghost: null, active: false, startX: x, startY: y,
-      timer: setTimeout(() => activate(x, y), 380) };
+    drag = { evId, fromKey, sourceEl: item, ghost: null, active: false,
+      startX: e.clientX, startY: e.clientY, timer: null };
   });
 
   document.addEventListener('mousemove', e => {
     if (!drag) return;
-    if (!drag.active) return; // no cancelar por movimiento en mouse (solo activamos con timer)
+    if (!drag.active) {
+      const dx = Math.abs(e.clientX - drag.startX);
+      const dy = Math.abs(e.clientY - drag.startY);
+      if (dx > 5 || dy > 5) activate(e.clientX, e.clientY);
+      return;
+    }
     moveGhost(drag.ghost, e.clientX, e.clientY);
     hl(targetAt(e.clientX, e.clientY));
   });
