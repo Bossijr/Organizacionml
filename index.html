@@ -1017,6 +1017,18 @@
     padding: 2px 5px; margin: 1px 0; line-height: 1.3; cursor: pointer;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .cal-ev-block--dur {
+    white-space: normal !important;
+    text-overflow: unset !important;
+    padding: 3px 6px !important;
+    line-height: 1.35 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18) !important;
+    cursor: grab !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
   .cal-ev-block.cumple   { background: #db2777; }
   .cal-ev-block.examen   { background: #7c3aed; }
   .cal-ev-block.evento   { background: var(--amber); color: #1a1a2e; }
@@ -4570,6 +4582,7 @@ function renderCalSemana() {
   document.getElementById('cal-semana-header').innerHTML = hdr;
 
   // Body — horas 6–23
+  const CELL_H_SEM = 44; // px por hora (min-height .cal-hour-cell)
   let body = '';
   for (let h = 6; h <= 23; h++) {
     body += `<div class="cal-hour-label"><span>${h}:00</span></div>`;
@@ -4577,8 +4590,16 @@ function renderCalSemana() {
       const key = dateKey(d);
       const isT = key === tk;
       const evts = getEventsFor(key).filter(e => e.hora && parseInt(e.hora.split(':')[0]) === h);
-      const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" onclick="event.stopPropagation();selectCalDay('${key}')">${e.hora} ${e.text}</div>`).join('');
-      body += `<div class="cal-hour-cell${isT?' today-col':''}" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
+      const evHtml = evts.map(e => {
+        const minOffset = e.hora ? parseInt(e.hora.split(':')[1] || 0) : 0;
+        const topPx = Math.round((minOffset / 60) * CELL_H_SEM);
+        if (e.duracion && e.duracion > 0) {
+          const heightPx = Math.max(20, Math.round((e.duracion / 60) * CELL_H_SEM));
+          return `<div class="cal-ev-block cal-ev-block--dur ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" style="position:absolute;top:${topPx}px;left:1px;right:1px;height:${heightPx}px;z-index:2;white-space:normal;overflow:hidden;" onclick="event.stopPropagation();selectCalDay('${key}')">${e.hora} ${e.text}</div>`;
+        }
+        return `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" style="position:relative;top:${topPx}px;" onclick="event.stopPropagation();selectCalDay('${key}')">${e.hora} ${e.text}</div>`;
+      }).join('');
+      body += `<div class="cal-hour-cell${isT?' today-col':''}" style="position:relative;" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
     });
   }
   document.getElementById('cal-semana-body').innerHTML = body;
@@ -4612,11 +4633,20 @@ function renderCalDia() {
   }).join('');
 
   let html = '';
+  const CELL_H_DIA = 48; // px por hora (min-height .cal-dia-hour-cell)
   for (let h = 6; h <= 23; h++) {
     const evts = getEventsFor(key).filter(e => !e.allday && e.hora && parseInt(e.hora.split(':')[0]) === h);
-    const evHtml = evts.map(e => `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" style="cursor:grab" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`).join('');
+    const evHtml = evts.map(e => {
+      const minOffset = e.hora ? parseInt(e.hora.split(':')[1] || 0) : 0;
+      const topPx = Math.round((minOffset / 60) * CELL_H_DIA);
+      if (e.duracion && e.duracion > 0) {
+        const heightPx = Math.max(22, Math.round((e.duracion / 60) * CELL_H_DIA));
+        return `<div class="cal-ev-block cal-ev-block--dur ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" style="position:absolute;top:${topPx}px;left:8px;right:4px;height:${heightPx}px;z-index:2;white-space:normal;overflow:hidden;" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`;
+      }
+      return `<div class="cal-ev-block ${e.pri!=='normal'?e.pri:''}" data-evid="${e.id}" data-fromkey="${key}" data-fromhora="${e.hora||''}" draggable="true" style="cursor:grab;position:relative;top:${topPx}px;" onclick="selectCalDay('${key}')">${e.hora} — ${e.text}</div>`;
+    }).join('');
     html += `<div class="cal-dia-hour-label"><span>${h}:00</span></div>
-      <div class="cal-dia-hour-cell" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
+      <div class="cal-dia-hour-cell" style="position:relative;" onclick="selectCalDayAndTime('${key}','${String(h).padStart(2,'0')}:00')">${evHtml}</div>`;
   }
   document.getElementById('cal-dia-body').innerHTML = html;
   const bodyEl = document.getElementById('cal-dia-body');
