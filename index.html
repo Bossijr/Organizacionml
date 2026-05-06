@@ -8827,20 +8827,25 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     }, err => console.warn('[FB] listen error', err));
   };
 
-  // Tab isolation helpers - sessionStorage no se comparte entre pestanas nuevas
+  // ── Helpers sessionStorage para aislamiento de pestanas ──
+  // sessionStorage es exclusivo por pestana: Ctrl+T abre una nueva con sessionStorage vacio.
+  // Solo usamos esto en la carga inicial para decidir si mostrar login o app directamente.
+  // Una vez el usuario hace login, _t1='1' y persiste en recargas de la misma pestana.
   const _tabOk  = () => { try { return sessionStorage.getItem('_t1') === '1'; } catch(e) { return true; } };
   const _tabSet = () => { try { sessionStorage.setItem('_t1', '1'); } catch(e) {} };
   const _tabDel = () => { try { sessionStorage.removeItem('_t1'); } catch(e) {} };
 
-  // Auth functions
+  // Flag: indica si la carga inicial ya fue procesada
+  let _initialAuthDone = false;
+
+  // ── Auth functions ──
   window._authLogin = async (email, pw) => {
     authSetError(''); authSetLoading(true);
-    _tabSet();
+    _tabSet(); // marcar esta pestana antes del await
     try {
       await signInWithEmailAndPassword(auth, email, pw);
-      // Si Firebase no dispara onAuthStateChanged (sesion ya activa), desbloquear boton
-      authSetLoading(false);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
+      // authSetLoading(false) lo hara onAuthStateChanged
     }
     catch(e) { _tabDel(); authSetLoading(false); authSetError(traducirError(e.code)); }
   };
@@ -8850,7 +8855,6 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: nombre });
-      authSetLoading(false);
       try { localStorage.setItem('_last_email', email); } catch(e) {}
     } catch(e) {
       _tabDel(); authSetLoading(false);
@@ -8893,63 +8897,72 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     return map[code] || 'Error: ' + code;
   }
 
-  // Estado de autenticacion
+  function _entrarApp(user) {
+    const prevUid = localStorage.getItem('_app_uid');
+    if (prevUid && prevUid !== user.uid) {
+      ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
+       'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
+       'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
+      .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+    }
+    localStorage.setItem('_app_uid', user.uid);
+    _currentUid = user.uid;
+    const n = document.getElementById('portada-user-name');
+    if (n) n.textContent = user.displayName || user.email.split('@')[0];
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-root').style.display   = 'block';
+    authSetLoading(false);
+    window._fbReady = true;
+    window.dispatchEvent(new Event('firebase-ready'));
+    setTimeout(() => {
+      if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
+    }, 400);
+  }
+
+  function _mostrarLogin() {
+    authSetLoading(false);
+    _currentUid = null;
+    window._fbReady = false;
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-root').style.display   = 'none';
+    try {
+      const lastEmail = localStorage.getItem('_last_email');
+      if (lastEmail) {
+        const emailInput = document.getElementById('auth-email');
+        if (emailInput && !emailInput.value) {
+          emailInput.value = lastEmail;
+          const hint = document.getElementById('auth-last-session-hint');
+          if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
+          setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
+        }
+      }
+    } catch(e) {}
+  }
+
+  // ── Estado de autenticacion ──
   onAuthStateChanged(auth, user => {
     document.getElementById('loading-screen').style.display = 'none';
-    authSetLoading(false);
-    if (user) {
-      // Pestana nueva (sin _t1 en sessionStorage) -> mostrar login
-      if (!_tabOk()) {
-        _currentUid = null; window._fbReady = false;
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('app-root').style.display   = 'none';
-        try {
-          const lastEmail = localStorage.getItem('_last_email');
-          if (lastEmail) {
-            const ei = document.getElementById('auth-email');
-            if (ei && !ei.value) {
-              ei.value = lastEmail;
-              const hint = document.getElementById('auth-last-session-hint');
-              if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
-            }
-          }
-        } catch(e) {}
-        return;
+
+    if (!_initialAuthDone) {
+      // PRIMER DISPARO al cargar la pagina
+      _initialAuthDone = true;
+      if (user && _tabOk()) {
+        // Sesion valida en esta pestana (recarga) -> entrar directamente
+        _entrarApp(user);
+      } else if (user && !_tabOk()) {
+        // Pestana nueva con sesion de otra pestana -> mostrar login
+        _mostrarLogin();
+      } else {
+        // Sin sesion -> mostrar login
+        _mostrarLogin();
       }
-      const prevUid = localStorage.getItem('_app_uid');
-      if (prevUid && prevUid !== user.uid) {
-        ['rutina_surf_cargas_v1','rutina_tareas_v1','mi_calendario_v1',
-         'mi_lista_compra_v1','ob_perfil_v1','cal_tipos_v1',
-         'plan_ia_entreno','plan_ia_nutri','cal_reminders_v1']
-        .forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
-      }
-      localStorage.setItem('_app_uid', user.uid);
-      _currentUid = user.uid;
-      const n = document.getElementById('portada-user-name');
-      if (n) n.textContent = user.displayName || user.email.split('@')[0];
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('app-root').style.display   = 'block';
-      window._fbReady = true;
-      window.dispatchEvent(new Event('firebase-ready'));
-      setTimeout(() => {
-        if (typeof window._checkOnboarding === 'function') window._checkOnboarding();
-      }, 400);
     } else {
-      _currentUid = null; window._fbReady = false;
-      document.getElementById('auth-screen').style.display = 'flex';
-      document.getElementById('app-root').style.display   = 'none';
-      try {
-        const lastEmail = localStorage.getItem('_last_email');
-        if (lastEmail) {
-          const emailInput = document.getElementById('auth-email');
-          if (emailInput && !emailInput.value) {
-            emailInput.value = lastEmail;
-            const hint = document.getElementById('auth-last-session-hint');
-            if (hint) { hint.textContent = 'Última sesión: ' + lastEmail; hint.style.display = 'block'; }
-            setTimeout(() => { const pw = document.getElementById('auth-password'); if (pw) pw.focus(); }, 300);
-          }
-        }
-      } catch(e) {}
+      // DISPAROS POSTERIORES: resultado de login/logout/registro
+      if (user) {
+        _entrarApp(user);
+      } else {
+        _mostrarLogin();
+      }
     }
   });
 
