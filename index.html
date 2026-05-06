@@ -1002,12 +1002,12 @@
   .cal-semana-col-head.today-col { color: var(--gold); }
   .cal-semana-col-head .sday-num { font-size: 1.2rem; font-weight: 700; color: var(--ink); display: block; line-height: 1.1; }
   .cal-semana-col-head.today-col .sday-num { color: white; background: var(--gold); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2px; font-size: 0.95rem; }
-  .cal-semana-body { display: grid; grid-template-columns: 54px repeat(7,1fr); max-height: 480px; overflow-y: auto; }
+  .cal-semana-body { display: grid; grid-template-columns: 54px repeat(7,1fr); height: calc(100dvh - 260px); min-height: 320px; overflow-y: hidden; }
   .cal-hour-label { font-size: 0.65rem; color: var(--muted); text-align: right; padding: 0 6px 0 0; border-right: 1px solid var(--border); position: relative; }
   .cal-hour-label span { position: absolute; top: -0.5em; right: 6px; }
   .cal-hour-cell {
     border-right: 1px solid var(--border); border-bottom: 1px solid rgba(10,37,64,0.06);
-    min-height: 44px; padding: 2px; cursor: pointer; transition: background 0.1s; position: relative;
+    height: calc((100dvh - 260px) / 18); min-height: 0; padding: 2px; cursor: pointer; transition: background 0.1s; position: relative; overflow: visible;
   }
   .cal-hour-cell:hover { background: rgba(0,0,0,0.05); }
   .cal-hour-cell.today-col { background: #f8fbff; }
@@ -2020,12 +2020,12 @@
     /* Vista semana: columna de horas estrecha + texto mínimo */
     .cal-semana-wrap              { border-radius: 11px; margin-bottom: 0.85rem; }
     .cal-semana-header            { grid-template-columns: 28px repeat(7,1fr); }
-    .cal-semana-body              { grid-template-columns: 28px repeat(7,1fr); }
+    .cal-semana-body              { grid-template-columns: 28px repeat(7,1fr); height: calc(100dvh - 230px); overflow-y: hidden; }
     .cal-semana-col-head          { padding: 0.3rem 0; font-size: 0.48rem; }
     .cal-semana-col-head .sday-num { font-size: 0.8rem; }
     .cal-semana-col-head.today-col .sday-num { width: 20px; height: 20px; font-size: 0.7rem; }
     .cal-hour-label               { font-size: 0.48rem; }
-    .cal-hour-cell                { min-height: 34px; }
+    .cal-hour-cell                { height: calc((100dvh - 230px) / 18); min-height: 0; }
     .cal-ev-block                 { font-size: 0.5rem; padding: 1px 2px; }
 
     /* Vista día */
@@ -2140,12 +2140,12 @@
     /* Vista SEMANA: columna de horas más estrecha */
     .cal-semana-wrap   { border-radius: 11px; }
     .cal-semana-header { grid-template-columns: 32px repeat(7,1fr); }
-    .cal-semana-body   { grid-template-columns: 32px repeat(7,1fr); }
+    .cal-semana-body   { grid-template-columns: 32px repeat(7,1fr); height: calc(100dvh - 240px); overflow-y: hidden; }
     .cal-semana-col-head { padding: 0.4rem 0.05rem; font-size: 0.52rem; }
     .cal-semana-col-head .sday-num { font-size: 0.85rem; }
     .cal-semana-col-head.today-col .sday-num { width: 22px; height: 22px; font-size: 0.75rem; }
     .cal-hour-label    { font-size: 0.52rem; }
-    .cal-hour-cell     { min-height: 36px; }
+    .cal-hour-cell     { height: calc((100dvh - 240px) / 18); min-height: 0; }
     .cal-ev-block      { font-size: 0.55rem; padding: 1px 3px; }
 
     /* Vista DÍA */
@@ -2388,12 +2388,12 @@
     /* Semana */
     .cal-semana-wrap   { border-radius: 10px; margin-bottom: 1.2rem; }
     .cal-semana-header { grid-template-columns: 60px repeat(7,1fr); }
-    .cal-semana-body   { grid-template-columns: 60px repeat(7,1fr); }
+    .cal-semana-body   { grid-template-columns: 60px repeat(7,1fr); height: calc(100dvh - 280px); overflow-y: hidden; }
     .cal-semana-col-head { padding: 0.65rem 0; font-size: 0.65rem; }
     .cal-semana-col-head .sday-num { font-size: 1.1rem; }
     .cal-semana-col-head.today-col .sday-num { width: 28px; height: 28px; font-size: 0.9rem; }
     .cal-hour-label  { font-size: 0.62rem; }
-    .cal-hour-cell   { min-height: 46px; }
+    .cal-hour-cell   { height: calc((100dvh - 280px) / 18); min-height: 0; }
     .cal-ev-block    { font-size: 0.65rem; padding: 2px 4px; }
 
     /* Día */
@@ -4582,7 +4582,9 @@ function renderCalSemana() {
   document.getElementById('cal-semana-header').innerHTML = hdr;
 
   // Body — horas 6–23
-  const CELL_H_SEM = 44; // px por hora (min-height .cal-hour-cell)
+  // Leer altura real de celda tras renderizar (fallback 44px)
+  document.getElementById('cal-semana-body').innerHTML = '';
+  const CELL_H_SEM = Math.max(20, Math.round((window.innerHeight - 260) / 18));
   let body = '';
   for (let h = 6; h <= 23; h++) {
     body += `<div class="cal-hour-label"><span>${h}:00</span></div>`;
@@ -4603,10 +4605,6 @@ function renderCalSemana() {
     });
   }
   document.getElementById('cal-semana-body').innerHTML = body;
-
-  // Scroll to 8am
-  const bodyEl = document.getElementById('cal-semana-body');
-  setTimeout(() => { bodyEl.scrollTop = 2 * 44; }, 50);
 }
 
 // ── DÍA ──
