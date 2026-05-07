@@ -10734,24 +10734,14 @@ Calcula el TDEE real basado en el perfil. Sé específico con gramos y calorías
   async function generarUno(tipo) {
     setStatus(tipo, '⏳', 'Generando…', '#86868b');
     try {
-      const response = await fetch('https://openrouter-proxy.lasa11bossi.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2500,
-          messages: [{ role: 'user', content: PROMPTS[tipo] }],
-        }),
-      });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const data = await response.json();
-      console.log('[DEBUG Worker response]', JSON.stringify(data));
-      const texto = data.content?.[0]?.text || data.choices?.[0]?.message?.content;
-      if (!texto) throw new Error('Sin respuesta');
+      const texto = await _callGemini(PROMPTS[tipo]);
       try { localStorage.setItem('plan_ia_' + tipo, texto); } catch(e) {}
       setStatus(tipo, '✅', 'Listo', '#34c759');
     } catch(err) {
-      setStatus(tipo, '⚠️', 'Error — podrás regenerarlo desde la app', '#ff9500');
+      const msg = err.message === 'API_KEY_INVALID'
+        ? 'Clave inválida — obtén una gratis en aistudio.google.com'
+        : 'Error — podrás regenerarlo desde la app';
+      setStatus(tipo, '⚠️', msg, '#ff9500');
       console.error('[obGenerarPlanesAuto]', tipo, err);
     }
   }
@@ -10948,6 +10938,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 // ══════════════════════════════ GENERADOR DE PLANES CON IA ══════════════════════════════
+// ▶ Clave de Gemini — obtenla gratis en https://aistudio.google.com/app/apikey
+const GEMINI_API_KEY = 'AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A';
+const GEMINI_MODEL   = 'gemini-1.5-flash';
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+async function _callGemini(prompt) {
+  const resp = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 2500, temperature: 0.7 },
+    }),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    if (resp.status === 400 || resp.status === 403) {
+      throw new Error('API_KEY_INVALID');
+    }
+    throw new Error('HTTP ' + resp.status + ' — ' + body.slice(0, 150));
+  }
+  const data = await resp.json();
+  const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!texto) throw new Error('Sin respuesta de Gemini — ' + JSON.stringify(data).slice(0, 200));
+  return texto;
+}
 
 function construirPerfilTexto() {
   const p = _ajPerfil || {};
@@ -11145,24 +11161,7 @@ async function generarPlanIA(tipo) {
   };
 
   try {
-    const response = await fetch('https://openrouter-proxy.lasa11bossi.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1800,
-        messages: [{ role: 'user', content: prompts[tipo] }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => '');
-      throw new Error('HTTP ' + response.status + ' — ' + errBody.slice(0, 200));
-    }
-    const data = await response.json();
-    console.log('[generarPlanIA] respuesta:', JSON.stringify(data).slice(0, 400));
-    const texto = data.content?.[0]?.text || data.choices?.[0]?.message?.content;
-    if (!texto) throw new Error('Sin respuesta — estructura: ' + JSON.stringify(Object.keys(data)));
+    const texto = await _callGemini(prompts[tipo]);
 
     const planJson = extractJsonPlan(texto);
     if (planJson) {
@@ -11186,7 +11185,10 @@ async function generarPlanIA(tipo) {
     }
 
   } catch(err) {
-    result.innerHTML = '<p style="color:var(--coral);padding:1rem">⚠️ Error al conectar con la IA. Comprueba tu conexión e inténtalo de nuevo.</p>';
+    const msg = err.message === 'API_KEY_INVALID'
+      ? '🔑 Clave de Gemini inválida o sin acceso. Obtén una gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ocean)">aistudio.google.com</a> y pégala en la línea <code>GEMINI_API_KEY</code> del código.'
+      : '⚠️ Error al conectar con la IA: ' + err.message;
+    result.innerHTML = `<p style="color:var(--coral);padding:1rem;line-height:1.6">${msg}</p>`;
     result.classList.add('visible');
     if (btn) { btn.textContent = '↺ Reintentar'; btn.style.display = ''; btn.disabled = false; }
   } finally {
