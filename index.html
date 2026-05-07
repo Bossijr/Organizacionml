@@ -3922,7 +3922,7 @@ function mostrarToast(msg, undoCallback) {
 }
 
 // ══════════════════════════════ DÍAS DE ENTRENAMIENTO ══════════════════════════════
-const days = [
+let days = [
   { title:"Fuerza tren inferior", day:"Lunes", tag:"Fuerza", tagClass:"tag-fuerza",
     sub:"Objetivo: hipertrofia + fuerza base. Enfoque: glúteos, cuádriceps, isquios y estabilidad de tobillo (clave para surf y recepción de balón).",
     phases:[
@@ -10706,35 +10706,22 @@ async function obGenerarPlanesAuto() {
   const perfil = construirPerfilTexto();
 
   const PROMPTS = {
-    entreno: `Eres un entrenador personal experto en alto rendimiento deportivo. Basándote en el siguiente perfil del usuario, crea una rutina de entrenamiento semanal detallada y personalizada.
+    entreno: `Eres un entrenador personal experto. Crea un plan de entrenamiento semanal personalizado para este perfil:
 
-PERFIL DEL USUARIO:
 ${perfil}
 
-Genera un plan de entrenamiento semanal completo con:
-- Distribución de días (qué se trabaja cada día)
-- Ejercicios específicos con series, repeticiones y descansos
-- Progresión recomendada
-- Consejos de calentamiento y vuelta a la calma
-- Adaptaciones según lesiones si las hay
-- Tiempo estimado por sesión
+Responde ÚNICAMENTE con JSON válido (sin texto adicional, sin bloques de código markdown). Usa esta estructura exacta:
+{"hero":{"label":"descripción breve del programa","titleLine1":"PALABRA1","titleLine2":"PALABRA2","desc":"descripción en 1-2 frases","stats":[{"val":"5","lbl":"días/semana"},{"val":"60'","lbl":"por sesión"},{"val":"12","lbl":"semanas"},{"val":"~400","lbl":"kcal déficit"}]},"days":[{"day":"Lunes","title":"Nombre sesión","tag":"Fuerza","tagClass":"tag-fuerza","sub":"Objetivo y enfoque de la sesión","phases":[{"name":"Calentamiento (10')","items":["ejercicio 1","ejercicio 2"]}],"tip":"Consejo de rendimiento"}],"progression":[{"num":"1-4","title":"Fase de base","body":"descripción"}],"goldenRule":"La regla de oro del programa","recovery":[{"icon":"🌙","title":"Sueño","text":"descripción"}],"footer":"Programa diseñado para..."}
 
-Sé específico, práctico y adapta todo al perfil del usuario. Usa formato con títulos y listas para facilitar la lectura.`,
-    nutri: `Eres un nutricionista deportivo experto. Basándote en el siguiente perfil del usuario, crea un plan nutricional detallado y personalizado.
+Normas: exactamente 7 días (Lunes a Domingo), tagClass solo puede ser: tag-fuerza | tag-surf | tag-potencia | tag-cardio | tag-futbol | tag-descanso, 3-4 phases por día con 4-6 items cada una, 3-4 fases de progresión, 5-6 tarjetas de recuperación.`,
+    nutri: `Eres un nutricionista deportivo experto. Crea un plan nutricional personalizado para este perfil:
 
-PERFIL DEL USUARIO:
 ${perfil}
 
-Genera un plan nutricional completo con:
-- Calorías diarias recomendadas (calcula el TDEE según el perfil)
-- Distribución de macronutrientes (proteínas, carbohidratos, grasas) en gramos
-- Plan de comidas tipo para un día completo respetando el número de comidas indicado
-- Alimentos recomendados y a evitar según restricciones y alergias
-- Timing nutricional (pre y post entreno)
-- Suplementación básica si aplica
-- Hidratación recomendada
+Responde ÚNICAMENTE con JSON válido (sin texto adicional, sin bloques de código markdown). Usa esta estructura exacta:
+{"hero":{"label":"Estrategia nutricional personalizada","titleLine1":"NUTRICIÓN","titleLine2":"PERSONALIZADA","desc":"descripción en 1-2 frases","stats":[{"val":"2.0","lbl":"g proteína/kg"},{"val":"500","lbl":"kcal déficit máx."},{"val":"3L","lbl":"agua/día"}]},"cards":[{"key":"Proteína","val":"descripción con cantidades"},{"key":"Carbohidratos","val":"descripción"},{"key":"Grasas","val":"descripción"},{"key":"Timing pre-entreno","val":"descripción"},{"key":"Timing post-entreno","val":"descripción"},{"key":"Hidratación","val":"descripción"},{"key":"Déficit calórico","val":"descripción con cálculo"},{"key":"TDEE estimado","val":"valor calculado y explicación"}]}
 
-Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y listas.`,
+Calcula el TDEE real basado en el perfil. Sé específico con gramos y calorías.`,
   };
 
   function setStatus(tipo, icon, lbl, color) {
@@ -10752,7 +10739,7 @@ Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1800,
+          max_tokens: 2500,
           messages: [{ role: 'user', content: PROMPTS[tipo] }],
         }),
       });
@@ -10814,10 +10801,17 @@ function _restoreOrGeneratePlans() {
     try {
       const saved = localStorage.getItem('plan_ia_' + tipo);
       if (saved) {
-        const el = document.getElementById(resultId);
-        if (el && !el.classList.contains('visible')) {
-          el.innerHTML = renderMarkdown(saved);
-          el.classList.add('visible');
+        const planJson = extractJsonPlan(saved);
+        if (planJson) {
+          if (tipo === 'entreno') applyPlanEntreno(planJson);
+          else applyPlanNutri(planJson);
+        } else {
+          // Fallback: planes antiguos guardados como markdown
+          const el = document.getElementById(resultId);
+          if (el && !el.classList.contains('visible')) {
+            el.innerHTML = renderMarkdown(saved);
+            el.classList.add('visible');
+          }
         }
         if (btn) {
           btn.textContent = '↺ Regenerar plan con IA';
@@ -11004,6 +10998,126 @@ function renderMarkdown(text) {
   return result.replace(/\n{2,}/g, '\n\n');
 }
 
+function extractJsonPlan(text) {
+  let s = text.trim();
+  s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
+  if (start === -1 || end === -1) return null;
+  try { return JSON.parse(s.slice(start, end + 1)); } catch(e) { return null; }
+}
+
+function applyPlanEntreno(plan) {
+  const areaEl = document.getElementById('area-entrenamiento');
+  if (!areaEl) return;
+
+  // Hero
+  const hero = areaEl.querySelector('.hero');
+  if (hero && plan.hero) {
+    const h = plan.hero;
+    const labelEl = hero.querySelector('.hero-label');
+    const h1El    = hero.querySelector('h1');
+    const descEl  = hero.querySelector('.hero-desc');
+    const statsEl = hero.querySelector('.hero-stats');
+    if (labelEl) labelEl.textContent = h.label || '';
+    if (h1El)    h1El.innerHTML = `${h.titleLine1 || 'ENTRENO'}<br><span>${h.titleLine2 || 'PERSONALIZADO'}</span>`;
+    if (descEl)  descEl.textContent = h.desc || '';
+    if (statsEl && h.stats) {
+      statsEl.innerHTML = h.stats.map(s =>
+        `<div class="stat"><div class="stat-val">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div>`
+      ).join('');
+    }
+  }
+
+  // Week grid + days variable
+  if (plan.days && plan.days.length) {
+    days = plan.days;
+    const wg = document.getElementById('weekGrid');
+    if (wg) {
+      wg.innerHTML = plan.days.map((d, i) =>
+        `<div class="week-card${i === 0 ? ' active' : ''}" data-day="${i}">
+           <div class="wc-day">${d.day}</div>
+           <div class="wc-title">${d.title}</div>
+           <span class="tag ${d.tagClass || 'tag-fuerza'}">${d.tag}</span>
+         </div>`
+      ).join('');
+    }
+    renderDay(0);
+  }
+
+  // Progresión tab
+  const progTab = document.getElementById('tab-progresion');
+  if (progTab && plan.progression) {
+    progTab.innerHTML =
+      `<div class="section-heading">Progresión del programa</div>
+       <p class="section-sub">Sigue este esquema de fases para maximizar resultados y evitar el sobreentrenamiento.</p>` +
+      plan.progression.map(p =>
+        `<div class="prog-card"><div class="prog-header"><div class="prog-num">${p.num}</div><div><div class="prog-title">${p.title}</div></div></div><div class="prog-body">${p.body}</div></div>`
+      ).join('') +
+      (plan.goldenRule ? `
+        <div style="background:#f0f7ff;border-radius:12px;padding:1.2rem 1.4rem;margin-top:1rem;border-left:3px solid var(--ocean);">
+          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ocean);margin-bottom:6px;">Regla de oro</div>
+          <div style="font-size:0.88rem;color:var(--navy);line-height:1.6;">${plan.goldenRule}</div>
+        </div>` : '');
+  }
+
+  // Recuperación tab
+  const recTab = document.getElementById('tab-recuperacion');
+  if (recTab && plan.recovery) {
+    recTab.innerHTML =
+      `<div class="section-heading">Recuperación</div>
+       <p class="section-sub">El entrenamiento crea el estímulo, pero la mejora ocurre durante la recuperación.</p>
+       <div class="rec-grid">` +
+      plan.recovery.map(r =>
+        `<div class="rec-card">
+           <div class="rec-icon" style="font-size:1.4rem;display:flex;align-items:center;justify-content:center;height:36px;">${r.icon || '💪'}</div>
+           <div class="rec-title">${r.title}</div>
+           <div class="rec-text">${r.text}</div>
+         </div>`
+      ).join('') +
+      `</div>`;
+  }
+
+  // Footer
+  if (plan.footer) {
+    const footer = areaEl.querySelector('footer');
+    if (footer) footer.textContent = plan.footer;
+  }
+}
+
+function applyPlanNutri(plan) {
+  const areaEl = document.getElementById('area-nutricion');
+  if (!areaEl) return;
+
+  // Hero
+  const hero = areaEl.querySelector('.hero');
+  if (hero && plan.hero) {
+    const h = plan.hero;
+    const labelEl = hero.querySelector('.hero-label');
+    const h1El    = hero.querySelector('h1');
+    const descEl  = hero.querySelector('.hero-desc');
+    const statsEl = hero.querySelector('.hero-stats');
+    if (labelEl) labelEl.textContent = h.label || '';
+    if (h1El)    h1El.innerHTML = `${h.titleLine1 || 'NUTRICIÓN'}<br><span>${h.titleLine2 || 'PERSONALIZADA'}</span>`;
+    if (descEl)  descEl.textContent = h.desc || '';
+    if (statsEl && h.stats) {
+      statsEl.innerHTML = h.stats.map(s =>
+        `<div class="stat"><div class="stat-val">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div>`
+      ).join('');
+    }
+  }
+
+  // Info cards grid
+  if (plan.cards && plan.cards.length) {
+    const grid = areaEl.querySelector('.info-grid');
+    if (grid) {
+      grid.innerHTML = plan.cards.map(c =>
+        `<div class="info-card"><div class="info-key">${c.key}</div><div class="info-val">${c.val}</div></div>`
+      ).join('');
+    }
+  }
+}
+
 async function generarPlanIA(tipo) {
   // Cargar perfil actualizado
   try {
@@ -11026,8 +11140,8 @@ async function generarPlanIA(tipo) {
   result.innerHTML = '';
 
   const prompts = {
-    entreno: `Eres un entrenador personal experto en alto rendimiento deportivo. Basándote en el siguiente perfil del usuario, crea una rutina de entrenamiento semanal detallada y personalizada.\n\nPERFIL DEL USUARIO:\n${perfil}\n\nGenera un plan de entrenamiento semanal completo con:\n- Distribución de días (qué se trabaja cada día)\n- Ejercicios específicos con series, repeticiones y descansos\n- Progresión recomendada\n- Consejos de calentamiento y vuelta a la calma\n- Adaptaciones según lesiones si las hay\n- Tiempo estimado por sesión\n\nSé específico, práctico y adapta todo al perfil del usuario. Usa formato con títulos y listas para facilitar la lectura.`,
-    nutri: `Eres un nutricionista deportivo experto. Basándote en el siguiente perfil del usuario, crea un plan nutricional detallado y personalizado.\n\nPERFIL DEL USUARIO:\n${perfil}\n\nGenera un plan nutricional completo con:\n- Calorías diarias recomendadas (calcula el TDEE según el perfil)\n- Distribución de macronutrientes (proteínas, carbohidratos, grasas) en gramos\n- Plan de comidas tipo para un día completo respetando el número de comidas indicado\n- Alimentos recomendados y a evitar según restricciones y alergias\n- Timing nutricional (pre y post entreno)\n- Suplementación básica si aplica\n- Hidratación recomendada\n\nSé específico con cantidades y adaptado al perfil. Usa formato con títulos y listas.`,
+    entreno: `Eres un entrenador personal experto. Crea un plan de entrenamiento semanal personalizado para este perfil:\n\n${perfil}\n\nResponde ÚNICAMENTE con JSON válido (sin texto adicional, sin bloques de código markdown). Usa esta estructura exacta:\n{"hero":{"label":"descripción breve del programa","titleLine1":"PALABRA1","titleLine2":"PALABRA2","desc":"descripción en 1-2 frases","stats":[{"val":"5","lbl":"días/semana"},{"val":"60'","lbl":"por sesión"},{"val":"12","lbl":"semanas"},{"val":"~400","lbl":"kcal déficit"}]},"days":[{"day":"Lunes","title":"Nombre sesión","tag":"Fuerza","tagClass":"tag-fuerza","sub":"Objetivo y enfoque de la sesión","phases":[{"name":"Calentamiento (10')","items":["ejercicio 1","ejercicio 2"]}],"tip":"Consejo de rendimiento"}],"progression":[{"num":"1-4","title":"Fase de base","body":"descripción"}],"goldenRule":"La regla de oro del programa","recovery":[{"icon":"🌙","title":"Sueño","text":"descripción"}],"footer":"Programa diseñado para..."}\n\nNormas: exactamente 7 días (Lunes a Domingo), tagClass solo puede ser: tag-fuerza | tag-surf | tag-potencia | tag-cardio | tag-futbol | tag-descanso, 3-4 phases por día con 4-6 items cada una, 3-4 fases de progresión, 5-6 tarjetas de recuperación.`,
+    nutri: `Eres un nutricionista deportivo experto. Crea un plan nutricional personalizado para este perfil:\n\n${perfil}\n\nResponde ÚNICAMENTE con JSON válido (sin texto adicional, sin bloques de código markdown). Usa esta estructura exacta:\n{"hero":{"label":"Estrategia nutricional personalizada","titleLine1":"NUTRICIÓN","titleLine2":"PERSONALIZADA","desc":"descripción en 1-2 frases","stats":[{"val":"2.0","lbl":"g proteína/kg"},{"val":"500","lbl":"kcal déficit máx."},{"val":"3L","lbl":"agua/día"}]},"cards":[{"key":"Proteína","val":"descripción con cantidades"},{"key":"Carbohidratos","val":"descripción"},{"key":"Grasas","val":"descripción"},{"key":"Timing pre-entreno","val":"descripción"},{"key":"Timing post-entreno","val":"descripción"},{"key":"Hidratación","val":"descripción"},{"key":"Déficit calórico","val":"descripción con cálculo"},{"key":"TDEE estimado","val":"valor calculado y explicación"}]}\n\nCalcula el TDEE real basado en el perfil. Sé específico con gramos y calorías.`,
   };
 
   try {
@@ -11041,13 +11155,23 @@ async function generarPlanIA(tipo) {
       }),
     });
 
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => '');
+      throw new Error('HTTP ' + response.status + ' — ' + errBody.slice(0, 200));
+    }
     const data = await response.json();
+    console.log('[generarPlanIA] respuesta:', JSON.stringify(data).slice(0, 400));
     const texto = data.content?.[0]?.text || data.choices?.[0]?.message?.content;
-    if (!texto) throw new Error('Sin respuesta');
+    if (!texto) throw new Error('Sin respuesta — estructura: ' + JSON.stringify(Object.keys(data)));
 
-    result.innerHTML = renderMarkdown(texto);
-    result.classList.add('visible');
+    const planJson = extractJsonPlan(texto);
+    if (planJson) {
+      if (tipo === 'entreno') applyPlanEntreno(planJson);
+      else applyPlanNutri(planJson);
+    } else {
+      result.innerHTML = renderMarkdown(texto);
+      result.classList.add('visible');
+    }
     try { localStorage.setItem('plan_ia_' + tipo, texto); } catch(e) {}
 
     // Mostrar botón de regenerar (discreto)
