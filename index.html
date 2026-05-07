@@ -10786,22 +10786,40 @@ function obEnterApp() {
     if (local) { const d = JSON.parse(local); if (d && d.areas) applyAreas(d.areas); }
   } catch(e) {}
 
-  let anyPlanRestored = false;
+  let pendingPlans = [];
   ['entreno', 'nutri'].forEach(tipo => {
+    const btnId   = tipo === 'entreno' ? 'btn-generar-entreno' : 'btn-generar-nutri';
+    const resultId = tipo === 'entreno' ? 'resultado-entreno' : 'resultado-nutri';
+    const btn = document.getElementById(btnId);
     try {
       const saved = localStorage.getItem('plan_ia_' + tipo);
-      if (!saved) return;
-      const el = document.getElementById(tipo === 'entreno' ? 'resultado-entreno' : 'resultado-nutri');
-      if (el) { el.innerHTML = renderMarkdown(saved); el.classList.add('visible'); }
-      anyPlanRestored = true;
-    } catch(e) {}
+      if (saved) {
+        // Plan ya existe: mostrarlo y convertir el botón en "Regenerar" discreto
+        const el = document.getElementById(resultId);
+        if (el) { el.innerHTML = renderMarkdown(saved); el.classList.add('visible'); }
+        if (btn) {
+          btn.textContent = '↺ Regenerar plan con IA';
+          btn.style.fontSize = '0.82rem';
+          btn.style.padding = '0.6rem 1.4rem';
+          btn.style.opacity = '0.55';
+          btn.style.marginTop = '1rem';
+        }
+      } else {
+        // Sin plan: ocultar botón y encolar generación automática
+        if (btn) btn.style.display = 'none';
+        pendingPlans.push(tipo);
+      }
+    } catch(e) {
+      pendingPlans.push(tipo);
+    }
   });
 
-  // Si no hay planes guardados, generarlos automáticamente tras el onboarding
-  if (!anyPlanRestored) {
-    setTimeout(() => {
-      generarPlanIA('entreno');
-      setTimeout(() => generarPlanIA('nutri'), 500);
+  // Generar automáticamente los planes que faltan
+  if (pendingPlans.length > 0) {
+    setTimeout(async () => {
+      for (const tipo of pendingPlans) {
+        await generarPlanIA(tipo);
+      }
     }, 600);
   }
 }
@@ -11000,79 +11018,52 @@ async function generarPlanIA(tipo) {
   const loading = document.getElementById(loadingId);
   const result  = document.getElementById(resultId);
 
-  btn.disabled = true;
+  if (btn) btn.style.display = 'none';
   loading.classList.add('visible');
   result.classList.remove('visible');
   result.innerHTML = '';
 
   const prompts = {
-    entreno: `Eres un entrenador personal experto en alto rendimiento deportivo. Basándote en el siguiente perfil del usuario, crea una rutina de entrenamiento semanal detallada y personalizada.
-
-PERFIL DEL USUARIO:
-${perfil}
-
-Genera un plan de entrenamiento semanal completo con:
-- Distribución de días (qué se trabaja cada día)
-- Ejercicios específicos con series, repeticiones y descansos
-- Progresión recomendada
-- Consejos de calentamiento y vuelta a la calma
-- Adaptaciones según lesiones si las hay
-- Tiempo estimado por sesión
-
-Sé específico, práctico y adapta todo al perfil del usuario. Usa formato con títulos y listas para facilitar la lectura.`,
-
-    nutri: `Eres un nutricionista deportivo experto. Basándote en el siguiente perfil del usuario, crea un plan nutricional detallado y personalizado.
-
-PERFIL DEL USUARIO:
-${perfil}
-
-Genera un plan nutricional completo con:
-- Calorías diarias recomendadas (calcula el TDEE según el perfil)
-- Distribución de macronutrientes (proteínas, carbohidratos, grasas) en gramos
-- Plan de comidas tipo para un día completo respetando el número de comidas indicado
-- Alimentos recomendados y a evitar según restricciones y alergias
-- Timing nutricional (pre y post entreno)
-- Suplementación básica si aplica
-- Hidratación recomendada
-
-Sé específico con cantidades y adaptado al perfil. Usa formato con títulos y listas.`,
+    entreno: `Eres un entrenador personal experto en alto rendimiento deportivo. Basándote en el siguiente perfil del usuario, crea una rutina de entrenamiento semanal detallada y personalizada.\n\nPERFIL DEL USUARIO:\n${perfil}\n\nGenera un plan de entrenamiento semanal completo con:\n- Distribución de días (qué se trabaja cada día)\n- Ejercicios específicos con series, repeticiones y descansos\n- Progresión recomendada\n- Consejos de calentamiento y vuelta a la calma\n- Adaptaciones según lesiones si las hay\n- Tiempo estimado por sesión\n\nSé específico, práctico y adapta todo al perfil del usuario. Usa formato con títulos y listas para facilitar la lectura.`,
+    nutri: `Eres un nutricionista deportivo experto. Basándote en el siguiente perfil del usuario, crea un plan nutricional detallado y personalizado.\n\nPERFIL DEL USUARIO:\n${perfil}\n\nGenera un plan nutricional completo con:\n- Calorías diarias recomendadas (calcula el TDEE según el perfil)\n- Distribución de macronutrientes (proteínas, carbohidratos, grasas) en gramos\n- Plan de comidas tipo para un día completo respetando el número de comidas indicado\n- Alimentos recomendados y a evitar según restricciones y alergias\n- Timing nutricional (pre y post entreno)\n- Suplementación básica si aplica\n- Hidratación recomendada\n\nSé específico con cantidades y adaptado al perfil. Usa formato con títulos y listas.`,
   };
 
-  // ── GEMINI API KEY ── Pega aquí tu key de Google AI Studio (aistudio.google.com)
-  const GEMINI_API_KEY = 'AIzaSyDCzyrk0eeT9VgqI5JD2-9UyU_eWjetMaM';
-
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompts[tipo] }] }],
-          generationConfig: { maxOutputTokens: 1800 },
-        }),
-      }
-    );
+    const response = await fetch('https://openrouter-proxy.lasa11bossi.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1800,
+        messages: [{ role: 'user', content: prompts[tipo] }],
+      }),
+    });
 
+    if (!response.ok) throw new Error('HTTP ' + response.status);
     const data = await response.json();
-    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text
-      || data.error?.message
-      || 'No se pudo generar el plan.';
+    const texto = data.content?.[0]?.text || data.choices?.[0]?.message?.content;
+    if (!texto) throw new Error('Sin respuesta');
 
     result.innerHTML = renderMarkdown(texto);
     result.classList.add('visible');
-
-    // Guardar en localStorage para no perderlo
     try { localStorage.setItem('plan_ia_' + tipo, texto); } catch(e) {}
 
-    // Hacer scroll hasta el resultado
-    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Mostrar botón de regenerar (discreto)
+    if (btn) {
+      btn.textContent = '↺ Regenerar plan con IA';
+      btn.style.display = '';
+      btn.style.fontSize = '0.82rem';
+      btn.style.padding = '0.6rem 1.4rem';
+      btn.style.opacity = '0.55';
+      btn.style.marginTop = '1rem';
+      btn.disabled = false;
+    }
 
   } catch(err) {
-    result.innerHTML = '<em style="color:var(--coral)">Error al conectar con la IA. Comprueba tu conexión e inténtalo de nuevo.</em>';
+    result.innerHTML = '<p style="color:var(--coral);padding:1rem">⚠️ Error al conectar con la IA. Comprueba tu conexión e inténtalo de nuevo.</p>';
     result.classList.add('visible');
+    if (btn) { btn.textContent = '↺ Reintentar'; btn.style.display = ''; btn.disabled = false; }
   } finally {
-    btn.disabled = false;
     loading.classList.remove('visible');
   }
 }
@@ -11082,10 +11073,20 @@ document.addEventListener('DOMContentLoaded', () => {
   ['entreno', 'nutri'].forEach(tipo => {
     try {
       const saved = localStorage.getItem('plan_ia_' + tipo);
-      if (!saved) return;
+      const btnId = tipo === 'entreno' ? 'btn-generar-entreno' : 'btn-generar-nutri';
       const resultId = tipo === 'entreno' ? 'resultado-entreno' : 'resultado-nutri';
+      const btn = document.getElementById(btnId);
+      if (!saved) return;
       const el = document.getElementById(resultId);
       if (el) { el.innerHTML = renderMarkdown(saved); el.classList.add('visible'); }
+      // Plan existe: convertir botón en "Regenerar" discreto
+      if (btn) {
+        btn.textContent = '↺ Regenerar plan con IA';
+        btn.style.fontSize = '0.82rem';
+        btn.style.padding = '0.6rem 1.4rem';
+        btn.style.opacity = '0.55';
+        btn.style.marginTop = '1rem';
+      }
     } catch(e) {}
   });
 });
