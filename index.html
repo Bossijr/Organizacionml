@@ -10785,43 +10785,7 @@ function obEnterApp() {
     const local = localStorage.getItem('ob_perfil_v1');
     if (local) { const d = JSON.parse(local); if (d && d.areas) applyAreas(d.areas); }
   } catch(e) {}
-
-  let pendingPlans = [];
-  ['entreno', 'nutri'].forEach(tipo => {
-    const btnId   = tipo === 'entreno' ? 'btn-generar-entreno' : 'btn-generar-nutri';
-    const resultId = tipo === 'entreno' ? 'resultado-entreno' : 'resultado-nutri';
-    const btn = document.getElementById(btnId);
-    try {
-      const saved = localStorage.getItem('plan_ia_' + tipo);
-      if (saved) {
-        // Plan ya existe: mostrarlo y convertir el botón en "Regenerar" discreto
-        const el = document.getElementById(resultId);
-        if (el) { el.innerHTML = renderMarkdown(saved); el.classList.add('visible'); }
-        if (btn) {
-          btn.textContent = '↺ Regenerar plan con IA';
-          btn.style.fontSize = '0.82rem';
-          btn.style.padding = '0.6rem 1.4rem';
-          btn.style.opacity = '0.55';
-          btn.style.marginTop = '1rem';
-        }
-      } else {
-        // Sin plan: ocultar botón y encolar generación automática
-        if (btn) btn.style.display = 'none';
-        pendingPlans.push(tipo);
-      }
-    } catch(e) {
-      pendingPlans.push(tipo);
-    }
-  });
-
-  // Generar automáticamente los planes que faltan
-  if (pendingPlans.length > 0) {
-    setTimeout(async () => {
-      for (const tipo of pendingPlans) {
-        await generarPlanIA(tipo);
-      }
-    }, 600);
-  }
+  _restoreOrGeneratePlans();
 }
 
 function obSkip() {
@@ -10841,6 +10805,42 @@ function applyAreas(areas) {
   });
 }
 
+// ── Restaurar o generar planes IA según localStorage ──
+function _restoreOrGeneratePlans() {
+  ['entreno', 'nutri'].forEach(tipo => {
+    const btnId    = tipo === 'entreno' ? 'btn-generar-entreno' : 'btn-generar-nutri';
+    const resultId = tipo === 'entreno' ? 'resultado-entreno'   : 'resultado-nutri';
+    const btn = document.getElementById(btnId);
+    try {
+      const saved = localStorage.getItem('plan_ia_' + tipo);
+      if (saved) {
+        const el = document.getElementById(resultId);
+        if (el && !el.classList.contains('visible')) {
+          el.innerHTML = renderMarkdown(saved);
+          el.classList.add('visible');
+        }
+        if (btn) {
+          btn.textContent = '↺ Regenerar plan con IA';
+          btn.style.fontSize = '0.82rem';
+          btn.style.padding = '0.6rem 1.4rem';
+          btn.style.opacity = '0.55';
+          btn.style.marginTop = '1rem';
+        }
+      } else {
+        if (btn) btn.style.display = 'none';
+      }
+    } catch(e) {}
+  });
+
+  // Generar los que faltan automáticamente (si hay perfil)
+  const hasPerfil = (() => { try { const l = localStorage.getItem('ob_perfil_v1'); return l && JSON.parse(l).completado; } catch(e) { return false; } })();
+  if (!hasPerfil) return;
+  const missing = ['entreno','nutri'].filter(t => { try { return !localStorage.getItem('plan_ia_' + t); } catch(e) { return true; } });
+  if (missing.length > 0) {
+    setTimeout(async () => { for (const t of missing) await generarPlanIA(t); }, 800);
+  }
+}
+
 // Verificar si el usuario ya completó el onboarding
 window._checkOnboarding = function() {
   // 1. Comprobar caché local primero (respuesta inmediata)
@@ -10855,6 +10855,7 @@ window._checkOnboarding = function() {
           // continúa hacia Firestore / obInit
         } else {
           applyAreas(d.areas);
+          _restoreOrGeneratePlans();
           return;
         }
       }
@@ -10879,6 +10880,7 @@ window._checkOnboarding = function() {
         try { localStorage.setItem('ob_perfil_v1', JSON.stringify(perfil)); } catch(e) {}
         document.getElementById('onboarding-screen').style.display = 'none';
         applyAreas(perfil.areas);
+        _restoreOrGeneratePlans();
       } else {
         obInit();
       }
@@ -11068,28 +11070,8 @@ async function generarPlanIA(tipo) {
   }
 }
 
-// Restaurar planes guardados al cargar
-document.addEventListener('DOMContentLoaded', () => {
-  ['entreno', 'nutri'].forEach(tipo => {
-    try {
-      const saved = localStorage.getItem('plan_ia_' + tipo);
-      const btnId = tipo === 'entreno' ? 'btn-generar-entreno' : 'btn-generar-nutri';
-      const resultId = tipo === 'entreno' ? 'resultado-entreno' : 'resultado-nutri';
-      const btn = document.getElementById(btnId);
-      if (!saved) return;
-      const el = document.getElementById(resultId);
-      if (el) { el.innerHTML = renderMarkdown(saved); el.classList.add('visible'); }
-      // Plan existe: convertir botón en "Regenerar" discreto
-      if (btn) {
-        btn.textContent = '↺ Regenerar plan con IA';
-        btn.style.fontSize = '0.82rem';
-        btn.style.padding = '0.6rem 1.4rem';
-        btn.style.opacity = '0.55';
-        btn.style.marginTop = '1rem';
-      }
-    } catch(e) {}
-  });
-});
+// Restaurar planes guardados al cargar (manejado por _checkOnboarding → _restoreOrGeneratePlans)
+// El DOMContentLoaded principal ya lanza _checkOnboarding, que incluye la restauración.
 </script>
 <script>
 // ══════════════════════════════ DRAG & DROP CALENDARIO ══════════════════════════════
