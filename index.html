@@ -1554,6 +1554,7 @@
     font-family: 'Inter', sans-serif; font-size: 0.82rem; padding: 0.42rem 0.6rem;
     border: 1.5px solid var(--card-border); border-radius: 6px; background: var(--surface);
     color: var(--ink); outline: none; transition: border-color 0.2s; width: 100%;
+    line-height: 1.4; box-sizing: border-box;
     -webkit-appearance: none; appearance: none;
   }
   .cal-ev-extra-input:focus, .cal-ev-extra-select:focus { border-color: var(--gold); background: var(--surface2); }
@@ -1793,7 +1794,7 @@
     font-family: 'Inter', sans-serif; font-size: 0.72rem;
     padding: 0.35rem 0.4rem; border: 1.5px solid var(--card-border); border-radius: 6px;
     background: var(--surface); color: var(--ink); outline: none; transition: border-color 0.2s;
-    flex-shrink: 0; cursor: pointer;
+    flex-shrink: 0; cursor: pointer; line-height: 1.4; box-sizing: border-box;
     -webkit-appearance: none; appearance: none;
   }
   .tarea-time-input:focus { border-color: var(--gold); background: var(--surface2); }
@@ -4262,8 +4263,8 @@ function renderTareas(tipo) {
       <input type="checkbox" class="tarea-check" ${t.done?'checked':''} onchange="toggleTarea('${tipo}',${t.id})" />
       <span class="tarea-text${t.done?' done':''}">${t.text}</span>
       ${tipo === 'diarias' && t.hora ? `<span class="tarea-hora-badge${t.done?' fired':''}">${t.hora}</span>` : ''}
-      <button class="tarea-edit-btn" onclick="abrirEditTarea('${tipo}',${t.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-      <button class="tarea-del" onclick="deleteTarea('${tipo}',${t.id})">✕</button>
+      <button class="tarea-edit-btn" data-action="edit" data-tipo="${tipo}" data-id="${t.id}" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="tarea-del" data-action="del" data-tipo="${tipo}" data-id="${t.id}">✕</button>
     </div>`).join('');
 }
 document.getElementById('input-diaria').addEventListener('keydown', e => { if (e.key==='Enter') addTarea('diarias'); });
@@ -4814,8 +4815,8 @@ function renderCalPanel() {
     const remindBadge = (e.reminder && e.reminder !== 'none') ? `<span style="font-size:0.65rem;opacity:0.7" title="Recordatorio configurado"></span>` : '';
     const actions = e._readOnly
       ? `<span style="font-size:0.65rem;color:var(--muted)">Repetido</span>`
-      : `<button class="cal-event-edit" title="Editar" onclick="openEditModal(${i})">Editar</button>
-         <button class="cal-event-del" onclick="deleteCalEvent(${i})">✕</button>`;
+      : `<button class="cal-event-edit" data-action="edit" data-idx="${i}" title="Editar">Editar</button>
+         <button class="cal-event-del" data-action="del" data-idx="${i}">✕</button>`;
     return `<div class="cal-event-item ${e.pri !== 'normal' ? e.pri : ''}" data-evid="${e.id}" data-fromkey="${calSelectedKey}">
       <span class="ev-time">${e.allday ? '·' : (e.hora || '—')}</span>
       <span class="ev-type-badge ${tipo.cls}">${tipo.label}</span>
@@ -5944,6 +5945,43 @@ window.deleteMiDiaItem = deleteMiDiaItem;
 window.toggleMiDiaItem = toggleMiDiaItem;
 window.resetMiDia = resetMiDia;
 window.abrirEditTarea = abrirEditTarea;
+
+// ── Event delegation para botones de tareas (iOS-safe) ──
+(function() {
+  function handleTareaBtn(e) {
+    var btn = e.target.closest('[data-action][data-tipo][data-id]');
+    if (!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    var action = btn.dataset.action;
+    var tipo   = btn.dataset.tipo;
+    var id     = Number(btn.dataset.id);
+    if (action === 'edit') abrirEditTarea(tipo, id);
+    else if (action === 'del') deleteTarea(tipo, id);
+  }
+  ['diarias','largas'].forEach(function(tipo) {
+    var el = document.getElementById('list-' + tipo);
+    if (!el) return;
+    el.addEventListener('touchend', handleTareaBtn, { passive: false });
+    el.addEventListener('click',    handleTareaBtn);
+  });
+})();
+
+// ── Event delegation para botones de eventos del calendario (iOS-safe) ──
+(function() {
+  var calList = document.getElementById('cal-event-list');
+  if (!calList) return;
+  function handleCalBtn(e) {
+    var btn = e.target.closest('[data-action][data-idx]');
+    if (!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    var action = btn.dataset.action;
+    var idx    = Number(btn.dataset.idx);
+    if (action === 'edit') openEditModal(idx);
+    else if (action === 'del') deleteCalEvent(idx);
+  }
+  calList.addEventListener('touchend', handleCalBtn, { passive: false });
+  calList.addEventListener('click',    handleCalBtn);
+})();
 
 // Hook: cancela notificación al completar o borrar
 var _origToggleTarea = toggleTarea;
