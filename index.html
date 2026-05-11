@@ -585,7 +585,7 @@
 
   /* ── NAV TABS (training) ── */
   .nav-wrap { background: #ffffff; padding: 0 2rem; border-bottom: 1px solid rgba(0,0,0,0.07); position: sticky; top: 0; z-index: 100; }
-  .nav-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+  .nav-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
   .nav-tabs::-webkit-scrollbar { display: none; }
   .nav-tab {
     padding: 0.9rem 1.1rem;
@@ -604,7 +604,7 @@
 
   /* ── NAV TABS (personal) ── */
   .nav-personal { background: #ffffff; padding: 0 2rem; border-bottom: 1px solid rgba(0,0,0,0.07); position: sticky; top: 0; z-index: 100; }
-  .nav-personal-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+  .nav-personal-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
   .nav-personal-tabs::-webkit-scrollbar { display: none; }
   .pers-tab {
     padding: 0.9rem 1.1rem;
@@ -1554,6 +1554,7 @@
     font-family: 'Inter', sans-serif; font-size: 0.82rem; padding: 0.42rem 0.6rem;
     border: 1.5px solid var(--card-border); border-radius: 6px; background: var(--surface);
     color: var(--ink); outline: none; transition: border-color 0.2s; width: 100%;
+    -webkit-appearance: none; appearance: none;
   }
   .cal-ev-extra-input:focus, .cal-ev-extra-select:focus { border-color: var(--gold); background: var(--surface2); }
   .cal-ev-allday-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem; }
@@ -1789,10 +1790,10 @@
   .tarea-item:hover .tarea-edit-btn { opacity: 0.7; }
   .tarea-edit-btn:hover { background: rgba(0,0,0,0.06); color: var(--gold); opacity: 1; }
   .tarea-time-input {
-    font-family: 'Inter', sans-serif; font-size: 0.82rem;
-    padding: 0.45rem 0.55rem; border: 1.5px solid var(--card-border); border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 0.72rem;
+    padding: 0.35rem 0.4rem; border: 1.5px solid var(--card-border); border-radius: 6px;
     background: var(--surface); color: var(--ink); outline: none; transition: border-color 0.2s;
-    width: 100px; flex-shrink: 0; cursor: pointer;
+    flex-shrink: 0; cursor: pointer;
     -webkit-appearance: none; appearance: none;
   }
   .tarea-time-input:focus { border-color: var(--gold); background: var(--surface2); }
@@ -1944,7 +1945,7 @@
   .wx-hourly-scroll {
     display: flex; gap: 0.55rem; overflow-x: auto; padding-bottom: 0.5rem;
     scrollbar-width: thin; scrollbar-color: rgba(0,113,227,0.3) transparent;
-    margin-bottom: 1.5rem; scroll-snap-type: x mandatory;
+    margin-bottom: 1.5rem; scroll-snap-type: x mandatory; touch-action: pan-x;
   }
   .wx-hourly-scroll::-webkit-scrollbar { height: 4px; }
   .wx-hourly-scroll::-webkit-scrollbar-thumb { background: rgba(0,113,227,0.3); border-radius: 6px; }
@@ -2015,10 +2016,10 @@
     .reg-table          { font-size: 0.71rem; }
     .reg-table thead th { padding: 0.35rem 0.4rem; font-size: 0.55rem; }
     .reg-table td       { padding: 0.42rem 0.4rem; }
-    #reg-tabla-wrap     { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #reg-tabla-wrap     { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
 
     /* ── Grids de 2 col → 1 col ── */
-    .week-grid   { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 0.25rem; padding-bottom: 0.3rem; }
+    .week-grid   { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 0.25rem; padding-bottom: 0.3rem; touch-action: pan-x; }
     .week-card   { flex: 0 0 78px; min-width: 78px; }
     .phases-grid { grid-template-columns: 1fr; }
     .info-card   { grid-template-columns: 1fr; }
@@ -2070,7 +2071,6 @@
     .tarea-panel-header h3 { font-size: 0.95rem; }
     .tarea-input-row    { padding: 0.5rem 0.65rem; gap: 0.35rem; }
     .tarea-input        { font-size: 0.84rem; padding: 0.42rem 0.55rem; }
-    .tarea-time-input   { width: 72px; font-size: 0.75rem; padding: 0.35rem 0.25rem; }
     .cal-ev-extra-label { font-size: 0.56rem; letter-spacing: 0.06em; }
     .cal-ev-extra-input, .cal-ev-extra-select { font-size: 0.76rem; padding: 0.3rem 0.4rem; }
     .tarea-add-btn      { padding: 0.42rem 0.65rem; font-size: 0.95rem; }
@@ -2143,7 +2143,7 @@
     .reg-table           { font-size: 0.72rem; }
     .reg-table thead th  { padding: 0.38rem 0.45rem; font-size: 0.56rem; }
     .reg-table td        { padding: 0.45rem 0.45rem; }
-    #reg-tabla-wrap      { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #reg-tabla-wrap      { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
 
     /* ════════════════════════════════
        CALENDARIO
@@ -2196,7 +2196,6 @@
     .tarea-panel-header h3 { font-size: 1rem; }
     .tarea-input-row    { padding: 0.55rem 0.7rem; gap: 0.4rem; }
     .tarea-input        { font-size: 0.85rem; padding: 0.45rem 0.6rem; }
-    .tarea-time-input   { width: 80px; font-size: 0.78rem; padding: 0.38rem 0.28rem; }
     .cal-ev-extra-label { font-size: 0.58rem; letter-spacing: 0.07em; }
     .cal-ev-extra-input, .cal-ev-extra-select { font-size: 0.78rem; padding: 0.32rem 0.45rem; }
     .tarea-add-btn      { padding: 0.45rem 0.75rem; }
@@ -2219,7 +2218,7 @@
     /* ════════════════════════════════
        ENTRENAMIENTO
        ════════════════════════════════ */
-    .week-grid     { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 0.25rem; padding-bottom: 0.3rem; }
+    .week-grid     { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 0.25rem; padding-bottom: 0.3rem; touch-action: pan-x; }
     .week-card     { flex: 0 0 90px; min-width: 90px; }
     .wc-title      { font-size: 0.84rem; }
     .phases-grid   { grid-template-columns: 1fr; }
@@ -2540,30 +2539,40 @@
     /* Botones editar/eliminar de tareas */
     .tarea-edit-btn {
       opacity: 1 !important;
-      padding: 6px 8px;
+      padding: 8px 10px;
       color: var(--muted);
+      touch-action: manipulation;
+      min-width: 32px; min-height: 32px;
     }
     .tarea-item:hover .tarea-edit-btn { opacity: 1; }
     .tarea-del {
-      padding: 6px 8px;
+      padding: 8px 10px;
       color: var(--muted);
       font-size: 1rem;
+      touch-action: manipulation;
+      min-width: 32px; min-height: 32px;
     }
 
     /* Botones editar/eliminar de eventos del calendario */
     .cal-event-edit {
       color: var(--gold);
-      padding: 6px 10px;
+      padding: 8px 12px;
       font-size: 0.78rem;
+      touch-action: manipulation;
+      min-width: 40px; min-height: 32px;
     }
     .cal-event-del {
       color: var(--muted);
-      padding: 6px 8px;
+      padding: 8px 10px;
       font-size: 0.9rem;
+      touch-action: manipulation;
+      min-width: 32px; min-height: 32px;
     }
     .cal-event-remind {
       opacity: 1 !important;
-      padding: 6px 8px;
+      padding: 8px 10px;
+      touch-action: manipulation;
+      min-width: 32px; min-height: 32px;
     }
   }
 </style>
@@ -11940,6 +11949,7 @@ async function generarPlanIA(tipo) {
   // Móvil: long-press
   var TD = null;
   document.addEventListener('touchstart', function (e) {
+    if (e.target.closest('button, a, input, label, select')) return;
     var el = e.target.closest('[data-evid][data-fromkey]');
     if (!el) return;
     var t = e.touches[0];
