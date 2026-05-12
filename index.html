@@ -6686,6 +6686,7 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
         <div class="pers-tab" data-asig-tab="notas">Notas / Exámenes</div>
         <div class="pers-tab" data-asig-tab="resumen">Resumen</div>
         <div class="pers-tab" data-asig-tab="calculadora">Calculadora</div>
+        <div class="pers-tab" data-asig-tab="apuntes">Apuntes</div>
       </div>
     </div>
 
@@ -6917,6 +6918,38 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
       <div id="calc-resultado"></div>
     </div>
 
+    <!-- TAB: APUNTES -->
+    <div class="asig-section" id="asig-tab-apuntes">
+      <div class="section-heading">Apuntes</div>
+      <p class="section-sub">Guarda páginas de apuntes y archivos organizados por asignatura y categoría.</p>
+
+      <!-- Barra de acciones + filtros -->
+      <div class="apuntes-toolbar">
+        <div class="apuntes-filters">
+          <select class="reg-select apuntes-sel-asig" id="apuntes-filtro-asig" onchange="apuntesRender()">
+            <option value="">Todas las asignaturas</option>
+          </select>
+          <input class="reg-input apuntes-search" id="apuntes-filtro-cat" type="text" placeholder="Buscar por título o categoría..." oninput="apuntesRender()" />
+        </div>
+        <div class="apuntes-actions">
+          <button class="reg-btn" onclick="apuntesAbrirNuevaPagina()">📄 Nueva página</button>
+          <button class="reg-btn" style="background:var(--grass)" onclick="document.getElementById('apuntes-file-input').click()">📎 Subir archivo</button>
+          <input type="file" id="apuntes-file-input" style="display:none" accept="*/*" onchange="apuntesAbrirSubidaArchivo(this)" />
+        </div>
+      </div>
+
+      <!-- Estado vacío -->
+      <div id="apuntes-empty" style="display:none">
+        <div class="reg-empty">
+          <div class="reg-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" width="40" height="40" style="opacity:0.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+          <div>No hay apuntes todavía. Crea una página o sube un archivo.</div>
+        </div>
+      </div>
+
+      <!-- Lista de apuntes -->
+      <div id="apuntes-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0.85rem"></div>
+    </div>
+
   </div>
   <footer>Asignaturas y notas — sincronizado en la nube</footer>
 </div>
@@ -7029,6 +7062,67 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
   padding:0.25rem 0.45rem;cursor:pointer;transition:all 0.15s;
 }
 .asig-pct-del-btn:hover { background:#fff0f0;color:var(--coral);border-color:#fca5a5; }
+
+/* ── APUNTES ── */
+.apuntes-toolbar {
+  display:flex;align-items:flex-start;gap:0.85rem;flex-wrap:wrap;margin-bottom:1.2rem;
+}
+.apuntes-filters {
+  display:flex;gap:0.65rem;flex:1;min-width:0;flex-wrap:wrap;
+}
+.apuntes-sel-asig { max-width:210px;min-width:140px; }
+.apuntes-search { flex:1;min-width:160px; }
+.apuntes-actions { display:flex;gap:0.5rem;flex-shrink:0;flex-wrap:wrap; }
+
+.apunte-card {
+  background:white;border:1.5px solid var(--border);border-radius:14px;
+  overflow:hidden;cursor:pointer;transition:box-shadow 0.2s,transform 0.15s;
+  display:flex;flex-direction:column;
+}
+.apunte-card:hover { box-shadow:0 8px 24px rgba(10,37,64,0.12);transform:translateY(-2px); }
+.apunte-card-head {
+  display:flex;align-items:flex-start;gap:0.65rem;padding:0.85rem 1rem;
+  border-bottom:1px solid var(--border);
+}
+.apunte-card-icon {
+  width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:1.15rem;flex-shrink:0;
+}
+.apunte-card-icon.pagina  { background:#e0f2fe;color:#0369a1; }
+.apunte-card-icon.archivo { background:#fef9c3;color:#854d0e; }
+.apunte-card-titulo {
+  font-weight:700;font-size:0.88rem;color:var(--navy);flex:1;
+  line-height:1.3;overflow:hidden;text-overflow:ellipsis;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.apunte-card-body {
+  padding:0.6rem 1rem;flex:1;
+}
+.apunte-card-preview {
+  font-size:0.78rem;color:#6b7280;line-height:1.45;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  margin-bottom:0.45rem;
+}
+.apunte-card-foot {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.5rem 0.85rem;border-top:1px solid var(--border);background:var(--sand);
+}
+.apunte-card-actions { display:flex;gap:0.3rem;align-items:center; }
+
+/* Toolbar de edición */
+.apunte-tb-btn {
+  background:white;border:1.5px solid var(--border);border-radius:6px;
+  padding:3px 9px;font-size:0.8rem;cursor:pointer;transition:background 0.15s;
+  font-family:'DM Sans',sans-serif;line-height:1.4;
+}
+.apunte-tb-btn:hover { background:var(--sand); }
+#apunte-pagina-editor { caret-color:var(--ocean); }
+#apunte-pagina-editor:empty:before {
+  content:attr(placeholder);color:#adb5bd;pointer-events:none;
+}
+#apunte-pagina-editor h2 { font-size:1.2rem;margin:0.6rem 0 0.3rem; }
+#apunte-pagina-editor h3 { font-size:1rem;margin:0.5rem 0 0.25rem; }
+#apunte-pagina-editor ul,#apunte-pagina-editor ol { padding-left:1.4rem;margin:0.3rem 0; }
 </style>
 
 <!-- ══ MODAL EDITAR ASIGNATURA ══ -->
@@ -7135,6 +7229,97 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
     <div style="display:flex;gap:0.75rem;margin-top:1.2rem;justify-content:flex-end">
       <button class="reg-btn-danger" onclick="asigCerrarEditNota()">Cancelar</button>
       <button class="reg-btn" onclick="asigGuardarEditNota()">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL APUNTE — EDITOR DE PÁGINA ══ -->
+<div id="modal-apunte-pagina" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,0.42);backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding:0.5rem;overflow-y:auto">
+  <div style="background:white;border-radius:20px;width:100%;max-width:740px;min-height:72vh;display:flex;flex-direction:column;box-shadow:0 24px 72px rgba(0,0,0,0.3);margin:auto">
+    <!-- Cabecera -->
+    <div style="display:flex;align-items:center;gap:0.75rem;padding:1.1rem 1.5rem;border-bottom:1.5px solid var(--border);flex-shrink:0">
+      <span id="apunte-pagina-modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:0.05em;color:var(--navy);flex:1">Nueva Página</span>
+      <button onclick="apuntesCerrarPagina()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <!-- Campos meta -->
+    <div style="padding:0.9rem 1.5rem;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div class="reg-grid" style="grid-template-columns:1fr 1fr 1fr;gap:0.7rem">
+        <div class="reg-field">
+          <label class="reg-label">Título *</label>
+          <input class="reg-input" id="apunte-pagina-titulo" type="text" placeholder="Tema 3 — Álgebra..." maxlength="100" />
+        </div>
+        <div class="reg-field">
+          <label class="reg-label">Asignatura</label>
+          <select class="reg-select" id="apunte-pagina-asig">
+            <option value="">— Sin asignatura —</option>
+          </select>
+        </div>
+        <div class="reg-field">
+          <label class="reg-label">Categoría</label>
+          <input class="reg-input" id="apunte-pagina-cat" type="text" placeholder="Teoría, Ejercicios..." maxlength="50" />
+        </div>
+      </div>
+    </div>
+    <!-- Barra de formato -->
+    <div style="display:flex;gap:0.35rem;padding:0.55rem 1.2rem;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;align-items:center">
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('bold')" title="Negrita"><b>B</b></button>
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('italic')" title="Cursiva"><i>I</i></button>
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('underline')" title="Subrayado"><u>S</u></button>
+      <div style="width:1px;background:var(--border);height:18px;margin:0 0.15rem"></div>
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('insertUnorderedList')" title="Lista">•</button>
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('insertOrderedList')" title="Lista numerada">1.</button>
+      <div style="width:1px;background:var(--border);height:18px;margin:0 0.15rem"></div>
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('formatBlock',false,'h2')" title="Título H2">H2</button>
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('formatBlock',false,'h3')" title="Subtítulo H3">H3</button>
+      <button type="button" class="apunte-tb-btn" onclick="document.execCommand('formatBlock',false,'p')" title="Párrafo">¶</button>
+      <div style="flex:1"></div>
+      <span id="apunte-pagina-fechamod" style="font-size:0.7rem;color:var(--muted)"></span>
+    </div>
+    <!-- Área de escritura -->
+    <div id="apunte-pagina-editor" contenteditable="true" placeholder="Empieza a escribir aquí..."
+      style="flex:1;min-height:300px;padding:1.2rem 1.5rem;outline:none;font-size:0.92rem;line-height:1.72;color:#1d1d1f;overflow-y:auto"></div>
+    <!-- Pie -->
+    <div style="display:flex;gap:0.75rem;padding:1rem 1.5rem;border-top:1.5px solid var(--border);justify-content:flex-end;flex-shrink:0">
+      <button class="reg-btn-danger" onclick="apuntesCerrarPagina()">Cancelar</button>
+      <button class="reg-btn" onclick="apuntesGuardarPagina()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL APUNTE — SUBIR ARCHIVO ══ -->
+<div id="modal-apunte-archivo" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,0.42);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:20px;padding:1.8rem;width:100%;max-width:480px;box-shadow:0 24px 72px rgba(0,0,0,0.3)">
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.2rem">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:0.05em;color:var(--navy);flex:1">Subir Archivo</span>
+      <button onclick="apuntesCerrarArchivo()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="apunte-archivo-info" style="padding:0.8rem 1rem;background:var(--sand);border-radius:10px;margin-bottom:1rem;font-size:0.84rem;color:var(--navy)"></div>
+    <div class="reg-grid">
+      <div class="reg-field">
+        <label class="reg-label">Título</label>
+        <input class="reg-input" id="apunte-archivo-titulo" type="text" placeholder="Nombre del archivo..." maxlength="100" />
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Asignatura</label>
+        <select class="reg-select" id="apunte-archivo-asig">
+          <option value="">— Sin asignatura —</option>
+        </select>
+      </div>
+      <div class="reg-field">
+        <label class="reg-label">Categoría</label>
+        <input class="reg-input" id="apunte-archivo-cat" type="text" placeholder="Apuntes, Ejercicios..." maxlength="50" />
+      </div>
+    </div>
+    <!-- Progreso de subida -->
+    <div id="apunte-upload-progress-wrap" style="display:none;margin:0.85rem 0">
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.35rem">Subiendo… <span id="apunte-upload-pct">0</span>%</div>
+      <div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden">
+        <div id="apunte-upload-bar" style="height:100%;background:var(--ocean);width:0;transition:width 0.3s;border-radius:3px"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.2rem;justify-content:flex-end">
+      <button class="reg-btn-danger" onclick="apuntesCerrarArchivo()">Cancelar</button>
+      <button class="reg-btn" id="apunte-subir-btn" onclick="apuntesConfirmarSubida()">⬆ Subir</button>
     </div>
   </div>
 </div>
@@ -7497,6 +7682,7 @@ function asigRender() {
   asigRenderNotas();
   asigRenderResumen();
   calcRenderSelectAsig();
+  if (typeof _apuntesPopularSelectores === 'function') _apuntesPopularSelectores();
   // Si el tab de calculadora está activo, re-renderizar
   if (document.getElementById('asig-tab-calculadora')?.classList.contains('active')) calcRender();
 }
@@ -7796,6 +7982,7 @@ document.querySelectorAll('[data-asig-tab]').forEach(tab => {
       target.addEventListener('animationend', () => target.classList.remove('tab-enter'), { once: true });
     }
     if (tab.dataset.asigTab === 'calculadora') calcRender();
+    if (tab.dataset.asigTab === 'apuntes') apuntesRender();
   });
 });
 
@@ -8001,6 +8188,265 @@ if (window._fbReady) {
   asigLoadFromFirebase();
 } else {
   window.addEventListener('firebase-ready', () => asigLoadFromFirebase(), { once: true });
+}
+
+// ══════════════════════════════ APUNTES ══════════════════════════════
+
+let apuntesDB = [];
+let _apunteEditId = null;
+let _apuntePendingFile = null;
+
+// ── Firebase sync ──
+function apuntesListenFirebase() {
+  if (!window._fbListen) return;
+  window._fbListen('apuntes', docs => {
+    apuntesDB = Object.values(docs);
+    apuntesRender();
+    _apuntesPopularSelectores();
+  });
+}
+
+function _apuntesSave(apunte) {
+  if (window._fbSet) window._fbSet('apuntes', apunte.id, apunte);
+}
+
+function _apuntesDeleteFirebase(id) {
+  const a = apuntesDB.find(x => x.id === id);
+  if (a && a.storagePath && window._storageDelete) window._storageDelete(a.storagePath);
+  if (window._fbDelete) window._fbDelete('apuntes', id);
+}
+
+function _apuntesUID() {
+  return 'ap' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+}
+
+// ── Render lista ──
+function apuntesRender() {
+  const filtroAsig = document.getElementById('apuntes-filtro-asig')?.value || '';
+  const filtroCat  = (document.getElementById('apuntes-filtro-cat')?.value || '').trim().toLowerCase();
+  let lista = apuntesDB.filter(a => {
+    if (filtroAsig && a.asigId !== filtroAsig) return false;
+    if (filtroCat && !((a.titulo||'').toLowerCase().includes(filtroCat) || (a.categoria||'').toLowerCase().includes(filtroCat))) return false;
+    return true;
+  });
+  lista.sort((a, b) => (b.fechaMod || b.fechaCreacion || '').localeCompare(a.fechaMod || a.fechaCreacion || ''));
+
+  const container = document.getElementById('apuntes-lista');
+  const emptyEl   = document.getElementById('apuntes-empty');
+  if (!container) return;
+
+  if (lista.length === 0) {
+    container.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  container.innerHTML = lista.map(a => {
+    const asig = asigDB.find(s => s.id === a.asigId);
+    const badge = asig
+      ? `<span class="asig-badge ${asig.color}" style="width:20px;height:20px;font-size:0.6rem;border-radius:5px">${asig.abrev || asig.nombre.slice(0,3).toUpperCase()}</span>`
+      : '';
+    const fechaStr = (a.fechaMod || a.fechaCreacion || '').slice(0,10);
+    const preview = a.tipo === 'pagina'
+      ? (a.contenido ? a.contenido.replace(/<[^>]+>/g,'').slice(0,110) : 'Página vacía')
+      : `📎 ${a.archivoNombre || 'Archivo'} · ${a.archivoSize ? _apunteFmtSize(a.archivoSize) : ''}`;
+    const catBadge = a.categoria
+      ? `<span style="font-size:0.68rem;background:#f3f4f6;border-radius:20px;padding:1px 7px;color:#6b7280">${a.categoria}</span>`
+      : '';
+    return `
+    <div class="apunte-card" onclick="apuntesAbrirApunte('${a.id}')">
+      <div class="apunte-card-head">
+        <div class="apunte-card-icon ${a.tipo}">${a.tipo === 'pagina' ? '📄' : '📎'}</div>
+        <div class="apunte-card-titulo">${a.titulo || 'Sin título'}</div>
+      </div>
+      <div class="apunte-card-body">
+        <div class="apunte-card-preview">${preview}</div>
+        <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">${badge}${catBadge}</div>
+      </div>
+      <div class="apunte-card-foot">
+        <span style="font-size:0.7rem;color:var(--muted)">${fechaStr}</span>
+        <div class="apunte-card-actions" onclick="event.stopPropagation()">
+          ${a.tipo === 'pagina' ? `<button class="asig-icon-btn" onclick="apuntesAbrirEditar('${a.id}')" title="Editar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : ''}
+          <button class="reg-btn-danger" onclick="apuntesConfirmarDelete('${a.id}')" title="Eliminar" style="padding:3px 7px;font-size:0.8rem">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _apunteFmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+// ── Poblar selectores de asignatura ──
+function _apuntesPopularSelectores() {
+  const opts = asigDB.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+  const ids = ['apuntes-filtro-asig','apunte-pagina-asig','apunte-archivo-asig'];
+  const prefixes = ['Todas las asignaturas','— Sin asignatura —','— Sin asignatura —'];
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = `<option value="">${prefixes[i]}</option>` + opts;
+    if (cur) el.value = cur;
+  });
+}
+
+// ── Abrir apunte ──
+function apuntesAbrirApunte(id) {
+  const a = apuntesDB.find(x => x.id === id);
+  if (!a) return;
+  if (a.tipo === 'archivo') {
+    if (a.archivoURL) window.open(a.archivoURL, '_blank');
+    else mostrarToast('URL del archivo no disponible');
+    return;
+  }
+  apuntesAbrirEditar(id);
+}
+
+// ── Nueva página ──
+function apuntesAbrirNuevaPagina() {
+  _apunteEditId = null;
+  document.getElementById('apunte-pagina-modal-title').textContent = 'Nueva Página';
+  document.getElementById('apunte-pagina-titulo').value = '';
+  document.getElementById('apunte-pagina-cat').value = '';
+  document.getElementById('apunte-pagina-editor').innerHTML = '';
+  document.getElementById('apunte-pagina-fechamod').textContent = '';
+  _apuntesPopularSelectores();
+  document.getElementById('apunte-pagina-asig').value = '';
+  const modal = document.getElementById('modal-apunte-pagina');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('apunte-pagina-titulo').focus(), 150);
+}
+
+function apuntesAbrirEditar(id) {
+  const a = apuntesDB.find(x => x.id === id);
+  if (!a || a.tipo !== 'pagina') return;
+  _apunteEditId = id;
+  document.getElementById('apunte-pagina-modal-title').textContent = 'Editar Página';
+  document.getElementById('apunte-pagina-titulo').value = a.titulo || '';
+  document.getElementById('apunte-pagina-cat').value = a.categoria || '';
+  document.getElementById('apunte-pagina-editor').innerHTML = a.contenido || '';
+  document.getElementById('apunte-pagina-fechamod').textContent = a.fechaMod ? 'Modificado: ' + a.fechaMod.slice(0,10) : '';
+  _apuntesPopularSelectores();
+  document.getElementById('apunte-pagina-asig').value = a.asigId || '';
+  document.getElementById('modal-apunte-pagina').style.display = 'flex';
+}
+
+function apuntesCerrarPagina() {
+  document.getElementById('modal-apunte-pagina').style.display = 'none';
+  _apunteEditId = null;
+}
+
+function apuntesGuardarPagina() {
+  const titulo    = document.getElementById('apunte-pagina-titulo').value.trim();
+  const asigId    = document.getElementById('apunte-pagina-asig').value;
+  const categoria = document.getElementById('apunte-pagina-cat').value.trim();
+  const contenido = document.getElementById('apunte-pagina-editor').innerHTML;
+  if (!titulo) { mostrarToast('Escribe un título para la página'); return; }
+
+  const now = new Date().toISOString();
+  if (_apunteEditId) {
+    const idx = apuntesDB.findIndex(x => x.id === _apunteEditId);
+    if (idx >= 0) {
+      apuntesDB[idx] = { ...apuntesDB[idx], titulo, asigId, categoria, contenido, fechaMod: now };
+      _apuntesSave(apuntesDB[idx]);
+    }
+  } else {
+    const nuevo = { id: _apuntesUID(), tipo: 'pagina', titulo, asigId, categoria, contenido, fechaCreacion: now, fechaMod: now };
+    apuntesDB.push(nuevo);
+    _apuntesSave(nuevo);
+  }
+  apuntesCerrarPagina();
+  apuntesRender();
+  mostrarToast('Página guardada');
+}
+
+// ── Subir archivo ──
+function apuntesAbrirSubidaArchivo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  _apuntePendingFile = file;
+  document.getElementById('apunte-archivo-info').innerHTML =
+    `<strong>${file.name}</strong><br><span style="color:var(--muted)">${file.type || 'Desconocido'} · ${_apunteFmtSize(file.size)}</span>`;
+  document.getElementById('apunte-archivo-titulo').value = file.name.replace(/\.[^.]+$/, '');
+  document.getElementById('apunte-archivo-cat').value = '';
+  document.getElementById('apunte-upload-progress-wrap').style.display = 'none';
+  document.getElementById('apunte-subir-btn').disabled = false;
+  _apuntesPopularSelectores();
+  document.getElementById('apunte-archivo-asig').value = '';
+  document.getElementById('modal-apunte-archivo').style.display = 'flex';
+}
+
+function apuntesCerrarArchivo() {
+  document.getElementById('modal-apunte-archivo').style.display = 'none';
+  _apuntePendingFile = null;
+}
+
+async function apuntesConfirmarSubida() {
+  if (!_apuntePendingFile) return;
+  const titulo    = document.getElementById('apunte-archivo-titulo').value.trim() || _apuntePendingFile.name;
+  const asigId    = document.getElementById('apunte-archivo-asig').value;
+  const categoria = document.getElementById('apunte-archivo-cat').value.trim();
+
+  if (!window._storageUpload) { mostrarToast('Almacenamiento no disponible todavía'); return; }
+
+  const btn = document.getElementById('apunte-subir-btn');
+  btn.disabled = true;
+  document.getElementById('apunte-upload-progress-wrap').style.display = 'block';
+
+  try {
+    const id  = _apuntesUID();
+    const ext = _apuntePendingFile.name.includes('.') ? '.' + _apuntePendingFile.name.split('.').pop() : '';
+    const { url, path: storagePath } = await window._storageUpload(`apuntes/${id}${ext}`, _apuntePendingFile, pct => {
+      document.getElementById('apunte-upload-pct').textContent = pct;
+      document.getElementById('apunte-upload-bar').style.width = pct + '%';
+    });
+    const now = new Date().toISOString();
+    const nuevo = {
+      id, tipo: 'archivo', titulo, asigId, categoria,
+      archivoNombre: _apuntePendingFile.name, archivoTipo: _apuntePendingFile.type,
+      archivoURL: url, archivoSize: _apuntePendingFile.size,
+      storagePath, fechaCreacion: now, fechaMod: now
+    };
+    apuntesDB.push(nuevo);
+    _apuntesSave(nuevo);
+    apuntesCerrarArchivo();
+    apuntesRender();
+    mostrarToast('Archivo subido correctamente');
+  } catch(e) {
+    console.error('[Apuntes] upload error', e);
+    mostrarToast('Error al subir: ' + (e.message || e));
+    btn.disabled = false;
+  }
+}
+
+// ── Eliminar ──
+function apuntesConfirmarDelete(id) {
+  if (!confirm('¿Eliminar este apunte?')) return;
+  apuntesDB = apuntesDB.filter(x => x.id !== id);
+  _apuntesDeleteFirebase(id);
+  apuntesRender();
+  mostrarToast('Apunte eliminado');
+}
+
+// ── Cerrar modales con click en fondo ──
+document.getElementById('modal-apunte-pagina').addEventListener('click', function(e) {
+  if (e.target === this) apuntesCerrarPagina();
+});
+document.getElementById('modal-apunte-archivo').addEventListener('click', function(e) {
+  if (e.target === this) apuntesCerrarArchivo();
+});
+
+// ── Init ──
+if (window._fbReady) {
+  apuntesListenFirebase();
+} else {
+  window.addEventListener('firebase-ready', () => apuntesListenFirebase(), { once: true });
 }
 
 // ══════════════════════════════ CALCULADORA DE NOTAS ══════════════════════════════
@@ -8826,6 +9272,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+  import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDGqvYebc6HfZbtdMyXC1EIycRInrRcr8A",
@@ -8837,9 +9284,10 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
     measurementId: "G-GXFENBBT8B"
   };
 
-  const app  = initializeApp(firebaseConfig);
-  const db   = getFirestore(app);
-  const auth = getAuth(app);
+  const app     = initializeApp(firebaseConfig);
+  const db      = getFirestore(app);
+  const auth    = getAuth(app);
+  const storage = getStorage(app);
   // Persistencia por pestaña: sobrevive recargas, no se comparte entre pestañas
   setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Auth]', e));
   let _currentUid = null;
@@ -8862,6 +9310,30 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
       snap.forEach(d => { docs[d.id] = d.data(); });
       cb(docs);
     }, err => console.warn('[FB] listen error', err));
+  };
+
+  // ── Firebase Storage helpers ──
+  window._storageUpload = (path, file, progressCb) => {
+    if (!_currentUid) return Promise.reject(new Error('Not authenticated'));
+    const fullPath = `users/${_currentUid}/${path}`;
+    const sRef = storageRef(storage, fullPath);
+    return new Promise((resolve, reject) => {
+      const task = uploadBytesResumable(sRef, file);
+      task.on('state_changed',
+        snap => { if (progressCb) progressCb(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
+        reject,
+        async () => {
+          try {
+            const url = await getDownloadURL(task.snapshot.ref);
+            resolve({ url, path: fullPath });
+          } catch(e) { reject(e); }
+        }
+      );
+    });
+  };
+  window._storageDelete = async (path) => {
+    try { await deleteObject(storageRef(storage, path)); }
+    catch(e) { console.warn('[Storage] delete error', e); }
   };
 
   // ── Auth functions ──
