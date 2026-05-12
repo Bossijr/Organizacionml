@@ -4134,15 +4134,9 @@ function renderTabla() {
       <td style="color:var(--muted)">${r.rpe != null ? r.rpe : '—'}</td>
       <td><span style="font-size:0.72rem;color:var(--muted)">${r.dia.split('—')[0].trim()}</span></td>
       <td style="color:var(--muted);font-size:0.8rem">${r.semana || '—'}</td>
-      <td style="display:flex;gap:4px"><button class="reg-btn-edit" data-id="${r.id}" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="reg-btn-danger" data-id="${r.id}">✕</button></td>
+      <td style="display:flex;gap:4px"><button class="reg-btn-edit" onclick="abrirEditRegistro(${r.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="reg-btn-danger" onclick="eliminarRegistro(${r.id})">✕</button></td>
     </tr>`;
   }).join('');
-  tbody.querySelectorAll('.reg-btn-edit').forEach(function(btn) {
-    _bindBtn(btn, function(){ abrirEditRegistro(Number(btn.dataset.id)); });
-  });
-  tbody.querySelectorAll('.reg-btn-danger').forEach(function(btn) {
-    _bindBtn(btn, function(){ eliminarRegistro(Number(btn.dataset.id)); });
-  });
 }
 function actualizarStats() {
   document.getElementById('stat-total').textContent = registros.length;
@@ -4232,15 +4226,6 @@ function _bindBtn(btn, action) {
     action();
   });
 }
-function _bindTareaButtons(container) {
-  container.querySelectorAll('.tarea-edit-btn').forEach(function(btn) {
-    _bindBtn(btn, function(){ abrirEditTarea(btn.dataset.tipo, Number(btn.dataset.id)); });
-  });
-  container.querySelectorAll('.tarea-del').forEach(function(btn) {
-    _bindBtn(btn, function(){ deleteTarea(btn.dataset.tipo, Number(btn.dataset.id)); });
-  });
-}
-
 function renderTareas(tipo) {
   const list = document.getElementById('list-' + tipo);
   const items = tareasData[tipo];
@@ -4257,10 +4242,9 @@ function renderTareas(tipo) {
       <input type="checkbox" class="tarea-check" ${t.done?'checked':''} onchange="toggleTarea('${tipo}',${t.id})" />
       <span class="tarea-text${t.done?' done':''}">${t.text}</span>
       ${tipo === 'diarias' && t.hora ? `<span class="tarea-hora-badge${t.done?' fired':''}">${t.hora}</span>` : ''}
-      <button class="tarea-edit-btn" data-tipo="${tipo}" data-id="${t.id}" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-      <button class="tarea-del" data-tipo="${tipo}" data-id="${t.id}">✕</button>
+      <button class="tarea-edit-btn" onclick="abrirEditTarea('${tipo}',${t.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="tarea-del" onclick="deleteTarea('${tipo}',${t.id})">✕</button>
     </div>`).join('');
-  _bindTareaButtons(list);
 }
 document.getElementById('input-diaria').addEventListener('keydown', e => { if (e.key==='Enter') addTarea('diarias'); });
 document.getElementById('input-larga').addEventListener('keydown', e => { if (e.key==='Enter') addTarea('largas'); });
@@ -4308,11 +4292,8 @@ function renderMiDia(bloque) {
       <input type="checkbox" class="midia-item-check" ${t.done?'checked':''} onchange="toggleMiDiaItem('${bloque}',${t.id})"/>
       <span class="midia-item-text${t.done?' done':''}">${t.text}</span>
       ${t.hora ? `<span class="midia-item-hora">${t.hora}</span>` : ''}
-      <button class="midia-item-del" data-bloque="${bloque}" data-id="${t.id}">✕</button>
+      <button class="midia-item-del" onclick="deleteMiDiaItem('${bloque}',${t.id})">✕</button>
     </div>`).join('') || '<p style="font-size:0.8rem;color:var(--muted);padding:0.5rem 0.3rem">Sin tareas asignadas</p>';
-  container.querySelectorAll('.midia-item-del').forEach(function(btn) {
-    _bindBtn(btn, function(){ deleteMiDiaItem(btn.dataset.bloque, Number(btn.dataset.id)); });
-  });
 }
 
 function addMiDia(bloque) {
@@ -4815,8 +4796,8 @@ function renderCalPanel() {
     const remindBadge = (e.reminder && e.reminder !== 'none') ? `<span style="font-size:0.65rem;opacity:0.7" title="Recordatorio configurado"></span>` : '';
     const actions = e._readOnly
       ? `<span style="font-size:0.65rem;color:var(--muted)">Repetido</span>`
-      : `<button class="cal-event-edit" data-idx="${i}" title="Editar">Editar</button>
-         <button class="cal-event-del" data-idx="${i}">✕</button>`;
+      : `<button class="cal-event-edit" onclick="openEditModal(${i})" title="Editar">Editar</button>
+         <button class="cal-event-del" onclick="deleteCalEvent(${i})">✕</button>`;
     return `<div class="cal-event-item ${e.pri !== 'normal' ? e.pri : ''}" data-evid="${e.id}" data-fromkey="${calSelectedKey}">
       <span class="ev-time">${e.allday ? '·' : (e.hora || '—')}</span>
       <span class="ev-type-badge ${tipo.cls}">${tipo.label}</span>
@@ -4824,13 +4805,6 @@ function renderCalPanel() {
       ${actions}
     </div>`;
   }).join('');
-  const calList = document.getElementById('cal-event-list');
-  calList.querySelectorAll('.cal-event-edit').forEach(function(btn) {
-    _bindBtn(btn, function(){ openEditModal(Number(btn.dataset.idx)); });
-  });
-  calList.querySelectorAll('.cal-event-del').forEach(function(btn) {
-    _bindBtn(btn, function(){ deleteCalEvent(Number(btn.dataset.idx)); });
-  });
 }
 
 function addCalEvent() {
@@ -5426,16 +5400,10 @@ function renderShop() {
       <span class="shop-cat-badge ${catCls}">${catIcon}</span>
       <span class="shop-item-name${item.done?' done':''}">${item.name}</span>
       ${item.qty ? `<span class="shop-item-qty">${item.qty}</span>` : ''}
-      <button class="shop-edit" data-id="${item.id}" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-      <button class="shop-del" data-id="${item.id}">✕</button>
+      <button class="shop-edit" onclick="abrirEditShop(${item.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="shop-del" onclick="deleteShopItem(${item.id})">✕</button>
     </div>`;
   }).join('');
-  list.querySelectorAll('.shop-edit').forEach(function(btn) {
-    _bindBtn(btn, function(){ abrirEditShop(Number(btn.dataset.id)); });
-  });
-  list.querySelectorAll('.shop-del').forEach(function(btn) {
-    _bindBtn(btn, function(){ deleteShopItem(Number(btn.dataset.id)); });
-  });
 }
 
 document.getElementById('shop-input-name').addEventListener('keydown', e => { if (e.key === 'Enter') addShopItem(); });
