@@ -5987,44 +5987,136 @@ window.goArea = function(area) {
 // ══════════════════════════════ NOTIFICACIONES DE TAREAS ══════════════════════════════
 const _notifTimers = {}; // id → timeoutId
 
+// ── Helpers iOS / Service Worker ──
+function _isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function _isStandalonePWA() {
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+         window.navigator.standalone === true;
+}
+async function _getSWReg() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing) return existing;
+    // Espera al SW con timeout para evitar bloqueo si no hay registro aún
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise(r => setTimeout(() => r(null), 3000))
+    ]);
+  } catch(e) { return null; }
+}
+// Muestra notificación usando el Service Worker (requerido en iOS PWA).
+// Cae a `new Notification()` solo si no hay SW (navegadores antiguos no-iOS).
+async function _showLocalNotification(title, options) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  const opts = Object.assign({}, options);
+  // iOS no soporta vibrate ni actions en notificaciones
+  if (_isIOS()) { delete opts.vibrate; delete opts.actions; }
+  const reg = await _getSWReg();
+  if (reg && typeof reg.showNotification === 'function') {
+    try { await reg.showNotification(title, opts); return true; }
+    catch(e) { console.warn('[Notif] SW showNotification', e); }
+  }
+  // Fallback (no funciona en iOS standalone): API legacy
+  if (!_isIOS() || !_isStandalonePWA()) {
+    try { new Notification(title, opts); return true; }
+    catch(e) { console.warn('[Notif] legacy', e); }
+  }
+  return false;
+}
+
+// Comprueba el permiso actual sin disparar prompt (apto para reschedule en load).
+function _hasNotifPermission() {
+  return ('Notification' in window) && Notification.permission === 'granted';
+}
+
+// Solicita permiso — DEBE llamarse desde un gesto del usuario (click, tap).
+async function requestNotifPermissionUserGesture() {
+  if (!('Notification' in window)) {
+    if (_isIOS() && !_isStandalonePWA()) {
+      mostrarToast('📱 iPhone: añade la app a la pantalla de inicio para activar notificaciones.');
+    } else {
+      mostrarToast('Tu navegador no soporta notificaciones');
+    }
+    return false;
+  }
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') {
+    mostrarToast('🚫 Notificaciones bloqueadas. Actívalas en los ajustes del navegador.');
+    return false;
+  }
+  try {
+    const result = await Notification.requestPermission();
+    return result === 'granted';
+  } catch(e) {
+    console.warn('[Notif] requestPermission', e);
+    return false;
+  }
+}
+
+// Compat: API antigua basada en callback (no dispara prompt — solo lee estado actual).
 function requestNotifPermission(callback) {
   if (!('Notification' in window)) { callback(false); return; }
-  if (Notification.permission === 'granted') { callback(true); return; }
-  if (Notification.permission === 'denied') { callback(false); return; }
-  Notification.requestPermission().then(p => callback(p === 'granted'));
+  callback(Notification.permission === 'granted');
 }
 
 function scheduleTaskNotification(tarea) {
   if (!tarea.hora || !tarea.id) return;
-  // Cancela el anterior si existe
+  // Cancela el timer anterior si existe
   if (_notifTimers[tarea.id]) { clearTimeout(_notifTimers[tarea.id]); delete _notifTimers[tarea.id]; }
 
-  requestNotifPermission(granted => {
-    if (!granted) { mostrarToast('Activa los permisos de notificación'); return; }
+  // Si aún no tenemos permiso y estamos en un gesto del usuario, lo solicitamos.
+  // (Fuera de un gesto, el navegador ignora el prompt silenciosamente.)
+  if ('Notification' in window && Notification.permission === 'default') {
+    requestNotifPermissionUserGesture && requestNotifPermissionUserGesture();
+  }
 
-    const [h, m] = tarea.hora.split(':').map(Number);
-    const now = new Date();
-    const target = new Date();
-    target.setHours(h, m, 0, 0);
-    // Si la hora ya pasó hoy, programa para mañana
-    if (target <= now) target.setDate(target.getDate() + 1);
-    const ms = target - now;
+  const [h, m] = tarea.hora.split(':').map(Number);
+  const now = new Date();
+  const target = new Date();
+  target.setHours(h, m, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  const ms = target - now;
+  const fireAt = target.getTime();
 
-    _notifTimers[tarea.id] = setTimeout(() => {
-      new Notification('Recordatorio de tarea', {
+  // 1) Guardar en Firestore — la Cloud Function lo entregará aunque la app esté cerrada
+  //    (clave única para tareas: prefijo 'task_')
+  const remId = 'task_' + tarea.id;
+  if (window._fbReady && window._fbSet) {
+    window._fbSet('reminders', remId, {
+      fireAt, text: tarea.text, evId: remId, sent: false, type: 'task'
+    });
+  } else {
+    window.addEventListener('firebase-ready', () => {
+      window._fbSet && window._fbSet('reminders', remId, {
+        fireAt, text: tarea.text, evId: remId, sent: false, type: 'task'
+      });
+    }, { once: true });
+  }
+
+  // 2) Timer local — funciona mientras la app está abierta (usa SW en iOS PWA)
+  _notifTimers[tarea.id] = setTimeout(async () => {
+    if (_hasNotifPermission()) {
+      await _showLocalNotification('Recordatorio de tarea', {
         body: tarea.text,
-        icon: 'icons/icon-192.png',
-        badge: 'icons/icon-96.png',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-96.png',
         tag: 'tarea-' + tarea.id,
         vibrate: [200, 100, 200]
       });
-      delete _notifTimers[tarea.id];
-    }, ms);
-  });
+    }
+    delete _notifTimers[tarea.id];
+  }, ms);
 }
 
 function cancelTaskNotification(id) {
   if (_notifTimers[id]) { clearTimeout(_notifTimers[id]); delete _notifTimers[id]; }
+  // Borrar de Firestore para que la Cloud Function no lo envíe
+  const remId = 'task_' + id;
+  if (window._fbDelete) window._fbDelete('reminders', remId);
 }
 
 // Al cargar la página, re-programa notificaciones de tareas con hora pendientes
@@ -6235,11 +6327,13 @@ function scheduleReminderTimer(evId, text, msFromNow) {
   remindTimers[evId] = setTimeout(() => fireReminder(evId, text, false), msFromNow);
 }
 
-function fireReminder(evId, text, missed) {
+async function fireReminder(evId, text, missed) {
   const title = missed ? 'Recordatorio perdido' : 'Recordatorio';
   const body = (missed ? '[Pasado] ' : '') + text;
-  // Browser Notification
-  if (Notification.permission === 'granted') {
+  // Notificación vía Service Worker (compatible con iOS PWA)
+  if (typeof _showLocalNotification === 'function') {
+    try { await _showLocalNotification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-96.png', tag: 'remind-' + evId, vibrate: [200,100,200] }); } catch(e) {}
+  } else if ('Notification' in window && Notification.permission === 'granted') {
     try { new Notification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-96.png', tag: 'remind-' + evId }); } catch(e) {}
   }
   // In-app toast
@@ -6304,6 +6398,10 @@ function closeRemindModal() {
 }
 
 async function ensureNotificationPermission() {
+  // Reutiliza el helper unificado que ya gestiona el caso iOS no-PWA
+  if (typeof requestNotifPermissionUserGesture === 'function') {
+    return await requestNotifPermissionUserGesture();
+  }
   if (!('Notification' in window)) { mostrarToast('Tu navegador no soporta notificaciones'); return false; }
   if (Notification.permission === 'granted') return true;
   if (Notification.permission === 'denied') { mostrarToast('🚫 Notificaciones bloqueadas. Actívalas en ajustes del navegador.'); return false; }
@@ -9711,15 +9809,38 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   // ── FCM ──
   const VAPID_KEY = "BHa1UYORk4xLHltswYyWaBZbeu5XKC2K6i04b__2P5QTGyGb0Pg1bigf2AzdZ8BhEgphEy8JkUwpGAceAkmnZv4";
   async function initFCM() {
-    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    if (!('serviceWorker' in navigator)) return;
+    // iOS solo soporta Web Push si la app est\u00E1 instalada en pantalla de inicio (standalone)
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                       window.navigator.standalone === true;
+    if (!('Notification' in window)) {
+      if (iOS && !standalone) {
+        const banner = document.getElementById('fcm-banner');
+        if (banner) {
+          const span = banner.querySelector('span');
+          if (span) span.textContent = 'A\u00F1ade esta app a la pantalla de inicio para recibir notificaciones';
+          const allowBtn = banner.querySelector('#fcm-allow-btn');
+          if (allowBtn) allowBtn.style.display = 'none';
+          banner.style.display = 'flex';
+        }
+      }
+      return;
+    }
     try {
       const messaging = getMessaging(app);
       const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      onMessage(messaging, payload => {
+      onMessage(messaging, async payload => {
         const body = payload.notification?.body || '';
+        const title = payload.notification?.title || 'Recordatorio';
         if (typeof mostrarToast === 'function') mostrarToast('\uD83D\uDD14 ' + body);
-        if (Notification.permission === 'granted')
-          new Notification(payload.notification?.title || 'Recordatorio', { body, icon: '/icons/icon-192.png' });
+        // En iOS PWA debemos usar SW.showNotification (no new Notification())
+        if (typeof _showLocalNotification === 'function') {
+          await _showLocalNotification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-96.png' });
+        } else if (Notification.permission === 'granted') {
+          try { new Notification(title, { body, icon: '/icons/icon-192.png' }); } catch(e) {}
+        }
       });
       if (Notification.permission === 'granted') { await regToken(messaging, swReg); return; }
       if (Notification.permission === 'denied') return;
