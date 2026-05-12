@@ -7123,6 +7123,13 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
 #apunte-pagina-editor h2 { font-size:1.2rem;margin:0.6rem 0 0.3rem; }
 #apunte-pagina-editor h3 { font-size:1rem;margin:0.5rem 0 0.25rem; }
 #apunte-pagina-editor ul,#apunte-pagina-editor ol { padding-left:1.4rem;margin:0.3rem 0; }
+
+/* Panel preview archivo */
+#apunte-preview-panel { display:flex !important; }
+#apunte-preview-panel.open { transform:translateX(0) !important; }
+#apunte-preview-content img { max-width:100%;max-height:100%;object-fit:contain;padding:1rem; }
+#apunte-preview-content iframe { width:100%;height:100%;border:none; }
+#apunte-preview-content video,#apunte-preview-content audio { max-width:100%;padding:1rem; }
 </style>
 
 <!-- ══ MODAL EDITAR ASIGNATURA ══ -->
@@ -7250,13 +7257,15 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
         </div>
         <div class="reg-field">
           <label class="reg-label">Asignatura</label>
-          <select class="reg-select" id="apunte-pagina-asig">
+          <select class="reg-select" id="apunte-pagina-asig" onchange="_apuntesActualizarCatSelect('apunte-pagina-cat','apunte-pagina-asig')">
             <option value="">— Sin asignatura —</option>
           </select>
         </div>
         <div class="reg-field">
           <label class="reg-label">Categoría</label>
-          <input class="reg-input" id="apunte-pagina-cat" type="text" placeholder="Teoría, Ejercicios..." maxlength="50" />
+          <select class="reg-select" id="apunte-pagina-cat">
+            <option value="">— Sin categoría —</option>
+          </select>
         </div>
       </div>
     </div>
@@ -7301,13 +7310,15 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
       </div>
       <div class="reg-field">
         <label class="reg-label">Asignatura</label>
-        <select class="reg-select" id="apunte-archivo-asig">
+        <select class="reg-select" id="apunte-archivo-asig" onchange="_apuntesActualizarCatSelect('apunte-archivo-cat','apunte-archivo-asig')">
           <option value="">— Sin asignatura —</option>
         </select>
       </div>
       <div class="reg-field">
         <label class="reg-label">Categoría</label>
-        <input class="reg-input" id="apunte-archivo-cat" type="text" placeholder="Apuntes, Ejercicios..." maxlength="50" />
+        <select class="reg-select" id="apunte-archivo-cat">
+          <option value="">— Sin categoría —</option>
+        </select>
       </div>
     </div>
     <!-- Progreso de subida -->
@@ -7323,6 +7334,30 @@ window.addEventListener('load', () => setTimeout(() => { if (typeof timerSyncVis
     </div>
   </div>
 </div>
+
+<!-- ══ PANEL PREVIEW ARCHIVO ══ -->
+<div id="apunte-preview-panel" style="position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:8500;background:white;box-shadow:-6px 0 32px rgba(10,37,64,0.18);flex-direction:column;transform:translateX(100%);transition:transform 0.28s cubic-bezier(.22,.68,0,1.1)">
+  <!-- Cabecera del panel -->
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.2rem;border-bottom:1.5px solid var(--border);flex-shrink:0">
+    <div id="apunte-preview-icon" style="width:38px;height:38px;border-radius:10px;background:#fef9c3;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📎</div>
+    <div style="flex:1;min-width:0">
+      <div id="apunte-preview-titulo" style="font-weight:700;font-size:0.9rem;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      <div id="apunte-preview-meta" style="font-size:0.72rem;color:var(--muted);margin-top:1px"></div>
+    </div>
+    <button onclick="apuntesCerrarPreview()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);flex-shrink:0">✕</button>
+  </div>
+  <!-- Badges -->
+  <div id="apunte-preview-badges" style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;padding:0.65rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0"></div>
+  <!-- Área de preview -->
+  <div id="apunte-preview-content" style="flex:1;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8f9fa;padding:0"></div>
+  <!-- Pie -->
+  <div style="padding:0.85rem 1.2rem;border-top:1.5px solid var(--border);flex-shrink:0;display:flex;gap:0.6rem;justify-content:flex-end">
+    <button class="reg-btn-danger" onclick="apuntesCerrarPreview()">Cerrar</button>
+    <button class="reg-btn" id="apunte-preview-abrir-btn" onclick="">↗ Abrir en nueva pestaña</button>
+  </div>
+</div>
+<!-- Overlay oscuro del panel -->
+<div id="apunte-preview-overlay" onclick="apuntesCerrarPreview()" style="display:none;position:fixed;inset:0;z-index:8499;background:rgba(0,0,0,0.3)"></div>
 
 <script>
 // ══════════════════════════════ ASIGNATURAS Y NOTAS ══════════════════════════════
@@ -8295,16 +8330,81 @@ function _apuntesPopularSelectores() {
   });
 }
 
+// ── Poblar select de categoría según asignatura ──
+function _apuntesActualizarCatSelect(catSelId, asigSelId) {
+  const asigId = document.getElementById(asigSelId)?.value || '';
+  const asig   = asigDB.find(a => a.id === asigId);
+  const sel    = document.getElementById(catSelId);
+  if (!sel) return;
+  const cur = sel.value;
+  const opts = ['<option value="">— Sin categoría —</option>'];
+  if (asig && asig.pcts && asig.pcts.length > 0) {
+    function addNivel(nodos) {
+      nodos.forEach(n => {
+        opts.push(`<option value="${n.nombre}">${n.nombre}${n.pct ? ' (' + n.pct + '%)' : ''}</option>`);
+        if (n.sub && n.sub.length > 0) addNivel(n.sub);
+      });
+    }
+    addNivel(asig.pcts);
+  }
+  sel.innerHTML = opts.join('');
+  if (cur && sel.querySelector(`option[value="${CSS.escape(cur)}"]`)) sel.value = cur;
+}
+
 // ── Abrir apunte ──
 function apuntesAbrirApunte(id) {
   const a = apuntesDB.find(x => x.id === id);
   if (!a) return;
-  if (a.tipo === 'archivo') {
-    if (a.archivoURL) window.open(a.archivoURL, '_blank');
-    else mostrarToast('URL del archivo no disponible');
-    return;
-  }
+  if (a.tipo === 'archivo') { apuntesAbrirPreview(id); return; }
   apuntesAbrirEditar(id);
+}
+
+// ── Preview panel ──
+function apuntesAbrirPreview(id) {
+  const a = apuntesDB.find(x => x.id === id);
+  if (!a) return;
+  const asig = asigDB.find(s => s.id === a.asigId);
+
+  document.getElementById('apunte-preview-titulo').textContent = a.titulo || a.archivoNombre || 'Sin título';
+  document.getElementById('apunte-preview-meta').textContent =
+    (a.archivoTipo || '') + (a.archivoSize ? ' · ' + _apunteFmtSize(a.archivoSize) : '') +
+    (a.fechaMod ? ' · ' + a.fechaMod.slice(0,10) : '');
+
+  const badges = [];
+  if (asig) badges.push(`<span class="asig-badge ${asig.color}" style="width:22px;height:22px;font-size:0.65rem;border-radius:6px">${asig.abrev || asig.nombre.slice(0,3).toUpperCase()}</span><span style="font-size:0.8rem;color:var(--navy);font-weight:600">${asig.nombre}</span>`);
+  if (a.categoria) badges.push(`<span style="font-size:0.72rem;background:#f3f4f6;border-radius:20px;padding:2px 9px;color:#6b7280">${a.categoria}</span>`);
+  document.getElementById('apunte-preview-badges').innerHTML = badges.join('');
+
+  const content = document.getElementById('apunte-preview-content');
+  const tipo = (a.archivoTipo || '').toLowerCase();
+  if (tipo.startsWith('image/')) {
+    content.innerHTML = `<img src="${a.archivoURL}" alt="${a.archivoNombre}" style="max-width:100%;max-height:100%;object-fit:contain;padding:1rem" />`;
+  } else if (tipo === 'application/pdf') {
+    content.innerHTML = `<iframe src="${a.archivoURL}" style="width:100%;height:100%;border:none"></iframe>`;
+  } else if (tipo.startsWith('video/')) {
+    content.innerHTML = `<video src="${a.archivoURL}" controls style="max-width:100%;padding:1rem"></video>`;
+  } else if (tipo.startsWith('audio/')) {
+    content.innerHTML = `<audio src="${a.archivoURL}" controls style="width:90%;margin:1rem"></audio>`;
+  } else {
+    content.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted)"><div style="font-size:3rem;margin-bottom:1rem">📄</div><div style="font-size:0.9rem">Vista previa no disponible para este tipo de archivo.</div><div style="font-size:0.78rem;margin-top:0.4rem">${a.archivoNombre || ''}</div></div>`;
+  }
+
+  document.getElementById('apunte-preview-abrir-btn').onclick = () => window.open(a.archivoURL, '_blank');
+
+  const panel = document.getElementById('apunte-preview-panel');
+  const overlay = document.getElementById('apunte-preview-overlay');
+  panel.classList.remove('open');
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
+}
+
+function apuntesCerrarPreview() {
+  const panel = document.getElementById('apunte-preview-panel');
+  panel.classList.remove('open');
+  document.getElementById('apunte-preview-overlay').style.display = 'none';
+  setTimeout(() => {
+    document.getElementById('apunte-preview-content').innerHTML = '';
+  }, 300);
 }
 
 // ── Nueva página ──
@@ -8312,11 +8412,11 @@ function apuntesAbrirNuevaPagina() {
   _apunteEditId = null;
   document.getElementById('apunte-pagina-modal-title').textContent = 'Nueva Página';
   document.getElementById('apunte-pagina-titulo').value = '';
-  document.getElementById('apunte-pagina-cat').value = '';
   document.getElementById('apunte-pagina-editor').innerHTML = '';
   document.getElementById('apunte-pagina-fechamod').textContent = '';
   _apuntesPopularSelectores();
   document.getElementById('apunte-pagina-asig').value = '';
+  _apuntesActualizarCatSelect('apunte-pagina-cat', 'apunte-pagina-asig');
   const modal = document.getElementById('modal-apunte-pagina');
   modal.style.display = 'flex';
   setTimeout(() => document.getElementById('apunte-pagina-titulo').focus(), 150);
@@ -8328,11 +8428,12 @@ function apuntesAbrirEditar(id) {
   _apunteEditId = id;
   document.getElementById('apunte-pagina-modal-title').textContent = 'Editar Página';
   document.getElementById('apunte-pagina-titulo').value = a.titulo || '';
-  document.getElementById('apunte-pagina-cat').value = a.categoria || '';
   document.getElementById('apunte-pagina-editor').innerHTML = a.contenido || '';
   document.getElementById('apunte-pagina-fechamod').textContent = a.fechaMod ? 'Modificado: ' + a.fechaMod.slice(0,10) : '';
   _apuntesPopularSelectores();
   document.getElementById('apunte-pagina-asig').value = a.asigId || '';
+  _apuntesActualizarCatSelect('apunte-pagina-cat', 'apunte-pagina-asig');
+  document.getElementById('apunte-pagina-cat').value = a.categoria || '';
   document.getElementById('modal-apunte-pagina').style.display = 'flex';
 }
 
@@ -8374,11 +8475,11 @@ function apuntesAbrirSubidaArchivo(input) {
   document.getElementById('apunte-archivo-info').innerHTML =
     `<strong>${file.name}</strong><br><span style="color:var(--muted)">${file.type || 'Desconocido'} · ${_apunteFmtSize(file.size)}</span>`;
   document.getElementById('apunte-archivo-titulo').value = file.name.replace(/\.[^.]+$/, '');
-  document.getElementById('apunte-archivo-cat').value = '';
   document.getElementById('apunte-upload-progress-wrap').style.display = 'none';
   document.getElementById('apunte-subir-btn').disabled = false;
   _apuntesPopularSelectores();
   document.getElementById('apunte-archivo-asig').value = '';
+  _apuntesActualizarCatSelect('apunte-archivo-cat', 'apunte-archivo-asig');
   document.getElementById('modal-apunte-archivo').style.display = 'flex';
 }
 
