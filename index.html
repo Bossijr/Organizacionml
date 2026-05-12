@@ -2545,6 +2545,112 @@
   .cal-ev-mini[draggable], .cal-ev-block[draggable] { cursor: grab; -webkit-user-drag: element; }
   .cal-ev-mini[draggable]:active, .cal-ev-block[draggable]:active { cursor: grabbing; opacity: 0.5; }
   .cal-drag-hl { outline: 2px dashed #0071e3 !important; background: rgba(0,113,227,.13) !important; }
+
+  /* ══════════════════════════════════════════════════════════
+     MOBILE POLISH — pulido global para móvil
+     Pase final que cubre formularios, modales, hero y CTAs
+     ══════════════════════════════════════════════════════════ */
+  @media (max-width: 600px) {
+    /* Evita scroll horizontal accidental por overflow de hijos */
+    html, body { overflow-x: hidden; max-width: 100vw; }
+    body { -webkit-text-size-adjust: 100%; }
+
+    /* Inputs/select/textarea: 16px para evitar el auto-zoom de iOS */
+    input[type="text"], input[type="number"], input[type="email"],
+    input[type="password"], input[type="date"], input[type="time"],
+    input[type="tel"], input[type="search"], input[type="url"],
+    select, textarea, .reg-input, .reg-select, .reg-textarea {
+      font-size: 16px !important;
+    }
+
+    /* Form collapse: padding más compacto */
+    .form-collapse-wrap { margin-bottom: 0.85rem; border-radius: 11px; }
+    .form-collapse-trigger { padding: 0.7rem 0.9rem; gap: 0.45rem; }
+    .form-collapse-trigger-icon { font-size: 0.95rem; }
+    .form-collapse-trigger-label { font-size: 0.88rem; }
+    .form-collapse-body { padding: 0.95rem 0.9rem 1rem; }
+
+    /* Botones primarios y de peligro: tamaño táctil mínimo, padding compacto */
+    .reg-btn { padding: 0.7rem 1.1rem; font-size: 0.86rem; min-height: 42px; border-radius: 9px; letter-spacing: 0.02em; }
+    .reg-btn-danger { padding: 0.6rem 0.9rem; font-size: 0.78rem; min-height: 36px; }
+    .back-btn { min-height: 38px; }
+
+    /* Hero entrenamiento — texto y stats apilados pero compactos */
+    .hero h1 { font-size: clamp(1.7rem, 7vw, 2.4rem) !important; line-height: 0.98; }
+    .hero-stats { gap: 0.4rem; }
+    .stat { min-width: 0; flex: 1 1 calc(50% - 0.2rem); padding: 0.42rem 0.55rem; }
+    .stat-val { font-size: 1.3rem; }
+
+    /* Hero personal — apilar */
+    .hero-personal { padding: 1rem 0.9rem 0.85rem; }
+    .hero-personal h2 { font-size: clamp(1.6rem,5.5vw,2.2rem) !important; }
+    .hero-personal-desc { font-size: 0.78rem; }
+
+    /* Área wraps: menos padding para más ancho de contenido */
+    .area-inner-wrap { padding: 1rem 0.85rem 1.5rem; }
+    .area-inner-wrap--wide { padding: 0.85rem 0.7rem 1.5rem; }
+    .area-inner-wrap--weather { padding: 1rem 0.85rem 1.2rem; }
+    footer { font-size: 0.72rem; padding: 1rem 0.5rem; }
+
+    /* Modales inline-styled: reducir padding interno (sobrescribe inline con !important) */
+    #modal-edit-asig > div,
+    #modal-edit-nota > div,
+    #modal-apunte-archivo > div { padding: 1.25rem !important; max-width: 100% !important; border-radius: 14px !important; }
+    #modal-edit-asig, #modal-edit-nota, #modal-apunte-archivo { padding: 0.6rem !important; }
+
+    /* Cards reg-form-card más compactas */
+    .reg-form-card { padding: 0.95rem 0.85rem; border-radius: 12px; margin-bottom: 1rem; }
+
+    /* Stats grid de 4 columnas → 2 columnas */
+    .reg-stats-bar { grid-template-columns: 1fr 1fr !important; gap: 0.5rem !important; }
+
+    /* Headings palabras largas */
+    .reg-form-title, .section-heading, .asig-card-nombre, .apunte-card-titulo {
+      word-break: break-word; overflow-wrap: anywhere;
+    }
+
+    /* Botones con SVG/svg + texto: que no se desborden */
+    .reg-btn svg, .reg-btn-danger svg { width: 14px; height: 14px; }
+
+    /* Tablas con scroll horizontal cuando hace falta */
+    .reg-table { font-size: 0.78rem; }
+    .reg-history-wrap > div:not(.reg-history-header):not(.reg-filter-row) { overflow-x: auto; }
+
+    /* Pers tabs: scroll horizontal sin scrollbar visible */
+    .nav-personal-tabs { -webkit-overflow-scrolling: touch; }
+
+    /* Toast: ancho casi pleno en móvil (selector específico, no afecta botón undo interno) */
+    #toast.success-toast { left: 0.6rem !important; right: 0.6rem !important; bottom: 0.9rem !important; max-width: none !important; }
+  }
+
+  /* Onboarding y Auth screens en móvil */
+  @media (max-width: 600px) {
+    .ob-wrap { padding: 1.2rem 0.85rem 3rem !important; }
+    .ob-header { margin-bottom: 1.5rem !important; }
+    .ob-card { padding: 1.2rem 1.1rem !important; border-radius: 14px !important; }
+    .ob-question { font-size: 1.05rem !important; line-height: 1.3; }
+    .ob-progress-wrap { margin-bottom: 1.2rem !important; }
+    .ob-skip-btn { margin-top: 1.2rem; font-size: 0.78rem; }
+
+    #auth-screen { padding: 1rem !important; align-items: flex-start !important; padding-top: 3.5rem !important; }
+    #auth-screen > div { padding: 1.5rem 1.2rem !important; max-width: 100% !important; }
+  }
+
+  /* Phones muy pequeños (≤ 380px): ajustes adicionales */
+  @media (max-width: 380px) {
+    .reg-btn { padding: 0.6rem 0.85rem; font-size: 0.8rem; min-height: 40px; }
+    .reg-btn-danger { padding: 0.5rem 0.7rem; font-size: 0.74rem; }
+    .area-inner-wrap { padding: 0.85rem 0.6rem 1.2rem; }
+    .area-inner-wrap--wide { padding: 0.7rem 0.5rem 1.2rem; }
+    .hero h1 { font-size: 1.65rem !important; }
+    .stat-val { font-size: 1.2rem; }
+    .form-collapse-trigger-label { font-size: 0.82rem; }
+    .form-collapse-trigger { padding: 0.6rem 0.75rem; }
+    .form-collapse-body { padding: 0.8rem 0.75rem 0.85rem; }
+    .reg-stats-bar { gap: 0.4rem !important; }
+    .reg-stat-card { padding: 0.55rem 0.65rem; }
+    .reg-stat-val { font-size: 1.3rem; }
+  }
 </style>
 </head>
 <body>
