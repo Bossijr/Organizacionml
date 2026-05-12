@@ -1845,6 +1845,7 @@
   }
   .shop-item:hover .shop-edit { opacity: 0.7; }
   .shop-edit:hover { background: rgba(0,0,0,0.06); color: var(--gold); opacity: 1; }
+  @media (hover: none) and (pointer: coarse) { .shop-edit { opacity: 0.7; } }
 
   /* ── TIEMPO (WEATHER) ── */
   .wx-main-card {
@@ -3007,14 +3008,14 @@
   </div>
 
   <div class="hero">
-    <div class="hero-label">Programa de alto rendimiento — 19 años</div>
-    <h1>RUTINA<br><span>SURF + FÚTBOL</span></h1>
-    <p class="hero-desc">Programa profesional de 12 semanas. Pérdida de grasa sin pérdida muscular. 6 días/semana, sesiones de 60 minutos.</p>
+    <div class="hero-label">Programa de rendimiento — 12 semanas</div>
+    <h1>ATHLETIC<br><span>AESTHETICS</span></h1>
+    <p class="hero-desc">Físico atlético/surfero. Fuerza relativa, abdomen visible, sin verte pesado. 5 días/semana + sábado opcional.</p>
     <div class="hero-stats">
-      <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">días/semana</div></div>
+      <div class="stat"><div class="stat-val">5+1</div><div class="stat-lbl">días/semana</div></div>
       <div class="stat"><div class="stat-val">60'</div><div class="stat-lbl">por sesión</div></div>
       <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">semanas</div></div>
-      <div class="stat"><div class="stat-val">~500</div><div class="stat-lbl">kcal déficit</div></div>
+      <div class="stat"><div class="stat-val">2400</div><div class="stat-lbl">kcal inicio</div></div>
     </div>
   </div>
 
@@ -3030,13 +3031,13 @@
   <!-- PROGRAMA -->
   <div class="section active" id="tab-programa" style="max-width:900px;margin-left:auto;margin-right:auto;">
     <div class="week-grid" id="weekGrid">
-      <div class="week-card active" data-day="0"><div class="wc-day">Lunes</div><div class="wc-title">Fuerza tren inferior</div><span class="tag tag-fuerza">Fuerza</span></div>
-      <div class="week-card" data-day="1"><div class="wc-day">Martes</div><div class="wc-title">Cardio + habilidad surf</div><span class="tag tag-surf">Surf</span></div>
-      <div class="week-card" data-day="2"><div class="wc-day">Miércoles</div><div class="wc-title">Potencia + velocidad</div><span class="tag tag-potencia">Potencia</span></div>
-      <div class="week-card" data-day="3"><div class="wc-day">Jueves</div><div class="wc-title">Fuerza tren superior</div><span class="tag tag-fuerza">Fuerza</span></div>
-      <div class="week-card" data-day="4"><div class="wc-day">Viernes</div><div class="wc-title">Fútbol: técnica + físico</div><span class="tag tag-futbol">Fútbol</span></div>
-      <div class="week-card" data-day="5"><div class="wc-day">Sábado</div><div class="wc-title">HIIT + core surf</div><span class="tag tag-cardio">Cardio</span></div>
-      <div class="week-card" data-day="6"><div class="wc-day">Domingo</div><div class="wc-title">Descanso activo</div><span class="tag tag-descanso">Descanso</span></div>
+      <div class="week-card active" data-day="0"><div class="wc-day">Lunes</div><div class="wc-title">Upper Fuerza + Potencia</div><span class="tag tag-fuerza">Fuerza</span></div>
+      <div class="week-card" data-day="1"><div class="wc-day">Martes</div><div class="wc-title">Lower Atlético + Core</div><span class="tag tag-fuerza">Fuerza</span></div>
+      <div class="week-card" data-day="2"><div class="wc-day">Miércoles</div><div class="wc-title">Cardio + Movilidad</div><span class="tag tag-cardio">Cardio</span></div>
+      <div class="week-card" data-day="3"><div class="wc-day">Jueves</div><div class="wc-title">Upper Athletic Hypertrophy</div><span class="tag tag-fuerza">Hiper.</span></div>
+      <div class="week-card" data-day="4"><div class="wc-day">Viernes</div><div class="wc-title">Rendimiento + Conditioning</div><span class="tag tag-potencia">Potencia</span></div>
+      <div class="week-card" data-day="5"><div class="wc-day">Sábado</div><div class="wc-title">Recuperación Activa</div><span class="tag tag-descanso">Opcional</span></div>
+      <div class="week-card" data-day="6"><div class="wc-day">Domingo</div><div class="wc-title">Descanso</div><span class="tag tag-descanso">Descanso</span></div>
     </div>
     <div class="day-detail" id="dayDetail"></div>
   </div>
@@ -3045,13 +3046,13 @@
   <div class="section" id="tab-progresion">
     <div class="section-heading">Progresión de 12 semanas</div>
     <p class="section-sub">El cuerpo necesita estímulos progresivos y organizados para adaptarse. Sigue este esquema sin saltarte las semanas.</p>
-    <div class="prog-card"><div class="prog-header"><div class="prog-num">1–4</div><div><div class="prog-title">Fase de base — aprendizaje técnico</div></div></div><div class="prog-body">Aprende y consolida los movimientos. Carga al 70–75% del máximo. Descansos de 90". El objetivo no es machacarte, sino programar el sistema nervioso correctamente.</div></div>
-    <div class="prog-card"><div class="prog-header"><div class="prog-num">5–8</div><div><div class="prog-title">Fase de acumulación — más volumen</div></div></div><div class="prog-body">Aumentar volumen añadiendo 1 serie por ejercicio. Reducir descansos a 60–75". Intensidad al 80%. Aquí empieza la adaptación muscular real.</div></div>
-    <div class="prog-card"><div class="prog-header"><div class="prog-num">9–11</div><div><div class="prog-title">Fase de intensificación — más carga</div></div></div><div class="prog-body">Subir carga al 85–90%, bajar repeticiones. Los ejercicios de potencia se vuelven más explosivos. Es la fase más exigente: la dieta y el sueño son críticos.</div></div>
-    <div class="prog-card"><div class="prog-header"><div class="prog-num">12</div><div><div class="prog-title">Semana de descarga — test y recuperación</div></div></div><div class="prog-body">Volumen reducido al -40%. Mantener la intensidad. Recuperación total del sistema nervioso. Test de fuerza en los ejercicios principales para medir la progresión del ciclo.</div></div>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">1–3</div><div><div class="prog-title">Fase de base — aprendizaje técnico</div></div></div><div class="prog-body">Consolida los patrones de movimiento. RIR 2-3 en todo. Tempo 3-1-X-0 desde el primer día. El objetivo es programar el sistema nervioso, no machacarte.</div></div>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">4–6</div><div><div class="prog-title">Fase de acumulación — más intensidad</div></div></div><div class="prog-body">Compounds a RIR 1-2, accesorios a RIR 0-1. Aplica la regla de progresión: cuando completes todas las reps, subes peso (2.5 kg barra / 1-2 kg mancuerna). Aquí empieza la adaptación real.</div></div>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">7</div><div><div class="prog-title">Semana de deload — recuperación activa</div></div></div><div class="prog-body">Mitad de volumen, mismo peso aproximado. Sin HIIT duro. Tu sistema nervioso central lo necesita. No es una semana perdida: es donde consolidas las ganancias.</div></div>
+    <div class="prog-card"><div class="prog-header"><div class="prog-num">8–12</div><div><div class="prog-title">Fase de intensificación — pico</div></div></div><div class="prog-body">Máxima intensidad. Sigue la regla de progresión sin excepción. El sueño y la nutrición son críticos aquí. Sin 7.5-8h de sueño, el rendimiento cae y destruyes más músculo del que construyes.</div></div>
     <div style="background:#f0f7ff;border-radius:12px;padding:1.2rem 1.4rem;margin-top:1rem;border-left:3px solid var(--ocean);">
-      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ocean);margin-bottom:6px;">Regla de oro</div>
-      <div style="font-size:0.88rem;color:var(--navy);line-height:1.6;">Si en alguna semana el rendimiento cae de forma notable, inserta un día extra de descanso activo antes de continuar. El sobreentrenamiento destruye la composición corporal más rápido que cualquier déficit calórico.</div>
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ocean);margin-bottom:6px;">Regla de progresión</div>
+      <div style="font-size:0.88rem;color:var(--navy);line-height:1.6;">Cuando completes TODAS las reps de TODAS las series → subes peso. Ejemplo: prescripción 4×8. Si haces 8-8-8-8 → la próxima sesión subes 2.5 kg en barra o 1-2 kg en mancuerna. Sin excepciones.</div>
     </div>
   </div>
 
@@ -3060,12 +3061,12 @@
     <div class="section-heading">Recuperación</div>
     <p class="section-sub">El entrenamiento crea el estímulo, pero la mejora ocurre durante la recuperación.</p>
     <div class="rec-grid">
-      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></div><div class="rec-title">Sueño</div><div class="rec-text">8–9h mínimo. La hormona del crecimiento peak nocturno es tu mejor anabólico. Sin sueño suficiente, pierdes músculo aunque entrenes perfecto.</div></div>
-      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div><div class="rec-title">Movilidad diaria</div><div class="rec-text">10 min cada mañana: caderas, tobillos, columna torácica. Clave para el pop-up de surf y para prevenir lesiones en fútbol.</div></div>
-      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12s1-2 4-2 4 2 4 2"/><path d="M12 8v1M9 10l.5.5M15 10l-.5.5"/></svg></div><div class="rec-title">Contraste frío/calor</div><div class="rec-text">Ducha fría post-entreno o baño de contraste 3× (2' caliente / 1' frío). Reduce la inflamación y mejora la recuperación muscular.</div></div>
-      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="rec-title">Escucha al cuerpo</div><div class="rec-text">Si amaneces con fatiga acumulada o el rendimiento cae, toma un día extra de descanso activo. Es una señal, no una excusa.</div></div>
-      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div><div class="rec-title">Descanso activo</div><div class="rec-text">El domingo: paddle surf suave, natación o paseo. La recuperación activa elimina el lactato mejor que el reposo total.</div></div>
-      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="rec-title">Gestión del estrés</div><div class="rec-text">El cortisol elevado destruye músculo y acumula grasa. Estudios, exámenes y presión académica cuentan como carga. Ajusta el entrenamiento en épocas de máximo estrés.</div></div>
+      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></div><div class="rec-title">Sueño — tu mayor limitante</div><div class="rec-text">7.5–8h mínimo. Ahora mismo eres un recovery bottleneck. Sin sueño suficiente, pierdes músculo aunque entrenes perfecto. El abdomen aparece aquí, no en el gym.</div></div>
+      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div><div class="rec-title">Pasos diarios</div><div class="rec-text">4000 pasos es muy poco. Sube progresivamente: 4000 → 7000 → 9000. Tu transformación depende mucho de esto. Es NEAT (gasto no estructurado) que suma más que una sesión extra de gym.</div></div>
+      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12s1-2 4-2 4 2 4 2"/><path d="M12 8v1M9 10l.5.5M15 10l-.5.5"/></svg></div><div class="rec-title">Nutrición</div><div class="rec-text">2400 kcal de inicio. Proteína: 2.2g/kg ≈ 180g. Grasas: 65g. Carbos: el resto. Ajusta según evolución semanal. Sin déficit no baja la grasa; sin proteína no se mantiene el músculo.</div></div>
+      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="rec-title">Zona 2 — obligatoria</div><div class="rec-text">2 sesiones/semana. HIIT máximo 1-2 veces. Más HIIT = peor recuperación. Zona 2 mejora el motor aeróbico, la recuperación entre series y la oxidación de grasa en reposo.</div></div>
+      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div><div class="rec-title">Movilidad</div><div class="rec-text">Tobillo (10 min), cadera 90/90, columna torácica y hombro. El miércoles es tu día dedicado. Articulaciones sanas = entrenar más años = más resultado a largo plazo.</div></div>
+      <div class="rec-card"><div class="rec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="rec-title">Resultado realista — 12 semanas</div><div class="rec-text">Si cumples: 84 → 77-79 kg. Hombros más anchos, cintura menor, abdomen parcialmente visible, espalda atlética, mejor postura y mejor cardio. Atlético de verdad, no solo "de gym".</div></div>
     </div>
   </div>
 
@@ -3093,12 +3094,12 @@
           <div class="reg-field"><label class="reg-label">Día / Sesión</label>
             <select class="reg-select" id="reg-dia">
               <option value="">Selecciona día...</option>
-              <option value="Lunes — Fuerza Inf.">Lunes — Fuerza Inf.</option>
-              <option value="Martes — Cardio Surf">Martes — Cardio Surf</option>
-              <option value="Miércoles — Potencia">Miércoles — Potencia</option>
-              <option value="Jueves — Fuerza Sup.">Jueves — Fuerza Sup.</option>
-              <option value="Viernes — Fútbol">Viernes — Fútbol</option>
-              <option value="Sábado — HIIT Core">Sábado — HIIT Core</option>
+              <option value="Lunes — Upper Fuerza">Lunes — Upper Fuerza</option>
+              <option value="Martes — Lower + Core">Martes — Lower + Core</option>
+              <option value="Miércoles — Cardio/Movilidad">Miércoles — Cardio/Movilidad</option>
+              <option value="Jueves — Upper Hypertrophy">Jueves — Upper Hypertrophy</option>
+              <option value="Viernes — Conditioning">Viernes — Conditioning</option>
+              <option value="Sábado — Recuperación">Sábado — Recuperación</option>
               <option value="Domingo — Descanso">Domingo — Descanso</option>
             </select>
           </div>
@@ -3950,62 +3951,56 @@ function mostrarToast(msg, undoCallback) {
 
 // ══════════════════════════════ DÍAS DE ENTRENAMIENTO ══════════════════════════════
 let days = [
-  { title:"Fuerza tren inferior", day:"Lunes", tag:"Fuerza", tagClass:"tag-fuerza",
-    sub:"Objetivo: hipertrofia + fuerza base. Enfoque: glúteos, cuádriceps, isquios y estabilidad de tobillo (clave para surf y recepción de balón).",
+  { title:"Upper Fuerza + Potencia", day:"Lunes", tag:"Fuerza", tagClass:"tag-fuerza",
+    sub:"Objetivo: fuerza relativa + torso atlético. Explosividad máxima en los básicos, control total en accesorios.",
     phases:[
-      { name:"Calentamiento (10')", items:["Foam roller cuádriceps e IT band","Activación glúteo medio: 2×15 clamshells","Sentadilla profunda controlada: 2×8","Saltos de activación: 2×5"] },
-      { name:"Bloque principal (40')", items:["Sentadilla trasera: 4×6 @ 80%","Peso muerto rumano: 3×8","Prensa unilateral: 3×10/pierna","Step-up con mancuerna: 3×10/pierna","Elevaciones de talón: 3×15"] },
-      { name:"Finisher quemagrasa (5')", items:["Tabata: sentadilla jump 20\" on / 10\" off × 8 rondas"] },
-      { name:"Vuelta a la calma (5')", items:["Estiramiento psoas, cuádriceps, isquiotibiales"] }
-    ], tip:"Controlado en la bajada (3\" excéntrico), explosivo en la subida. Así maximizas masa con menos volumen." },
-  { title:"Cardio + habilidad surf", day:"Martes", tag:"Surf", tagClass:"tag-surf",
-    sub:"Objetivo: capacidad aeróbica + patrones de movimiento del surf. Simula la demanda real del paddle y los pop-ups.",
+      { name:"Calentamiento universal (10')", items:["Knee over toe rocks: 2×15","Terminal knee extensions: 2×20","Band pull apart: 2×20","Face pulls: 2×15","Dead bug: 2×10","Bici suave: 3 min"] },
+      { name:"Bloque principal", items:["Push Press: 5×3 — RIR 2, máxima explosividad","Dominadas pronas: 4×6 (cuando llegues a 10 limpias, añade lastre)","Press banca: 4×5 — RIR 1-2, escápulas atrás, pecho alto","Remo pecho apoyado: 4×8","Press inclinado mancuerna: 3×8","Elevaciones laterales: 4×15, control total"] },
+      { name:"Core", items:["Hanging leg raises: 4×12"] },
+      { name:"Finisher — Assault bike", items:["10s máximo / 50s suave × 8 rondas"] }
+    ], tip:"El Push Press NO es un press militar lento. Usa las piernas para generar impulso y termina la barra arriba con control. La fuerza relativa es tu objetivo principal." },
+  { title:"Lower Atlético + Core", day:"Martes", tag:"Fuerza", tagClass:"tag-fuerza",
+    sub:"Objetivo: pierna funcional y potente sin destruir las rodillas. Protección de menisco en cada ejercicio.",
     phases:[
-      { name:"Calentamiento (8')", items:["Rotaciones torácicas en cuadrupedia","Dislocaciones de hombro con goma","Plancha dinámica: 2×30\"","Hip circles: 1×10/lado"] },
-      { name:"Bloque cardio fartlek (25')", items:["2' carrera suave → 1' sprint × 8 series","O: remo en máquina 25' con cambios de ritmo","FC objetivo: 75–85% FC máx"] },
-      { name:"Surf drills (22')", items:["Pop-up en tabla en suelo: 4×10 reps","Paddling con goma elástica: 4×60\"","Balance board: 3×90\" con gestos de surf","Duck dive drill (TRX o en seco): 3×8"] },
-      { name:"Vuelta a la calma (5')", items:["Cobra, child's pose, rotaciones de columna"] }
-    ], tip:"El pop-up perfecto necesita fuerza de tríceps + explosividad de cadera. Practica en seco cada semana." },
-  { title:"Potencia + velocidad", day:"Miércoles", tag:"Potencia", tagClass:"tag-potencia",
-    sub:"Objetivo: explosividad neuromuscular. Directamente transferible a sprint en fútbol, saltos, cambios de dirección y pop-up de surf.",
+      { name:"Calentamiento universal (10')", items:["Knee over toe rocks: 2×15","Terminal knee extensions: 2×20","Band pull apart: 2×20","Face pulls: 2×15","Dead bug: 2×10","Bici suave: 3 min"] },
+      { name:"Bloque principal", items:["Trap Bar Deadlift: 4×5 (mejor opción que convencional para tu caso)","Box Squat: 3×6 — control en bajada, potencia en subida, tibia vertical","Romanian Deadlift: 3×8","Step Ups con mancuerna: 3×10/pierna (mejor que búlgaras para tu menisco)","Nordic Curl asistido: 3×6","Gemelo sentado: 3×15"] },
+      { name:"Core atlético", items:["Ab wheel: 4×10","Cable crunch: 4×15","Pallof press: 3×12/lado — core anti-rotación real"] }
+    ], tip:"Pallof press = core atlético de verdad. Anti-rotación, no solo crunch. Nordic curl protege tus isquios. Tempo 3-1-X-0 en todos los ejercicios." },
+  { title:"Cardio + Movilidad", day:"Miércoles", tag:"Cardio", tagClass:"tag-cardio",
+    sub:"Zona 2 obligatoria. Tu corazón, tu recuperación y tu composición corporal mejoran aquí.",
     phases:[
-      { name:"Calentamiento neuromuscular (10')", items:["Activación con saltos en caja baja","Skipping A y B: 2×20m","Aceleraciones: 3×20m al 80%"] },
-      { name:"Pliometría (15')", items:["Salto a caja: 4×5 reps (caída suave)","Broad jump: 4×4 reps","Lateral bound: 3×6/lado"] },
-      { name:"Velocidad (20')", items:["Sprint 40m: 6×1 (recuperación completa 3')","Sprint lanzado 20m: 4×1","Cambio de dirección 5-10-5: 4 reps/lado"] },
-      { name:"Core anti-rotacional (10')", items:["Pallof press: 3×12/lado","Plank to push-up: 3×10","Dead bug: 3×8/lado"] }
-    ], tip:"Recuperación COMPLETA entre sprints. Si no descansas bien, trabajas resistencia, no velocidad. El objetivo hoy es calidad máxima." },
-  { title:"Fuerza tren superior", day:"Jueves", tag:"Fuerza", tagClass:"tag-fuerza",
-    sub:"Objetivo: fuerza de empuje + tracción + estabilidad escapular. Clave para el paddle de surf y los duelos aéreos en fútbol.",
+      { name:"Cardio Zona 2 (40-50 min)", items:["Opción A: caminar en cinta con inclinación","Opción B: bicicleta estática ritmo constante","Opción C: remo suave","Referencia: debes poder hablar con frases completas durante todo el rato","FC objetivo: 60-70% FC máx"] },
+      { name:"Movilidad (15-20 min)", items:["Tobillo: knee over toe drill progresivo — 10 min","Cadera: 90/90 hip flow — 5 min/lado","Columna torácica: rotaciones en cuadrupedia — 2×10/lado","Hombro: band mobility, dislocaciones — 2×15"] }
+    ], tip:"2 sesiones de Zona 2 por semana son obligatorias. HIIT máximo 1-2 veces. Más HIIT = peor recuperación = peor composición corporal." },
+  { title:"Upper Athletic Hypertrophy", day:"Jueves", tag:"Hiper.", tagClass:"tag-fuerza",
+    sub:"Objetivo: construir torso estético sin la fatiga del culturismo. Look surfero: hombros anchos, espalda en V.",
     phases:[
-      { name:"Calentamiento (8')", items:["Rotación externa de hombro con goma: 2×15","Face pulls: 2×20","Flexiones scapulares: 2×10","Apertura torácica en foam roller"] },
-      { name:"Bloque principal (42')", items:["Press banca plano: 4×6 @ 78%","Dominadas lastradas: 4×5–6","Press militar: 3×8","Remo con barra: 3×8","Curl martillo + tríceps en polea: 3×12 superset"] },
-      { name:"Core funcional (5')", items:["Hollow body hold: 3×30\"","Ab wheel rollout: 3×8"] },
-      { name:"Vuelta a la calma (5')", items:["Doorway stretch pectoral, estiramiento dorsal"] }
-    ], tip:"La relación tracción:empuje debe ser 2:1 para proteger el manguito rotador. Prioriza siempre dominadas y remos." },
-  { title:"Fútbol: técnica + físico", day:"Viernes", tag:"Fútbol", tagClass:"tag-futbol",
-    sub:"Objetivo: transferir toda la base física al deporte. Técnica con fatiga controlada, como en partido real.",
+      { name:"Calentamiento universal (10')", items:["Knee over toe rocks: 2×15","Terminal knee extensions: 2×20","Band pull apart: 2×20","Face pulls: 2×15","Dead bug: 2×10","Bici suave: 3 min"] },
+      { name:"Bloque A — Tracción", items:["Dominadas neutras: 4×AMRAP","Jalón unilateral: 3×10/lado","Remo unilateral polea: 3×10/lado"] },
+      { name:"Bloque B — Empuje", items:["Press inclinado barra: 4×8","Fondos: 3×AMRAP"] },
+      { name:"Detalle estético — hombros", items:["Elevaciones laterales en polea: 4×15 — CLAVE para look surfero, tensión constante","Face pulls: 3×15 — salud del manguito rotador"] },
+      { name:"Brazos (lo necesario)", items:["Curl martillo: 3×10","Extensión tríceps cuerda: 2×12"] }
+    ], tip:"Las elevaciones laterales en polea son el ejercicio que más va a cambiar tu estética. Tensión constante vs mancuerna. 4 series, siempre. RIR 0-1 en accesorios." },
+  { title:"Rendimiento + Conditioning", day:"Viernes", tag:"Potencia", tagClass:"tag-potencia",
+    sub:"Objetivo: convertirte en alguien atlético de verdad. Potencia, capacidad física real y trabajo metabólico.",
     phases:[
-      { name:"Calentamiento dinámico (10')", items:["Rondo 4v1 o pases en movimiento","Cambios de dirección con balón: 5'","Sprints cortos 10–15m con balón"] },
-      { name:"Técnica bajo fatiga (25')", items:["Conducción + regate en circuito: 3×5'","Finalización tras sprint: 4×5 remates","Presión y recuperación defensiva: 3×3'"] },
-      { name:"Físico específico fútbol (20')", items:["Agilidad con escalera: 3×30\" patter a máxima vel.","Sprint + vuelta + salto cabeceo: 6×1","Resistencia intermitente 10-10: 10' (10\" sprint / 10\" trote)"] },
-      { name:"Vuelta a la calma (5')", items:["Estiramiento cadena posterior, adductores"] }
-    ], tip:"La resistencia intermitente 10-10 simula exactamente la demanda energética del fútbol real. Muy eficiente para quemar grasa sin perder velocidad." },
-  { title:"HIIT + core surf", day:"Sábado", tag:"Cardio", tagClass:"tag-cardio",
-    sub:"Objetivo: máxima oxidación de grasa + core profundo para equilibrio en la tabla. Sesión de alta intensidad corta.",
+      { name:"Bloque A — Potencia (máxima explosividad)", items:["Box jumps: 5×3 — aterriza suave, recuperación completa entre series","Med Ball Slams: 5×5 — máxima intensidad en cada rep"] },
+      { name:"Bloque B — Conditioning", items:["Sprints en bicicleta: 10 rounds","↳ 15s all out / 45s suave"] },
+      { name:"Bloque C — Athletic Work", items:["Farmer Carries: 5 rondas pesado","Sled Push: 6 rondas (si hay disponible)","Battle ropes: 5×30s"] },
+      { name:"Bloque D — Core", items:["Hanging knee raises: 3×15","Side plank: 3×30s/lado","Vacuum: 5 min en total"] }
+    ], tip:"Recuperación COMPLETA en el bloque de potencia. Si no descansas entre box jumps, trabajas resistencia, no potencia. El objetivo es calidad máxima en cada repetición." },
+  { title:"Recuperación Activa", day:"Sábado", tag:"Opcional", tagClass:"tag-descanso",
+    sub:"Día opcional. Si estás cansado: descanso total. Si estás fresco: actividad ligera. Este día NO es para destruirte.",
     phases:[
-      { name:"Calentamiento (8')", items:["Saltos de cuerda suave: 3'","Movilidad de cadera: 5'"] },
-      { name:"HIIT metabólico (30') — 40\" trabajo / 20\" descanso × 4 rondas", items:["Burpee con salto","Kettlebell swing","Box jump","Battle rope o sprints","Mountain climbers"] },
-      { name:"Core para surf (17')", items:["Turkish get-up: 3×3/lado","Surfing plank (rotación sobre manos): 3×10","Rotación rusa con balón medicinal: 3×20","Superman hold: 3×30\""] },
-      { name:"Movilidad (5')", items:["Pigeon pose, rotación espinal tumbado"] }
-    ], tip:"Este día es el de mayor oxidación de grasa de la semana. Combinación HIIT + déficit calórico muy potente. Hidratación óptima." },
-  { title:"Descanso activo", day:"Domingo", tag:"Descanso", tagClass:"tag-descanso",
-    sub:"No es un día perdido. La recuperación activa acelera la eliminación de lactato y mejora la preparación para la semana siguiente.",
+      { name:"Si estás cansado", items:["DESCANSO TOTAL","Prioriza el sueño","No hay nada que ganar forzando hoy"] },
+      { name:"Si estás fresco (45-60 min)", items:["Caminar al aire libre","Movilidad completa","Surf, skate, fútbol, basket, etc."] }
+    ], tip:"La diferencia entre atletas que progresan y los que se estancan está en saber cuándo descansar. Llega al lunes al 100%." },
+  { title:"Descanso", day:"Domingo", tag:"Descanso", tagClass:"tag-descanso",
+    sub:"El descanso es donde ocurre la adaptación. Sin él, el entrenamiento destruye en vez de construir.",
     phases:[
-      { name:"Opción A: playa o agua (45–60')", items:["Paddle surf, natación suave o kayak","FC por debajo del 60% FC máx","Disfruta del entorno — beneficio psicológico real"] },
-      { name:"Opción B: sin agua (45–60')", items:["Paseo o ciclismo suave","Yoga o sesión de movilidad guiada","Foam roller cuerpo completo: 15'"] },
-      { name:"Protocolos de recuperación", items:["Baño de contraste: 3× (2' caliente / 1' frío)","Sueño: objetivo 9h esta noche","Revisión mental de la semana y ajustes"] },
-      { name:"Nutrición del domingo", items:["Día bajo en carbohidratos (carb cycling)","Mantener proteína alta: 2g/kg","Aumentar vegetales y grasas saludables"] }
-    ], tip:"Los atletas de élite no descansan pasivamente. Usa este día para activar la recuperación y llegar al lunes al 100%." }
+      { name:"Protocolo de descanso", items:["Sin entrenamiento","Objetivo de sueño: 7.5-8h — eres un recovery bottleneck","Proteína alta: ≈180g (2.2g/kg)","Hidratación correcta"] },
+      { name:"Lo que más va a cambiar tu físico", items:["1. Dormir más — ahora mismo es tu mayor limitante","2. Aumentar pasos: objetivo progresivo 4000 → 7000 → 9000/día","3. Bajar grasa — el abdomen aparece aquí, no en el gym","4. Dominadas — tu espalda cambiará cuando seas fuerte aquí"] }
+    ], tip:"En 12 semanas cumpliendo: 84 → 77-79 kg, hombros más anchos, cintura menor, abdomen parcialmente visible, postura atlética. Y lo más importante: te verás atlético de verdad, no simplemente 'de gym'." }
 ];
 
 function renderDay(idx) {
@@ -4241,35 +4236,31 @@ document.getElementById('input-diaria').addEventListener('keydown', e => { if (e
 document.getElementById('input-larga').addEventListener('keydown', e => { if (e.key==='Enter') addTarea('largas'); });
 loadTareas();
 
-// Event delegation para tareas (iOS/móvil)
+// Event delegation para tareas
 ['list-diarias','list-largas'].forEach(function(listId) {
   var container = document.getElementById(listId);
   if (!container) return;
-  ['touchend','click'].forEach(function(evType) {
-    container.addEventListener(evType, function(e) {
-      var btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      e.preventDefault(); e.stopPropagation();
-      var action = btn.dataset.action, tipo = btn.dataset.tipo, id = Number(btn.dataset.id);
-      if (action === 'edit') abrirEditTarea(tipo, id);
-      else if (action === 'del') deleteTarea(tipo, id);
-    }, { passive: false });
+  container.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    var action = btn.dataset.action, tipo = btn.dataset.tipo, id = Number(btn.dataset.id);
+    if (action === 'edit') abrirEditTarea(tipo, id);
+    else if (action === 'del') deleteTarea(tipo, id);
   });
 });
 
-// Event delegation para eventos de calendario (iOS/móvil)
+// Event delegation para eventos de calendario
 (function() {
   var calList = document.getElementById('cal-event-list');
   if (!calList) return;
-  ['touchend','click'].forEach(function(evType) {
-    calList.addEventListener(evType, function(e) {
-      var btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      e.preventDefault(); e.stopPropagation();
-      var action = btn.dataset.action, idx = Number(btn.dataset.idx);
-      if (action === 'edit') openEditModal(idx);
-      else if (action === 'del') deleteCalEvent(idx);
-    }, { passive: false });
+  calList.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    var action = btn.dataset.action, idx = Number(btn.dataset.idx);
+    if (action === 'edit') openEditModal(idx);
+    else if (action === 'del') deleteCalEvent(idx);
   });
 })();
 
@@ -4364,17 +4355,15 @@ window.renderTareas = function(tipo) {
 window.addEventListener('firebase-ready', loadMiDia, { once: true });
 if (window._fbReady) loadMiDia();
 
-// Event delegation para Mi Día (iOS/móvil)
+// Event delegation para Mi Día
 ['midia-manana','midia-tarde','midia-noche'].forEach(function(id) {
   var el = document.getElementById(id);
   if (!el) return;
-  ['touchend','click'].forEach(function(evType) {
-    el.addEventListener(evType, function(e) {
-      var btn = e.target.closest('[data-action="del"][data-bloque]');
-      if (!btn) return;
-      e.preventDefault(); e.stopPropagation();
-      deleteMiDiaItem(btn.dataset.bloque, Number(btn.dataset.id));
-    }, { passive: false });
+  el.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action="del"][data-bloque]');
+    if (!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    deleteMiDiaItem(btn.dataset.bloque, Number(btn.dataset.id));
   });
 });
 
@@ -8847,7 +8836,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
   const firebaseConfig = {
@@ -8864,7 +8853,7 @@ document.getElementById('modal-edit-nota').addEventListener('click', function(e)
   const db   = getFirestore(app);
   const auth = getAuth(app);
   // Persistencia por pestaña: sobrevive recargas, no se comparte entre pestañas
-  setPersistence(auth, browserSessionPersistence).catch(e => console.warn('[Auth]', e));
+  setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Auth]', e));
   let _currentUid = null;
 
   // ── Helpers Firestore (por usuario) ──
@@ -9805,12 +9794,7 @@ async function ajPermSolicitar(tipo) {
   }
 }
 
-// Comprobar permisos al abrir el acordeón de permisos
-const _origAjAccToggle = window.ajAccToggle;
-window.ajAccToggle = function(id) {
-  if (typeof _origAjAccToggle === 'function') _origAjAccToggle(id);
-  if (id === 'permisos') ajPermComprobar();
-};
+
 </script>
 
 <!-- SHEETS (bottom drawers) -->
@@ -9969,6 +9953,7 @@ function ajAccToggle(id) {
   const acc = document.getElementById('aj-acc-' + id);
   if (!acc) return;
   acc.classList.toggle('open');
+  if (id === 'permisos') ajPermComprobar();
 }
 
 function ajCargarPerfil(cb) {
