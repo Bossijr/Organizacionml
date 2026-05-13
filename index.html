@@ -4319,19 +4319,6 @@ function clearDone(tipo) {
   tareasData[tipo] = tareasData[tipo].filter(x => !x.done); saveTareas(); renderTareas(tipo);
 }
 
-function _bindBtn(btn, action) {
-  var fired = false;
-  btn.addEventListener('touchend', function(e) {
-    e.preventDefault(); e.stopPropagation();
-    fired = true; setTimeout(function(){ fired = false; }, 600);
-    action();
-  }, { passive: false });
-  btn.addEventListener('click', function(e) {
-    if (fired) { fired = false; return; }
-    e.stopPropagation();
-    action();
-  });
-}
 function renderTareas(tipo) {
   const list = document.getElementById('list-' + tipo);
   const items = tareasData[tipo];
